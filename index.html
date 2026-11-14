@@ -19,7 +19,7 @@ body { margin: 0; }
   --watch: #F5C518; --watch-ink: #1B1A12; --watch-card: #FEF5D2; --watch-line: #EBD88C;
   --danger: #D7372B; --danger-ink: #FFFFFF; --danger-card: #FBE3E0; --danger-line: #EBB3AC;
   --gray: #A3A99F; --gray-ink: #14171A; --gray-card: #EEF0EC; --gray-line: #CDD1CA;
-  --cold: #5B8DEF; --alert-btn: #C42F24; --you: #2563EB; --map: #E8ECE3; --white: #FFFFFF;
+  --cold: #5B8DEF; --alert-btn: #C42F24; --you: #2563EB; --map: #3C463A; --white: #FFFFFF;
   --plate: rgba(255, 255, 255, 0.62); --plate-on: rgba(255, 255, 255, 0.97); --plate-line: #B5BDB2;
   --display: "Space Grotesk", Inter, system-ui, sans-serif;
   --font: Inter, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
@@ -40,6 +40,14 @@ svg.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor;
   padding: 8px max(20px, env(safe-area-inset-right, 0px)) 8px max(20px, env(safe-area-inset-left, 0px));
   background: var(--panel); border-bottom: 1px solid var(--line); position: relative; z-index: 30;
 }
+.hdr-left { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.views { display: flex; gap: 4px; padding: 3px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
+.views button { border: 0; background: none; border-radius: 7px; padding: 4px 12px; text-align: left; line-height: 1.15; }
+.views button small { display: block; font-size: 11px; font-weight: 600; color: var(--ink-3); }
+.views button span { font-weight: 600; font-size: 14px; }
+.views button:hover { background: var(--hover); }
+.views button[aria-pressed="true"] { background: var(--ink); color: var(--white); }
+.views button[aria-pressed="true"] small { color: #C9CEC6; }
 .hdr h1 { margin: 0; font-family: var(--display); font-weight: 600; font-size: 16px; letter-spacing: -0.01em; display: flex; align-items: center; gap: 8px; }
 .legend { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; font-size: 13px; color: var(--ink-2); }
 .legend > span { display: flex; align-items: center; gap: 8px; }
@@ -85,6 +93,7 @@ svg.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor;
 .wcard .nm { font-weight: 600; font-size: 15px; }
 .wcard .st { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); }
 .wcard .st svg { width: 13px; height: 13px; stroke: var(--ink); stroke-width: 3.2; }
+.wcard .pl { font-size: 12px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .wcard .vals { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; font-variant-numeric: tabular-nums; }
 .wcard .vals b { font-weight: 600; font-size: 16px; }
 .wcard .vals span { font-size: 13px; color: var(--ink-2); }
@@ -97,7 +106,29 @@ svg.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor;
 .mapv.drag { cursor: grabbing; }
 .world { position: absolute; left: 50%; top: 50%; transform-origin: 0 0; transition: transform 450ms cubic-bezier(.2, .7, .2, 1); }
 .mapv.drag .world, .mapv.drag .pin { transition: none !important; }
-.world > svg { position: absolute; left: 0; top: 0; display: block; }
+.world > .sat { position: absolute; left: 0; top: 0; }
+.world > .trail, .world > .trail svg { position: absolute; left: 0; top: 0; pointer-events: none; display: block; max-width: none; }
+.log li.tap { cursor: pointer; border-radius: 6px; margin-left: -6px; padding-left: 6px; }
+.log li.tap:hover { background: var(--hover); }
+.log li.on { background: #EEF3FE; }
+.sat img, .sat svg { position: absolute; left: 0; top: 0; display: block; max-width: none; }
+.sat img { pointer-events: none; }
+.bld { fill: rgba(255, 255, 255, 0.04); stroke: rgba(255, 255, 255, 0.55); stroke-width: 1.2; vector-effect: non-scaling-stroke; }
+.bld[data-bld] { cursor: pointer; }
+.bld[data-bld]:hover, .bld.picked { fill: rgba(255, 255, 255, 0.22); stroke: #fff; stroke-width: 2; }
+.bld.ilc { fill: rgba(37, 99, 235, 0.18); stroke: #fff; stroke-width: 2; }
+.blab { font-family: var(--font); font-weight: 600; font-size: var(--lab, 12px); fill: #fff; text-anchor: middle; dominant-baseline: middle; paint-order: stroke; stroke: rgba(10, 14, 12, 0.8); stroke-width: 3px; stroke-linejoin: round; pointer-events: none; }
+.blab.ilc { font-weight: 700; }
+.mapv.far .blab:not(.ilc) { display: none; }
+.attrib { position: absolute; right: 76px; bottom: 6px; z-index: 4; font-size: 10px; color: #fff; text-shadow: 0 0 3px #000; pointer-events: auto; max-width: calc(100% - 96px); text-align: right; }
+.attrib a { color: inherit; }
+.bcard { position: absolute; z-index: 6; transform: translate(-50%, calc(-100% - 12px)); background: var(--panel); border-radius: 10px; box-shadow: 0 8px 24px rgba(20, 23, 26, .3); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; min-width: 200px; max-width: 260px; cursor: default; }
+.bcard h3 { margin: 0; font-family: var(--display); font-size: 15px; font-weight: 600; padding-right: 28px; }
+.bcard .links { display: flex; gap: 8px; flex-wrap: wrap; }
+.bcard .x { position: absolute; top: 4px; right: 4px; width: 32px; height: 32px; }
+.lnk { height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--edge); background: var(--panel); color: var(--ink); font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; white-space: nowrap; }
+.lnk:hover { background: var(--hover); }
+.pop .lnk { height: 44px; }
 .pin {
   position: absolute; width: 44px; height: 44px; padding: 0; border: 3px solid var(--white); border-radius: 50%;
   background: var(--fill); color: var(--ink2); font-family: var(--display); font-weight: 700; font-size: 14px;
@@ -114,8 +145,21 @@ svg.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor;
 .zoom { position: absolute; right: 20px; bottom: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 5; }
 .zoom button { width: 44px; height: 44px; padding: 0; border: 1px solid var(--edge); border-radius: 8px; background: var(--panel); display: grid; place-items: center; box-shadow: 0 1px 2px rgba(20, 23, 26, .12); }
 .zoom button:hover { background: var(--hover); }
+.zoom button[aria-pressed="true"] { background: var(--ink); color: var(--white); border-color: var(--ink); }
+.sat img { transition: filter .8s ease; }
+.mapv.night .sat img { filter: brightness(.38) saturate(.5) contrast(1.15); }
+.mapv.night .bld { stroke: rgba(255, 214, 140, .45); }
+.mapv.night .bld.ilc { fill: rgba(255, 196, 90, .22); stroke: rgba(255, 214, 140, .95); }
+.mapv.night .blab { fill: #FFE9C2; }
+.locate .ground img, .flatmap img { transition: filter .8s ease; }
+.night-on .locate .ground img, .night-on .flatmap img { filter: brightness(.5) saturate(.6); }
+.topstack {
+  position: absolute; top: 16px; left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100% - 32px); z-index: 9;
+  display: flex; flex-direction: column; align-items: center; gap: 10px; pointer-events: none;
+}
+.topstack > * { pointer-events: auto; }
 .banner {
-  position: absolute; top: 16px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 32px); z-index: 6;
+  max-width: 100%;
   display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 6px 6px 6px 14px; border-radius: 12px;
   background: var(--ink); color: var(--white); box-shadow: 0 8px 24px rgba(20, 23, 26, .25); cursor: default;
 }
@@ -128,6 +172,33 @@ svg.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor;
 .btn.sent { background: var(--white); color: var(--ink); border: 1px solid var(--edge); }
 .banner .btn.sent { background: var(--ink); color: var(--white); border-color: var(--edge); }
 .btn.green { background: var(--ok); color: var(--ok-ink); cursor: default; }
+.btn.go { background: var(--panel); color: var(--ink); border: 1px solid var(--edge); }
+.banner .btn.go { background: var(--white); border: 0; }
+.btn.check { width: 44px; padding: 0; background: var(--ok); color: var(--ok-ink); animation: pop-in .3s cubic-bezier(.2, .7, .2, 1); }
+.btn.check svg { width: 22px; height: 22px; stroke-width: 3.2; }
+@keyframes pop-in { from { transform: scale(.4); opacity: 0; } to { transform: none; opacity: 1; } }
+.near { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.banner .near { color: #D5D9D2; }
+.pop .near { color: var(--ink-2); }
+.otw { display: flex; align-items: center; gap: 6px; padding: 0 6px; font-weight: 600; font-size: 14px; white-space: nowrap; }
+.otw svg { width: 15px; height: 15px; }
+.pop .otw { color: var(--ink); }
+.banner .otw { color: var(--white); }
+/* fast-forward: hard to miss */
+.ffpill {
+  display: flex; align-items: center; gap: 10px; padding: 10px 18px; border-radius: 999px; white-space: nowrap;
+  background: var(--you); color: var(--white); font-family: var(--display); box-shadow: 0 10px 28px rgba(37, 99, 235, .35);
+}
+.ffpill .chev { font-size: 22px; letter-spacing: -4px; animation: chev .5s ease-in-out infinite alternate; }
+.ffpill b { font-size: 28px; font-weight: 700; line-height: 1; }
+.ffpill .ffw { font-size: 16px; font-weight: 600; }
+.ffpill .ffclock { font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; padding-left: 12px; border-left: 1px solid rgba(255, 255, 255, .4); }
+@keyframes chev { from { transform: translateX(-3px); opacity: .55; } to { transform: translateX(3px); opacity: 1; } }
+.mapv.fast::after {
+  content: ""; position: absolute; inset: 0; z-index: 9; pointer-events: none;
+  box-shadow: inset 0 0 0 4px var(--you), inset 0 0 70px rgba(37, 99, 235, .28); animation: glow 1s ease-in-out infinite alternate;
+}
+@keyframes glow { from { opacity: .5; } to { opacity: 1; } }
 .x { width: 44px; height: 44px; padding: 0; border: 0; border-radius: 8px; background: var(--panel); display: grid; place-items: center; }
 .x:hover { background: var(--hover); }
 
@@ -138,7 +209,8 @@ svg.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor;
   animation: rise 260ms cubic-bezier(.2, .7, .2, 1);
 }
 @keyframes rise { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
-.pop-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.pop-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding-right: 48px; }
+.pop-x { position: absolute; top: 10px; right: 10px; }
 .pop-head .av { width: 36px; height: 36px; font-size: 13px; }
 .pop-head h2 { margin: 0; font-family: var(--display); font-weight: 600; font-size: 17px; }
 .pill { display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: var(--card); box-shadow: inset 0 0 0 1px var(--cline); font-size: 13px; font-weight: 600; }
@@ -203,7 +275,150 @@ svg.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor;
 .flatmap img { position: absolute; display: block; max-width: none; transition: left var(--move) linear, top var(--move) linear; }
 .flatmap svg.route { position: absolute; inset: 0; width: 100%; height: 100%; }
 
+/* story mode, why panel, activity log, about */
+.play { height: 40px; padding: 0 16px 0 12px; border: 0; border-radius: 999px; background: var(--you); color: var(--white); font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 14px rgba(37, 99, 235, .35); }
+.play svg { width: 16px; height: 16px; fill: currentColor; stroke: none; }
+.play[aria-pressed="true"] { background: var(--ink); box-shadow: none; }
+.hbtn { height: 34px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); font-weight: 600; font-size: 13px; color: var(--ink-2); display: inline-flex; align-items: center; gap: 6px; }
+.hbtn:hover { background: var(--hover); }
+#sound-btn[aria-pressed="false"] { color: var(--ink-3); text-decoration: line-through; }
+.hbtn[aria-pressed="true"]:not(#sound-btn) { background: var(--ink); color: var(--white); border-color: var(--ink); }
+.caption { max-width: min(640px, 100%); display: flex; align-items: center; gap: 12px; padding: 10px 10px 10px 14px; border-radius: 14px; background: var(--panel); color: var(--ink); box-shadow: 0 10px 30px rgba(20, 23, 26, .3); border: 2px solid var(--you); animation: rise 260ms cubic-bezier(.2, .7, .2, 1); }
+.caption .stepn { flex: none; width: 30px; height: 30px; border-radius: 50%; background: var(--you); color: var(--white); font-family: var(--display); font-weight: 700; font-size: 14px; display: grid; place-items: center; }
+.caption .ctext { font-size: 15px; font-weight: 500; line-height: 1.35; text-wrap: pretty; }
+.caption .ctext b { font-weight: 700; }
+.caption .fast { flex: none; font-family: var(--display); font-weight: 700; font-size: 12px; color: var(--you); white-space: nowrap; }
+.caption .x { flex: none; width: 36px; height: 36px; }
+.why { display: grid; grid-template-columns: minmax(0, 1fr) minmax(200px, 300px); gap: 8px 16px; align-items: start; padding-top: 10px; border-top: 1px solid var(--line-2); }
+.why-plot { position: relative; height: 92px; border-radius: 8px; background: var(--bg); overflow: hidden; }
+.why-chart { position: absolute; inset: 6px 0; width: 100%; height: calc(100% - 12px); display: block; }
+.why-fixed { position: absolute; right: 6px; transform: translateY(-110%); font-size: 11px; font-weight: 600; color: var(--ink-2); background: var(--bg); padding: 0 4px; border-radius: 4px; }
+.why-key { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--ink-3); margin-top: 4px; }
+.why-key i { display: inline-block; width: 14px; height: 8px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
+.kvs { display: flex; flex-wrap: wrap; gap: 6px 20px; }
+.kv { display: flex; flex-direction: column; }
+.kv b { font-family: var(--display); font-weight: 700; font-size: 22px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.kv span { font-size: 12px; color: var(--ink-3); }
+.why-txt { font-size: 13px; line-height: 1.45; color: var(--ink-2); }
+.why-txt b { color: var(--ink); }
+.ev { height: 8px; border-radius: 4px; background: var(--line-2); overflow: hidden; margin: 8px 0 3px; }
+.ev span { display: block; height: 100%; border-radius: 4px; background: var(--watch); transition: width .4s ease; }
+.ev.hot span { background: var(--danger); }
+.evl { font-size: 12px; color: var(--ink-3); }
+.log { flex: none; max-height: 30%; min-height: 96px; display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+.log-h { padding: 10px 20px 4px; font-family: var(--display); font-weight: 600; font-size: 14px; display: flex; justify-content: space-between; align-items: baseline; }
+.lh-r { display: inline-flex; align-items: center; gap: 6px; }
+.sumb { width: 32px; height: 32px; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--you); display: grid; place-items: center; }
+.sumb:hover { background: var(--hover); }
+.sumline { margin: 0 12px 8px 20px; padding: 8px 10px; border-radius: 8px; background: #EEF3FE; color: var(--ink); font-size: 13px; line-height: 1.4; font-weight: 500; }
+.lstat { margin-left: 8px; font-family: var(--font); font-weight: 500; font-size: 12px; color: var(--ink-2); }
+.lstat b { font-family: var(--display); color: var(--ink); }
+.log-h small { font-family: var(--font); font-weight: 500; font-size: 12px; color: var(--ink-3); }
+.log ol { list-style: none; margin: 0; padding: 0 12px 12px 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+.log li { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 8px; font-size: 13px; color: var(--ink-2); line-height: 1.35; }
+.log li time { font-variant-numeric: tabular-nums; color: var(--ink-3); }
+.log li.lv-danger span { color: var(--danger); font-weight: 600; }
+.log li.lv-go span { color: var(--you); font-weight: 600; }
+.log li.lv-ok span { color: #1C7A40; font-weight: 600; }
+.log li.none { display: block; color: var(--ink-3); }
+.privrow { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 12px 12px 20px; font-size: 13px; color: var(--ink-2); }
+.switch { height: 32px; padding: 0 10px 0 6px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: 13px; }
+.switch i { width: 30px; height: 18px; border-radius: 9px; background: var(--gray); position: relative; transition: background .2s; }
+.switch i::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--white); transition: transform .2s; }
+.switch[aria-pressed="true"] i { background: var(--you); }
+.switch[aria-pressed="true"] i::after { transform: translateX(12px); }
+.about { position: fixed; inset: 0; z-index: 80; background: rgba(20, 23, 26, .5); display: grid; place-items: start center; overflow-y: auto; padding: max(24px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 24px max(16px, env(safe-area-inset-left, 0px)); }
+.about-in { position: relative; width: min(880px, 100%); background: var(--panel); border-radius: 16px; padding: 28px 28px 24px; box-shadow: 0 20px 60px rgba(20, 23, 26, .35); display: flex; flex-direction: column; gap: 22px; }
+.about-in > .x { position: absolute; top: 12px; right: 12px; }
+.about h2 { margin: 0; font-family: var(--display); font-weight: 700; font-size: 28px; letter-spacing: -0.02em; text-wrap: balance; padding-right: 40px; }
+.about h3 { margin: 0 0 10px; font-family: var(--display); font-weight: 600; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+.about p { margin: 0; max-width: 68ch; color: var(--ink-2); font-size: 15px; line-height: 1.5; }
+.about .lede { font-size: 18px; color: var(--ink); }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+.stat { background: var(--bg); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
+.stat b { font-family: var(--display); font-weight: 700; font-size: 26px; line-height: 1.1; }
+.stat span { font-size: 13px; color: var(--ink-2); line-height: 1.4; }
+.stat a { font-size: 11px; color: var(--ink-3); }
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; counter-reset: st; }
+.steps > div { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; font-size: 13px; color: var(--ink-2); line-height: 1.45; }
+.steps > div b { display: block; font-size: 14px; color: var(--ink); margin-bottom: 4px; }
+.steps > div b::before { counter-increment: st; content: counter(st) "  "; color: var(--you); font-family: var(--display); }
+.steps.plain > div b::before { content: none; }
+.cmp td.yes, .cmp td.no { text-align: center; }
+.cmp-wrap { overflow-x: auto; }
+.cmp { width: 100%; min-width: 560px; border-collapse: collapse; font-size: 13px; }
+.cmp th, .cmp td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line-2); vertical-align: top; }
+.cmp th { font-weight: 600; color: var(--ink-3); font-size: 12px; }
+.cmp td:first-child { font-weight: 600; color: var(--ink); }
+.cmp .yes { color: #1C7A40; font-weight: 700; }
+.cmp .no { color: var(--ink-3); }
+.cmp tr.us td { background: #EEF3FE; }
+.bul { margin: 0; padding-left: 18px; color: var(--ink-2); font-size: 14px; line-height: 1.55; display: grid; gap: 4px; }
+.fine { font-size: 12px; color: var(--ink-3); }
+.fine a { color: inherit; }
+/* worker's clip view: docked on the dashboard, or full screen on a phone (#clip) */
+.clipdock { position: absolute; top: 16px; right: max(16px, env(safe-area-inset-right, 0px)); width: 310px; max-height: calc(100% - 32px); overflow-y: auto; z-index: 8; border-radius: 28px; background: var(--ink); padding: 10px; box-shadow: 0 16px 40px rgba(20, 23, 26, .35); cursor: default; }
+.mapv.docked .pop { right: 342px; }
+.mapv.docked .topstack { left: calc(50% - 163px); max-width: calc(100% - 374px); }
+.clipapp { display: none; }
+body.clipmode .app { display: none; }
+body.clipmode .clipapp { display: flex; flex-direction: column; min-height: 100%; background: var(--ink); padding: 12px max(12px, env(safe-area-inset-right, 0px)) 16px max(12px, env(safe-area-inset-left, 0px)); }
+.clip { background: var(--panel); border-radius: 20px; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+body.clipmode .clip { flex: 1; max-width: 480px; width: 100%; margin: 0 auto; }
+.clip-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.clip-top b { font-family: var(--display); font-size: 16px; }
+.conn { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 999px; background: var(--bg); color: var(--ink-2); white-space: nowrap; }
+.conn.live { background: var(--you); color: var(--white); }
+.clip label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
+.clip select { flex: 1; min-width: 0; height: 36px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); font: inherit; font-weight: 600; padding: 0 8px; }
+.cstat { border-radius: 16px; padding: 16px; background: var(--card); box-shadow: inset 0 0 0 1px var(--cline); display: flex; flex-direction: column; gap: 6px; }
+.cstat h3 { margin: 0; font-family: var(--display); font-weight: 700; font-size: 24px; line-height: 1.15; text-wrap: balance; }
+.cstat p { margin: 0; font-size: 15px; line-height: 1.4; color: var(--ink); }
+.chelp { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 12px; background: var(--you); color: var(--white); font-weight: 600; font-size: 15px; }
+.chelp svg { width: 18px; height: 18px; }
+.cread { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.cread > div { background: var(--bg); border-radius: 10px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; }
+.cread b { font-family: var(--display); font-size: 20px; font-variant-numeric: tabular-nums; }
+.cread small { font-size: 12px; color: var(--ink-3); }
+.cread .wide { grid-column: 1 / -1; font-size: 13px; color: var(--ink-2); }
+.okbtn { height: 52px; border: 2px solid var(--ink); border-radius: 14px; background: var(--panel); font-weight: 700; font-size: 17px; }
+.sos { position: relative; height: 64px; border: 0; border-radius: 16px; background: var(--alert-btn); color: var(--white); font-weight: 700; font-size: 18px; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
+.sos::before { content: ""; position: absolute; inset: 0; background: rgba(0, 0, 0, .28); transform-origin: left; transform: scaleX(0); }
+.sos.holding::before { transform: scaleX(1); transition: transform 1.2s linear; }
+.sos span { position: relative; }
+.sos small { display: block; font-weight: 500; font-size: 12px; opacity: .9; }
+.share { display: flex; gap: 10px; align-items: center; padding: 10px; border-radius: 12px; background: var(--bg); }
+.share .qr { flex: none; width: 84px; height: 84px; background: #fff; border-radius: 6px; padding: 4px; }
+.share .qr svg { width: 100%; height: 100%; display: block; }
+.share p { margin: 0; font-size: 12px; color: var(--ink-2); line-height: 1.4; }
+.share code { font-size: 11px; word-break: break-all; color: var(--ink); }
+.bat { margin-left: 6px; display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 700; color: #A66A00; vertical-align: 1px; }
+.bat svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.2; }
+.bat.dead { color: var(--danger); }
+.livetag { margin-left: 6px; font-size: 10px; font-weight: 700; letter-spacing: .04em; padding: 1px 6px; border-radius: 999px; background: var(--you); color: var(--white); vertical-align: 2px; }
+.livechip { font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: 999px; background: var(--you); color: var(--white); }
 @media (max-width: 760px) {
+  .clipdock { position: fixed; inset: auto 0 0 0; width: auto; max-height: 85%; border-radius: 24px 24px 0 0; z-index: 55; padding-bottom: max(10px, env(safe-area-inset-bottom, 0px)); }
+  .mapv.docked .pop { right: 16px; }
+  .mapv.docked .topstack { left: 50%; max-width: calc(100% - 32px); }
+}
+@media (max-width: 760px) {
+  /* phone: a compact header so the map and the alert get the screen */
+  .hdr { gap: 8px; padding-block: 8px; }
+  .hdr-left { gap: 8px; width: 100%; justify-content: space-between; }
+  .play { height: 36px; padding: 0 12px 0 10px; font-size: 13px; }
+  .views button { padding: 3px 8px; }
+  .views button span { font-size: 13px; }
+  .legend { gap: 6px; width: 100%; }
+  .legend > span:not(.livechip) { display: none; }
+  .hbtn, .demo-btn { height: 32px; padding: 0 9px; font-size: 12px; }
+  .mapv { height: min(540px, 68svh); min-height: 380px; }
+  .pop { max-height: 62%; }
+  .why { grid-template-columns: minmax(0, 1fr); }
+  .log { max-height: none; }
+  .about-in { padding: 22px 18px; }
+  .about h2 { font-size: 22px; }
+  .attrib { right: 16px; bottom: 66px; max-width: calc(100% - 32px); }
   .main { flex-direction: column; flex-wrap: nowrap; }
   .mapv { order: -1; flex: 0 0 auto; height: 540px; }
   .rail { flex: 1 0 auto; max-width: none; border-right: 0; overflow: visible; }
@@ -211,6 +426,7 @@ svg.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor;
   .list { overflow: visible; }
   .pop { right: 16px; bottom: 76px; max-height: calc(100% - 92px); overflow-y: auto; }
   .zoom { flex-direction: row; right: auto; left: 16px; bottom: 16px; }
+  .ffpill { padding: 8px 14px; } .ffpill b { font-size: 22px; }
   .vrow { grid-template-columns: 1fr auto; gap: 6px 12px; }
   .vrow .rng { grid-column: 1 / -1; grid-row: 2; }
   .vrow .lvl { justify-content: flex-end; }
@@ -226,6 +442,7 @@ svg.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor;
 @media (prefers-reduced-motion: reduce) {
   .world, .pin, .scene, .floor, .ring, .marker, .arrow, .overlay, .flatmap img, .bar .mark { transition: none !important; }
   .pin .pulse, .ring { animation: none; opacity: 0; }
+  .ffpill .chev, .mapv.fast::after, .btn.check { animation: none; }
   .pop, .locate { animation: none; }
 }
 </style>
@@ -234,17 +451,31 @@ svg.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor;
 
 <div class="app">
   <header class="hdr">
-    <h1>Beacon</h1>
+    <div class="hdr-left">
+      <h1>Beacon</h1>
+      <button class="play" id="story-btn" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12.5-7.5z"/></svg><span>Play story</span></button>
+      <button class="hbtn" id="loop-btn" aria-pressed="false" aria-label="Loop the story"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M17 2l3 3-3 3M4 11V9a4 4 0 0 1 4-4h12M7 22l-3-3 3-3M20 13v2a4 4 0 0 1-4 4H4"/></svg></button>
+      <div class="views" role="group" aria-label="View as">
+        <button data-admin="B4" aria-pressed="true"><small>Supervisor</small><span>Hussein</span></button>
+        <button data-admin="B7" aria-pressed="false"><small>Manager</small><span>Solon</span></button>
+      </div>
+    </div>
     <div class="legend">
       <span><span class="dot" style="background:var(--ok)"><svg viewBox="0 0 24 24" aria-hidden="true" style="stroke:var(--ok-ink)"><path d="M20 6L9 17l-5-5"/></svg></span>Okay</span>
       <span><span class="dot" style="background:var(--watch)"><svg viewBox="0 0 24 24" aria-hidden="true" style="stroke:var(--watch-ink)"><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg></span>Questionable</span>
       <span><span class="dot" style="background:var(--danger)"><svg viewBox="0 0 24 24" aria-hidden="true" style="stroke:var(--white)"><path d="M18 6L6 18M6 6l12 12"/></svg></span>In danger</span>
+      <span class="livechip" id="livechip" hidden></span>
+      <button class="hbtn" id="clip-btn" aria-pressed="false"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>Worker's view</button>
+      <button class="hbtn" id="about-btn">About</button>
+      <button class="hbtn" id="sound-btn" aria-pressed="true" aria-label="Alert sound"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5L6 9H3v6h3l5 4zM16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12"/></svg>Sound</button>
       <button class="demo-btn" id="demo-btn" aria-expanded="false" aria-controls="demo-pop">Demo</button>
     </div>
     <div class="demo-pop" id="demo-pop" hidden>
       <button class="d" id="d-rose" data-demo="rose_heart">Rose's heart races</button>
       <button class="d" id="d-joe" data-demo="joe_hot">Joe's room gets hot</button>
       <button class="d" id="d-mae" data-demo="mae_cold">Mae gets cold outside</button>
+      <button class="d" id="d-dev" data-demo="dev_fall">Dev falls in the lot</button>
+      <button class="d" id="d-ana" data-demo="ana_dead">Ana's clip dies</button>
       <button class="d" id="d-walk" data-demo="walk">Walk me there</button>
       <button class="d" id="d-reset" data-demo="reset">Reset</button>
       <div class="speed" role="group" aria-label="Speed">Speed
@@ -258,23 +489,74 @@ svg.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor;
     <aside class="rail" id="rail" aria-label="Workers"></aside>
     <div class="mapv" id="mapv">
       <div class="world" id="world"></div>
-      <div class="banner" id="banner" data-nodrag role="status" hidden>
-        <span class="dot" style="width:24px;height:24px;background:var(--danger)"><svg viewBox="0 0 24 24" aria-hidden="true" style="stroke:var(--white);width:14px;height:14px"><path d="M18 6L6 18M6 6l12 12"/></svg></span>
-        <span class="nm" id="bn-nm"></span><span class="v" id="bn-v"></span>
-        <button class="btn light" id="bn-show">Show</button>
-        <button class="btn red" id="bn-alert"></button>
+      <div class="topstack" data-nodrag>
+        <div class="banner" id="banner" role="status" hidden>
+          <span class="dot" style="width:24px;height:24px;background:var(--danger)"><svg viewBox="0 0 24 24" aria-hidden="true" style="stroke:var(--white);width:14px;height:14px"><path d="M18 6L6 18M6 6l12 12"/></svg></span>
+          <span class="nm" id="bn-nm"></span><span class="v" id="bn-v"></span>
+          <button class="btn light" id="bn-show">Show</button>
+          <button class="btn red" id="bn-alert"></button>
+          <button class="btn go" id="bn-go">On my way</button>
+          <span id="bn-near" style="display:contents"></span>
+          <span class="otw" id="bn-otw" hidden></span>
+          <button class="btn check" id="bn-check" hidden aria-label="They're safe. Clear the alert"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg></button>
+        </div>
+        <div class="caption" id="caption" role="status" hidden><span class="stepn" id="cap-n">1</span><span class="ctext" id="cap-t"></span><span class="fast" id="cap-fast" hidden></span><button class="x" id="cap-stop" aria-label="Stop the story"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
+        <div class="ffpill" id="ffpill" role="status" hidden><span class="chev" aria-hidden="true">▸▸</span><b id="ff-rate">15×</b><span class="ffw">faster</span><span class="ffclock"><span id="ff-clock">0:00</span> skipped</span></div>
       </div>
       <div class="zoom" data-nodrag>
         <button id="z-in" aria-label="Zoom in"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
         <button id="z-out" aria-label="Zoom out"><svg class="i" viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+        <button id="z-night" aria-label="Night shift" aria-pressed="false"><svg class="i" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg></button>
         <button id="z-fit" aria-label="Show everyone"><svg class="i" viewBox="0 0 24 24"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg></button>
       </div>
+      <div class="bcard" id="bcard" data-nodrag hidden></div>
+      <aside class="clipdock" id="clipdock" data-nodrag hidden aria-label="What the worker's clip shows"><div class="clip" id="clip-d"></div></aside>
+      <div class="attrib" data-nodrag>Imagery © <a href="https://www.esri.com" target="_blank" rel="noopener">Esri</a>, Maxar, Earthstar Geographics · Buildings © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></div>
       <section class="pop" id="pop" data-nodrag hidden></section>
       <section class="locate" id="locate" data-nodrag hidden></section>
     </div>
   </div>
 </div>
 
+<main class="clipapp" id="clipapp"><div class="clip" id="clip-p"></div></main>
+
+<div class="about" id="about" hidden>
+  <div class="about-in" role="dialog" aria-modal="true" aria-labelledby="about-h">
+    <button class="x" data-act="close-about" aria-label="Close">
+      <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+    <h2 id="about-h">Who's in danger, and how to reach them.</h2>
+    <div class="stats">
+      <div class="stat"><b>~40/yr</b><span>US workers killed by heat</span><a href="https://www.bls.gov/opub/ted/2023/36-work-related-deaths-due-to-environmental-heat-exposure-in-2021.htm" target="_blank" rel="noopener">BLS</a></div>
+      <div class="stat"><b>50–70%</b><span>of heat deaths: first days on the job</span><a href="https://www.osha.gov/heat" target="_blank" rel="noopener">OSHA</a></div>
+      <div class="stat"><b>16% vs 4.5%</b><span>cardiac arrest survival, seen vs unseen</span><a href="https://mycares.net/sitepages/uploads/2025/CARES%2020250516%202024%20Metrics%20Summary.pdf" target="_blank" rel="noopener">CARES 2024</a></div>
+      <div class="stat"><b>1 in 2</b><span>cardiac arrests have no witness</span><a href="https://mycares.net/sitepages/uploads/2025/CARES%2020250516%202024%20Metrics%20Summary.pdf" target="_blank" rel="noopener">CARES 2024</a></div>
+    </div>
+    <div class="steps">
+      <div><b>Sense</b>Heart, motion, air, pressure, Wi-Fi</div>
+      <div><b>Learn</b>Each person's own normal</div>
+      <div><b>Confirm</b>Only lasting changes alert</div>
+      <div><b>Route</b>Building, floor, distance</div>
+    </div>
+    <div class="cmp-wrap"><table class="cmp">
+      <thead><tr><th></th><th>Personal normal</th><th>Floor, no beacons</th><th>Sends a coworker</th><th>Cost</th></tr></thead>
+      <tbody>
+        <tr class="us"><td>Beacon</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td>~$30 parts</td></tr>
+        <tr><td>Blackline G7</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td>~$42/mo</td></tr>
+        <tr><td>SlateSafety</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td>~$822</td></tr>
+        <tr><td>Apple Watch</td><td class="no">—</td><td class="no">—</td><td class="no">Calls 911</td><td>$250+</td></tr>
+      </tbody>
+    </table></div>
+    <div class="steps plain">
+      <div><b>Private</b>Safety signals only</div>
+      <div><b>Hidden</b>Location only in alerts</div>
+      <div><b>Theirs</b>Workers see their data</div>
+    </div>
+    <p class="fine">HackUMass XIV · simulated clips · Imagery © Esri, Maxar, Earthstar Geographics · Buildings © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></p>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 <script>
 "use strict";
 
@@ -292,19 +574,45 @@ const BUILDING = {
     { floor: 4, name: "south wing", x: 65, y: 12 }, { floor: 4, name: "north wing", x: 25, y: 40 },
   ],
 };
-const WORLD = { x0: -320, x1: 420, y0: -210, y1: 260 }, PPM = 2;
+// the map: about 1.2 km x 1 km of central UMass Amherst, centred near the ILC, 2 px per metre
+const WORLD = { x0: -560, x1: 640, y0: -520, y1: 480 }, PPM = 2;
 const WX = (x) => (x - WORLD.x0) * PPM, WY = (y) => (WORLD.y1 - y) * PPM;
-const LAT0 = 42.3909, LON0 = -72.5262, M_LAT = 110540, M_LON = 111320 * Math.cos((LAT0 * Math.PI) / 180);
+const LAT0 = 42.391135, LON0 = -72.525944, M_LAT = 110540, M_LON = 111320 * Math.cos((LAT0 * Math.PI) / 180);
 const toLatLon = (x, y) => [LAT0 + (y - 25) / M_LAT, LON0 + (x - 45) / M_LON];
 const fromLatLon = (lat, lon) => [(lon - LON0) * M_LON + 45, (lat - LAT0) * M_LAT + 25];
+// real campus buildings from OpenStreetMap, in the same metres: [name, [centre x, y], [x0, y0, x1, y1, ...]]
+const CAMPUS = [["Randolph W. Bromery Center for the Arts",[37,-290],[-42,-321,-40,-331,-31,-328,-32,-326,-17,-321,-15,-329,-19,-330,-16,-340,-31,-345,-29,-351,-27,-357,-21,-355,21,-341,56,-331,78,-323,154,-300,160,-298,157,-286,130,-294,128,-295,126,-290,124,-284,119,-266,118,-264,118,-262,132,-258,122,-228,138,-223,139,-227,138,-229,143,-228,137,-210,102,-220,116,-258,113,-260,112,-257,110,-260,104,-262,101,-251,85,-256,88,-265,84,-266,82,-259,69,-264,70,-266,71,-269,72,-272,70,-272,70,-270,36,-280,29,-277,28,-277,31,-286,27,-287,31,-301,29,-302,28,-299,23,-300,24,-303,18,-305,19,-303,14,-301,11,-302,3,-297,0,-302,-2,-302,0,-303,-3,-307,-5,-312,-6,-307,-17,-311,-21,-296,-23,-292,-20,-291,-21,-286,-20,-286,-19,-286,-22,-285,-24,-276,-54,-286,-51,-294,-53,-294,-50,-296,-49,-300,-42,-298,-26,-293,-24,-297,-39,-302,-34,-318,-42,-321]],["",[-49,83],[-66,39,-78,76,-79,78,-83,90,-95,133,-94,133,-77,138,-72,139,-70,140,-46,148,-23,155,-20,156,-4,106,9,64,3,59,-5,55,-8,54,-16,51,-29,49,-49,44,-47,36,-66,27,-68,35,-65,36,-66,39]],["Student Union",[-97,-10],[-57,-29,-100,-42,-100,-41,-101,-41,-102,-41,-103,-41,-104,-40,-105,-39,-106,-38,-112,-19,-115,-20,-116,-16,-118,-14,-119,-12,-120,-10,-120,-9,-120,-6,-121,-5,-120,-3,-120,-2,-121,2,-118,2,-123,18,-98,26,-68,35,-66,27,-64,22,-65,22,-65,20,-63,15,-58,-3,-65,-5,-57,-29]],["Mullins Center",[-556,-193],[-542,-97,-514,-183,-513,-193,-515,-202,-517,-207,-523,-214,-533,-220,-550,-225,-562,-229,-574,-230,-583,-228,-591,-224,-599,-216,-603,-206,-631,-124,-542,-97]],["Campus Center Parking Garage",[-217,37],[-169,20,-239,-1,-240,-2,-241,-6,-244,-6,-244,2,-241,2,-243,8,-252,38,-254,44,-256,49,-258,47,-263,54,-260,56,-257,52,-256,53,-252,54,-247,56,-186,74,-186,79,-182,79,-182,73,-182,71,-185,70,-170,24,-168,26,-167,24,-163,19,-166,16,-169,20]],["Mahar Auditorium",[190,-475],[181,-464,196,-466,196,-468,197,-468,200,-467,204,-478,200,-480,201,-480,201,-481,190,-492,175,-489,173,-482,171,-475,181,-464]],["Machmer Hall",[-206,-46],[-187,-6,-195,-8,-203,-10,-190,-51,-194,-52,-212,-58,-216,-59,-228,-18,-236,-21,-244,-23,-243,-26,-231,-63,-230,-68,-228,-68,-227,-72,-223,-70,-220,-69,-219,-73,-180,-61,-181,-57,-177,-56,-173,-55,-174,-54,-174,-52,-173,-51,-187,-6]],["Goessmann Laboratory",[-82,248],[-137,260,-102,275,-71,288,-72,290,-70,290,-69,291,-57,296,-52,285,-52,284,-50,281,-46,271,-59,266,-59,268,-60,267,-86,256,-83,248,-87,246,-76,230,-68,236,-65,233,-64,233,-60,236,-67,245,-54,255,-36,232,-49,221,-49,222,-60,214,-70,206,-70,205,-83,195,-91,204,-98,214,-91,219,-91,220,-108,241,-110,246,-126,239,-128,238,-130,242,-138,238,-144,252,-135,256,-137,260]],["Marston Hall",[-239,353],[-276,352,-269,355,-270,356,-269,357,-268,357,-266,358,-265,357,-258,360,-253,348,-228,359,-233,370,-233,371,-226,374,-226,376,-224,376,-223,377,-222,377,-222,376,-215,379,-211,370,-210,368,-206,359,-205,356,-201,347,-218,339,-219,340,-229,336,-229,335,-231,334,-234,332,-234,334,-245,329,-244,328,-262,320,-266,329,-267,331,-267,332,-276,352]],["Paige Laboratory",[-275,269],[-298,267,-258,285,-255,278,-252,271,-272,262,-292,253,-298,267]],["Computer Science Building",[-387,469],[-434,472,-421,478,-416,469,-394,479,-392,480,-373,489,-376,496,-360,503,-356,493,-349,478,-344,468,-359,461,-360,462,-362,467,-384,456,-406,447,-404,442,-406,441,-418,435,-434,472]],["Knowles Engineering Bulding",[-203,265],[-227,262,-207,270,-204,272,-201,273,-181,282,-179,276,-178,274,-181,273,-180,272,-179,270,-182,269,-179,262,-224,242,-228,250,-225,252,-226,254,-224,256,-225,258,-227,262]],["Hasbrouck Laboratory",[45,103],[21,155,32,138,31,137,29,134,29,132,29,130,30,128,32,126,35,125,38,126,40,126,51,108,36,114,34,110,34,104,34,100,35,95,36,91,38,88,39,85,46,90,46,89,47,88,54,37,56,37,56,31,76,34,77,34,76,41,70,92,65,91,64,101,62,116,65,118,50,142,36,164,21,155]],["Morrill IV North",[144,-3],[170,-17,166,-1,149,-6,139,28,131,26,130,29,126,28,127,25,123,23,138,-30,144,-28,146,-28,148,-27,152,-26,151,-22,170,-17]],["Lederle Graduate Research Tower",[-97,327],[-102,369,-99,363,-97,364,-83,331,-82,330,-82,328,-81,327,-74,330,-65,308,-71,305,-69,300,-72,298,-74,298,-75,297,-74,296,-77,295,-80,301,-85,300,-88,307,-92,305,-110,298,-112,302,-118,316,-119,316,-119,314,-124,312,-126,317,-128,322,-121,324,-122,328,-105,335,-108,343,-115,359,-116,362,-111,364,-111,365,-105,367,-105,368,-102,369]],["Conte National Polymer Research Center",[-137,389],[-100,406,-142,388,-145,396,-132,401,-132,412,-137,412,-142,412,-147,411,-152,410,-165,404,-169,403,-173,401,-175,400,-174,396,-169,386,-167,387,-166,387,-163,388,-159,390,-153,393,-149,384,-153,383,-142,357,-118,367,-116,362,-111,364,-111,365,-105,367,-105,368,-102,369,-103,373,-101,374,-88,379,-94,393,-100,406]],["Lederle Graduate Research Center",[-46,370],[-55,444,-62,441,-82,432,-71,408,-70,406,-72,405,-69,398,-67,398,-47,351,-49,350,-67,342,-65,339,-65,337,-64,336,-60,326,-57,320,-54,321,-51,322,-39,328,-37,328,-2,343,-10,360,-8,361,-11,367,-13,366,-14,366,-14,365,-19,362,-21,365,-55,444]],["Marcus Hall",[-170,324],[-207,385,-187,341,-178,320,-182,319,-182,318,-181,315,-179,312,-177,312,-175,313,-161,282,-153,285,-153,286,-152,286,-151,287,-150,287,-138,292,-152,323,-152,324,-153,327,-155,330,-178,383,-182,390,-184,395,-207,385]],["Boyden Gym",[-327,-496],[-368,-475,-359,-504,-361,-505,-360,-510,-358,-515,-356,-514,-347,-543,-342,-541,-341,-544,-340,-548,-330,-545,-332,-539,-300,-529,-298,-536,-289,-533,-291,-526,-286,-525,-295,-496,-288,-493,-290,-488,-292,-483,-296,-484,-297,-484,-306,-456,-311,-457,-312,-455,-312,-452,-313,-451,-324,-454,-322,-461,-353,-470,-355,-464,-365,-467,-364,-471,-363,-474,-368,-475]],["Morrill II",[165,-102],[176,-129,194,-124,190,-111,186,-98,179,-100,171,-74,166,-58,150,-64,150,-66,151,-66,163,-105,141,-112,145,-125,149,-138,156,-135,176,-129]],["Herter Hall",[-61,-403],[-58,-363,-42,-413,-34,-438,-46,-442,-47,-440,-49,-440,-48,-443,-54,-444,-57,-436,-54,-435,-55,-435,-56,-432,-55,-432,-56,-431,-58,-432,-60,-423,-55,-422,-55,-421,-56,-421,-58,-415,-58,-414,-63,-416,-69,-398,-63,-396,-64,-396,-66,-390,-65,-389,-66,-389,-71,-390,-74,-382,-71,-381,-72,-381,-73,-378,-72,-377,-75,-378,-78,-369,-72,-367,-71,-370,-69,-369,-70,-367,-70,-366,-67,-366,-58,-363]],["Curry Hicks Cage",[-134,-415],[-124,-363,-117,-385,-114,-384,-109,-401,-111,-402,-104,-424,-119,-429,-126,-406,-130,-407,-124,-426,-126,-426,-121,-442,-131,-445,-130,-447,-132,-447,-150,-453,-151,-453,-152,-452,-162,-455,-167,-439,-168,-439,-185,-387,-141,-373,-135,-392,-131,-391,-138,-367,-124,-363]],["Tobin Hall",[-248,-372],[-278,-374,-288,-377,-282,-396,-272,-393,-270,-400,-223,-384,-224,-378,-218,-376,-220,-369,-221,-364,-224,-357,-229,-359,-229,-357,-231,-357,-232,-353,-269,-364,-280,-368,-278,-374]],["Munson Hall",[-96,-479],[-108,-478,-105,-488,-103,-488,-102,-492,-83,-486,-84,-484,-82,-483,-84,-477,-86,-471,-88,-472,-90,-468,-100,-471,-99,-472,-107,-474,-106,-477,-108,-478]],["",[-303,-29],[-308,-27,-308,-28,-308,-30,-307,-32,-305,-34,-302,-34,-300,-33,-299,-32,-298,-31,-298,-29,-299,-26,-300,-25,-301,-24,-303,-24,-306,-25,-307,-26,-308,-27]],["Draper Hall",[-156,154],[-173,174,-171,162,-175,161,-174,150,-170,151,-170,145,-169,145,-162,146,-161,142,-158,142,-154,142,-151,143,-151,148,-144,148,-143,149,-144,152,-143,153,-141,153,-142,154,-141,154,-142,165,-145,165,-147,177,-173,174]],["Physical Plant",[-492,52],[-468,10,-507,-2,-528,60,-499,70,-508,96,-495,100,-484,64,-485,64,-480,47,-468,10]],["George N. Parks Minuteman Marching Band Building",[-342,-135],[-355,-157,-329,-150,-330,-145,-320,-142,-325,-126,-327,-127,-329,-120,-339,-123,-340,-121,-350,-124,-350,-123,-364,-127,-362,-136,-360,-141,-355,-157]],["Goodell Hall",[-214,-237],[-261,-232,-259,-238,-248,-272,-212,-260,-211,-265,-190,-258,-193,-248,-191,-247,-193,-239,-190,-238,-193,-226,-197,-228,-200,-220,-202,-220,-205,-210,-226,-216,-225,-221,-261,-232]],["Recreation Center",[-427,-235],[-465,-197,-461,-210,-456,-212,-455,-218,-458,-219,-446,-257,-443,-256,-439,-267,-437,-266,-436,-268,-430,-270,-422,-271,-416,-271,-409,-270,-401,-268,-395,-264,-390,-261,-386,-258,-392,-241,-395,-242,-410,-194,-414,-182,-420,-184,-420,-183,-441,-190,-465,-197]],["CNS Research and Education Greenhouse",[-446,154],[-451,183,-449,172,-465,169,-462,156,-445,159,-443,150,-462,146,-459,133,-462,132,-456,106,-438,111,-412,117,-421,156,-440,151,-442,160,-430,163,-433,176,-446,173,-447,181,-451,183]],["Bartlett Hall",[-178,-337],[-127,-327,-122,-345,-165,-359,-165,-360,-158,-359,-155,-369,-176,-376,-179,-367,-176,-366,-177,-362,-183,-364,-182,-366,-188,-368,-189,-366,-194,-368,-196,-362,-198,-357,-200,-350,-188,-347,-192,-334,-200,-335,-200,-337,-207,-339,-213,-327,-215,-315,-207,-312,-206,-314,-203,-312,-199,-310,-209,-278,-192,-272,-191,-275,-190,-274,-176,-316,-170,-335,-174,-336,-173,-342,-142,-332,-139,-331,-140,-329,-134,-327,-133,-329,-127,-327]],["Agricultural Engineering Annex B",[-382,75],[-388,88,-379,53,-372,54,-380,90,-388,88]],["",[-445,93],[-452,103,-443,75,-434,78,-443,106,-452,103]],["Agricultural Engineering Annex A",[-399,147],[-406,161,-397,125,-390,126,-398,163,-406,161]],["",[-431,-89],[-439,-86,-435,-98,-418,-93,-422,-80,-439,-86]],["",[-312,-35],[-310,-32,-307,-35,-313,-40,-317,-36,-310,-32]],["Memorial Hall",[-89,-273],[-86,-254,-84,-261,-76,-282,-74,-289,-91,-296,-94,-289,-102,-267,-104,-260,-86,-254]],["Steam and Condensate Building",[-370,-69],[-381,-65,-376,-82,-354,-74,-360,-58,-381,-65]],["Thompson Hall",[-257,-84],[-307,-71,-294,-114,-289,-130,-275,-126,-261,-121,-266,-105,-273,-82,-272,-81,-260,-77,-259,-77,-258,-78,-259,-78,-253,-98,-252,-97,-252,-98,-232,-92,-233,-91,-232,-91,-238,-72,-239,-72,-239,-71,-238,-70,-238,-71,-234,-70,-230,-68,-231,-63,-236,-65,-274,-76,-279,-63,-307,-71]],["",[-554,97],[-557,118,-540,68,-550,65,-566,115,-557,118]],["Flint Lab",[-262,85],[-279,90,-274,70,-237,79,-242,99,-279,90]],["Central Hall",[-251,-335],[-272,-332,-263,-358,-225,-346,-234,-320,-239,-322,-272,-332]],["Photography Laboratory",[-324,-48],[-337,-52,-329,-62,-309,-47,-313,-40,-317,-36,-337,-52]],["Dickinson Hall",[-318,-201],[-310,-185,-302,-210,-300,-209,-298,-213,-298,-215,-319,-222,-324,-206,-340,-212,-345,-196,-330,-192,-330,-191,-325,-189,-324,-190,-310,-185]],["Stockbridge Hall",[-243,150],[-215,164,-227,140,-239,117,-257,126,-250,138,-250,139,-280,154,-270,174,-239,159,-238,160,-239,160,-233,173,-215,164]],["Old Chapel",[-116,-214],[-114,-200,-110,-213,-109,-213,-109,-214,-107,-219,-112,-220,-113,-221,-112,-224,-117,-225,-121,-227,-122,-224,-128,-226,-134,-203,-118,-198,-117,-201,-114,-200]],["Holdsworth Hall",[-370,217],[-396,187,-384,177,-358,207,-355,213,-353,217,-342,256,-359,261,-368,223,-370,224,-371,222,-372,221,-372,220,-373,218,-372,217,-396,187]],["Gunness",[-262,398],[-299,402,-285,371,-270,378,-273,383,-261,388,-257,390,-253,392,-241,397,-238,392,-224,398,-238,430,-252,423,-250,418,-282,404,-284,409,-299,402]],["PVTA Bus Garage",[-571,375],[-618,415,-605,371,-591,326,-591,324,-587,325,-584,326,-580,327,-577,328,-559,333,-557,327,-544,331,-543,332,-541,338,-544,348,-538,350,-538,352,-539,354,-540,358,-542,362,-542,365,-544,369,-545,372,-546,376,-547,379,-547,381,-548,383,-555,381,-558,392,-563,408,-566,407,-572,406,-574,405,-578,404,-583,402,-586,402,-588,401,-591,413,-596,411,-600,410,-602,418,-602,419,-608,418,-614,416,-616,415,-618,415]],["Engineering Laboratory II",[-382,392],[-383,401,-381,401,-380,398,-378,398,-376,392,-373,393,-361,367,-356,356,-363,352,-362,350,-365,349,-370,347,-369,344,-380,341,-393,382,-395,381,-398,390,-401,389,-406,406,-402,406,-401,410,-398,424,-397,424,-392,424,-388,423,-384,422,-380,419,-377,416,-373,412,-371,408,-383,404,-383,403,-383,401]],["Duda",[-315,396],[-314,405,-306,388,-316,384,-323,400,-314,405]],["Transit Facility",[-564,269],[-591,292,-583,268,-574,237,-554,244,-551,244,-549,245,-550,248,-551,251,-553,255,-554,258,-555,262,-556,265,-557,269,-558,272,-559,275,-560,279,-561,284,-564,294,-566,300,-584,295,-586,294,-591,292]],["Astronomy",[-257,437],[-246,448,-243,442,-241,437,-280,419,-285,431,-246,448]],["Engineering Laboratory I",[-326,423],[-302,449,-300,445,-296,437,-294,431,-296,430,-332,414,-331,412,-326,401,-337,396,-340,395,-345,406,-348,414,-350,420,-352,424,-343,428,-344,430,-302,449]],["",[-512,100],[-514,101,-510,103,-508,99,-513,98,-514,101]],["",[-512,107],[-516,106,-505,110,-505,108,-515,104,-516,106]],["Arnold House",[31,391],[18,414,18,415,16,421,16,422,26,426,29,419,29,420,39,398,40,398,44,388,43,388,52,366,55,359,45,355,44,355,42,361,41,361,39,365,38,366,36,371,37,371,32,382,30,386,29,386,28,387,28,389,29,389,27,393,28,393,22,405,22,404,20,408,20,410,18,414]],["Crabtree Hall",[116,352],[113,375,116,369,120,359,122,354,127,356,132,346,126,344,128,340,124,338,123,338,105,330,104,332,100,341,110,345,112,346,111,349,102,370,113,375]],["Dwight Hall",[110,495],[118,516,95,506,97,502,97,500,98,499,100,494,114,464,125,468,124,473,123,474,122,475,113,497,112,499,124,504,119,516,118,516]],["Hamlin Hall",[12,446],[23,476,-3,464,-1,459,0,458,1,455,-2,454,-1,452,2,453,5,445,4,445,6,441,7,440,8,438,9,434,10,434,12,428,13,428,14,427,15,424,16,423,25,427,23,432,24,433,19,443,13,458,19,460,22,462,28,464,23,476]],["Knowlton Hall",[62,331],[47,348,50,341,52,336,53,334,54,330,54,331,60,318,60,317,61,317,63,312,89,323,84,334,76,331,69,328,58,352,47,348]],["Leach Hall",[63,474],[39,482,44,471,52,475,56,476,57,474,66,452,73,455,77,457,78,457,75,463,76,463,75,464,71,473,68,478,71,480,73,480,69,490,64,488,62,492,58,490,56,489,39,482]],["Lewis Hall",[207,465],[190,485,195,487,198,488,202,490,210,475,211,472,212,472,212,471,214,467,215,466,216,464,218,459,217,459,226,441,221,439,219,438,214,435,206,454,204,453,202,458,200,461,198,465,198,466,199,466,190,485]],["Mary Lyon Hall",[165,371],[142,397,156,366,155,366,157,361,158,360,159,356,160,354,164,356,165,356,172,359,183,364,184,364,182,369,181,371,179,375,179,376,167,371,166,373,157,396,156,398,154,402,142,397]],["Thatcher Hall",[221,389],[214,421,226,421,227,418,228,405,227,405,228,395,228,392,228,384,228,380,229,371,228,371,228,370,228,369,229,368,224,368,224,367,223,367,221,367,220,367,216,367,216,371,215,371,215,375,215,379,214,383,215,383,214,405,214,409,214,413,213,417,214,417,214,421]],["Worcester Commons",[111,251],[85,286,114,300,128,268,131,270,143,245,140,243,142,238,129,232,129,231,108,221,106,220,105,220,97,237,92,247,90,253,93,254,95,255,98,257,85,286]],["West Experiment Station",[-14,261],[-35,270,-30,264,-30,263,-23,254,-21,255,-16,249,-13,252,-10,248,-8,250,-6,251,-9,255,-8,256,-7,256,-6,256,-6,257,-5,258,-5,259,-6,260,-8,260,-10,264,-9,265,-10,266,-10,267,-16,275,-17,274,-22,281,-27,277,-30,274,-35,270]],["Grayson Hall",[630,150],[651,120,644,119,638,117,634,137,633,141,632,146,621,143,616,142,607,178,612,180,611,184,614,184,615,180,620,181,627,153,643,157,652,120,651,120]],["",[637,-417],[639,-418,630,-428,622,-422,632,-410,637,-414,643,-408,649,-413,642,-421,639,-418]],["",[618,-490],[623,-488,621,-488,620,-492,624,-493,622,-503,614,-501,616,-491,610,-490,611,-483,615,-484,616,-482,624,-484,623,-488]],["Noah Webster House",[583,66],[613,72,614,67,618,68,619,67,619,66,614,64,616,59,587,52,579,51,576,67,547,60,546,65,541,64,541,65,541,67,545,68,544,73,581,81,582,76,584,66,589,67,593,68,613,72]],["",[625,-464],[622,-472,618,-471,620,-459,626,-460,628,-450,634,-451,632,-462,630,-462,627,-474,622,-473,622,-472]],["Chadbourne Hall",[608,-166],[614,-160,617,-174,621,-194,608,-197,604,-177,603,-178,599,-164,601,-163,596,-144,603,-142,609,-141,613,-160,614,-160]],["",[613,-524],[608,-526,609,-527,612,-511,619,-512,617,-522,620,-522,619,-528,616,-528,615,-533,606,-531,608,-526]],["Emily E. Dickinson House",[566,136],[595,145,576,140,572,139,567,138,570,128,571,122,534,114,533,119,529,118,528,121,533,122,532,127,560,133,556,149,593,158,594,153,598,154,599,151,594,150,595,145]],["Greenough Hall",[592,-98],[597,-88,601,-102,600,-102,604,-122,598,-123,592,-125,587,-105,586,-105,582,-92,584,-91,579,-72,592,-69,596,-89,597,-88]],["Baker Hall",[550,-144],[554,-137,557,-150,556,-150,560,-165,562,-173,579,-188,572,-196,551,-178,551,-176,545,-177,543,-169,549,-168,544,-146,538,-124,532,-125,531,-117,536,-116,536,-114,546,-88,557,-92,548,-113,550,-121,549,-121,553,-137,554,-137]],["",[545,-480],[547,-487,541,-488,540,-484,538,-484,535,-469,544,-468,545,-474,553,-472,554,-481,546,-482,547,-487]],["",[514,-447],[512,-446,517,-446,518,-449,512,-449,512,-446]],["",[511,-506],[503,-502,518,-501,518,-506,516,-506,516,-512,503,-513,503,-502]],["",[506,-438],[508,-441,505,-441,505,-444,500,-445,499,-433,507,-432,507,-433,509,-433,510,-437,508,-438,508,-441]],["",[497,-322],[500,-320,502,-330,493,-332,491,-315,495,-315,496,-320,500,-320]],["",[506,-415],[508,-421,502,-421,502,-418,500,-419,499,-408,507,-407,507,-410,510,-410,510,-414,508,-415,508,-421]],["",[504,-390],[508,-393,503,-394,502,-392,499,-392,498,-383,506,-382,507,-391,508,-393]],["",[492,-394],[488,-393,496,-392,496,-396,489,-397,488,-393]],["",[502,-278],[504,-276,505,-278,504,-279,506,-284,500,-286,495,-275,501,-273,503,-277,504,-276]],["",[496,-404],[494,-402,500,-401,500,-406,494,-406,494,-402]],["",[502,-357],[509,-355,510,-361,504,-362,505,-365,498,-366,497,-358,494,-358,494,-354,498,-353,497,-351,504,-350,504,-356,509,-355]],["New Africa House",[478,-213],[484,-206,485,-220,484,-220,487,-240,475,-242,472,-222,471,-222,469,-208,470,-208,468,-188,480,-186,483,-206,484,-206]],["International Programs Office",[454,-434],[449,-442,448,-421,461,-421,461,-442,449,-442]],["Brooks Hall",[454,-107],[457,-102,460,-108,456,-109,466,-128,456,-133,435,-91,444,-86,453,-104,457,-102]],["Hillside - Chancellor's House",[434,73],[440,88,442,86,440,85,442,83,434,77,438,72,441,67,439,66,444,59,439,56,438,57,434,54,428,61,427,61,424,65,426,66,425,66,429,69,429,70,430,71,426,75,430,77,428,80,432,84,432,85,437,89,438,87,440,88]],["Gorman Hall",[443,-371],[453,-329,455,-365,457,-365,457,-374,458,-383,457,-383,457,-397,456,-397,456,-399,448,-400,448,-401,419,-403,418,-401,415,-401,414,-392,421,-391,421,-390,445,-389,444,-370,443,-370,441,-333,442,-333,442,-326,446,-326,452,-326,452,-330,453,-329]],["Wheeler Hall",[428,-226],[436,-248,424,-249,417,-193,430,-192,436,-248]],["",[403,335],[400,336,406,338,407,334,401,333,400,336]],["University Health Services",[406,-50],[442,-71,428,-78,418,-58,413,-59,415,-69,400,-72,400,-70,398,-70,396,-71,397,-71,377,-76,368,-34,382,-31,388,-30,387,-29,399,-26,403,-45,413,-43,409,-25,408,-22,416,-20,424,-18,430,-46,442,-71]],["Brett Hall",[406,-137],[406,-108,411,-151,424,-149,426,-172,415,-174,413,-162,406,-163,401,-164,400,-156,399,-156,394,-110,394,-103,404,-101,405,-108,406,-108]],["Franklin Dining Commons",[320,-177],[298,-159,348,-153,355,-203,303,-210,298,-159]],["Studio Arts Building",[304,-360],[333,-356,324,-378,323,-381,308,-381,308,-382,298,-382,298,-381,287,-380,258,-352,259,-351,274,-344,278,-349,280,-350,282,-348,286,-353,284,-354,299,-369,304,-369,308,-369,323,-331,343,-331,336,-350,338,-351,336,-357,333,-356]],["Durfee Conservatory",[326,-27],[334,-22,334,-24,349,-23,349,-30,334,-31,334,-34,326,-34,326,-36,324,-36,324,-34,317,-34,317,-32,301,-32,301,-25,316,-24,316,-22,324,-22,324,-20,326,-20,326,-22,334,-22]],["Fernald Hall",[341,-257],[353,-262,355,-262,358,-272,326,-280,323,-269,327,-268,323,-252,320,-253,317,-242,349,-235,351,-245,349,-246,350,-247,344,-248,347,-262,353,-261,353,-262]],["French Hall",[297,-97],[298,-95,299,-124,284,-124,282,-85,298,-84,298,-85,306,-85,307,-94,298,-95]],["",[254,192],[250,196,248,195,246,200,254,202,254,200,258,201,268,172,260,169,250,196]],["Theta Chi",[266,-429],[276,-432,267,-443,266,-443,260,-437,263,-434,253,-424,256,-420,262,-414,268,-419,266,-422,271,-426,270,-427,271,-427,276,-432]],["Shade Tree Lab",[230,-132],[232,-111,232,-117,232,-123,246,-123,246,-134,240,-135,240,-138,238,-138,237,-147,231,-147,231,-151,221,-150,221,-151,218,-151,218,-150,209,-149,210,-142,231,-143,231,-141,228,-141,228,-139,225,-139,226,-134,236,-134,236,-128,227,-128,228,-124,227,-123,227,-112,228,-99,238,-99,238,-111,232,-111]],["Clark Hall",[231,-192],[219,-205,217,-176,234,-174,235,-184,237,-184,238,-188,238,-194,236,-194,236,-204,233,-204,219,-205]],["Phi Sigma Kappa",[226,-389],[219,-389,221,-387,218,-385,225,-378,231,-384,233,-385,240,-392,232,-401,230,-399,219,-389]],["Wilder Hall",[225,-65],[218,-77,217,-68,218,-68,218,-64,218,-62,217,-62,217,-52,234,-52,234,-61,233,-62,234,-66,235,-66,235,-76,218,-77]],["Life Science Laboratories",[223,129],[220,163,222,156,224,152,226,148,227,145,226,144,229,141,231,142,234,138,236,135,237,136,241,130,245,123,249,119,253,113,256,109,260,103,265,94,269,87,273,78,271,77,273,72,270,70,272,64,259,59,258,60,251,56,249,60,250,61,249,64,245,62,243,66,241,65,238,72,236,76,232,82,229,87,225,92,222,96,219,100,216,104,212,108,210,107,202,114,199,118,198,122,198,126,201,126,201,128,200,128,198,131,196,130,193,136,190,142,188,148,186,155,184,164,183,171,182,181,185,181,185,185,184,189,186,189,186,194,187,200,195,199,195,202,202,201,203,205,214,204,213,196,216,196,216,190,217,182,218,174,219,168,220,163]],["Integrated Sciences Building",[143,182],[176,220,177,212,178,206,174,205,174,204,175,203,176,203,176,198,173,197,167,195,153,189,148,187,143,184,141,184,140,183,138,183,138,185,134,184,135,179,136,180,137,176,143,136,146,136,146,133,143,132,144,126,130,124,125,123,125,126,114,125,107,175,114,176,113,180,112,180,112,181,117,182,117,184,116,188,114,187,112,201,132,204,136,213,154,216,154,214,154,213,167,218,176,220]],["",[0,-411],[-3,-412,0,-406,4,-408,1,-414,-3,-412]],["",[-104,480],[-108,483,-102,485,-99,476,-105,474,-108,483]],["",[-287,-438],[-285,-437,-284,-442,-289,-444,-290,-439,-289,-439,-290,-435,-287,-434,-286,-438,-285,-437]],["",[-350,-61],[-353,-60,-348,-58,-346,-62,-352,-64,-353,-60]],["Blaisdell House",[-346,-93],[-340,-100,-349,-102,-350,-100,-353,-91,-352,-91,-354,-87,-354,-86,-353,-86,-353,-85,-346,-83,-344,-89,-343,-88,-341,-94,-339,-94,-338,-96,-337,-98,-338,-100,-340,-100]],["",[-396,67],[-392,71,-389,58,-398,56,-400,64,-402,64,-405,74,-395,77,-393,71,-392,71]],["",[-415,92],[-411,83,-413,91,-416,90,-414,83,-417,82,-422,102,-419,103,-417,95,-414,96,-416,103,-413,104,-408,84,-411,83]],["",[-435,-181],[-438,-180,-432,-179,-432,-183,-437,-184,-438,-180]],["",[-442,-97],[-444,-96,-440,-95,-439,-99,-442,-100,-444,-96]],["",[-471,-179],[-473,-177,-470,-176,-468,-182,-471,-183,-473,-177]],["Oak Hall",[-310,-391],[-312,-419,-314,-414,-316,-407,-317,-403,-320,-378,-322,-378,-323,-368,-324,-365,-318,-364,-322,-329,-306,-338,-302,-374,-298,-400,-298,-401,-299,-401,-298,-403,-301,-403,-299,-415,-300,-415,-300,-416,-312,-419]],["Linden",[-359,-424],[-387,-408,-386,-418,-384,-428,-384,-437,-383,-447,-376,-447,-365,-446,-365,-442,-319,-428,-321,-422,-322,-419,-322,-417,-324,-412,-361,-423,-366,-425,-367,-422,-367,-416,-368,-413,-369,-405,-387,-408]],["Birch Hall",[-397,-315],[-380,-295,-408,-304,-410,-301,-426,-310,-415,-327,-406,-345,-390,-337,-399,-319,-395,-318,-377,-313,-374,-312,-380,-295]],["Maple Hall",[-371,-366],[-384,-351,-402,-358,-398,-366,-396,-375,-392,-387,-390,-395,-372,-391,-373,-388,-352,-381,-351,-383,-333,-377,-344,-343,-347,-338,-349,-334,-365,-339,-357,-365,-377,-371,-380,-361,-384,-351]],["Morrill I",[199,10],[166,-1,170,-17,220,-2,218,2,221,2,221,4,223,5,221,10,220,15,216,14,210,34,197,30,202,11,182,5,174,31,158,26,166,-1]],["Morrill III",[176,-166],[176,-129,156,-135,161,-149,166,-167,158,-169,161,-179,164,-190,165,-189,172,-188,190,-182,197,-180,198,-179,195,-169,192,-159,185,-161,176,-129]],["Integrative Learning Center",[45,25],[83,25,85,8,88,9,90,-2,91,-13,63,-17,24,-22,19,-9,2,48,4,48,11,51,11,50,14,51,13,54,24,57,30,59,31,56,34,57,46,20,77,24,83,25]],["Field Hall",[645,82],[644,119,644,117,639,116,643,98,644,96,644,92,646,87,635,85,630,84,638,47,643,48,644,44,647,45,646,49,651,50,646,72,644,79,648,80,660,82,652,119,651,118,651,120,644,119]],["Elm Hall",[-289,-306],[-322,-329,-306,-338,-275,-316,-276,-314,-264,-310,-265,-306,-264,-305,-268,-292,-268,-290,-273,-276,-273,-274,-291,-280,-291,-282,-290,-284,-285,-300,-285,-302,-297,-310,-310,-320,-313,-321,-312,-322,-314,-323,-322,-329]],["Sycamore Hall",[-326,-280],[-341,-309,-338,-312,-334,-316,-333,-318,-311,-304,-313,-300,-326,-282,-333,-287,-336,-283,-326,-276,-315,-270,-314,-270,-310,-268,-305,-266,-300,-264,-295,-262,-293,-259,-291,-257,-288,-252,-290,-245,-297,-247,-305,-250,-310,-252,-316,-254,-322,-257,-329,-260,-334,-264,-339,-266,-343,-269,-347,-272,-352,-276,-356,-279,-360,-283,-350,-294,-355,-299,-353,-301,-350,-304,-348,-305,-345,-307,-341,-309]],["Grinnell Arena",[-379,-149],[-373,-135,-372,-139,-370,-144,-366,-160,-374,-162,-392,-168,-396,-155,-385,-152,-389,-140,-373,-135]],["Former Textbook Annex",[-453,36],[-435,62,-462,53,-463,56,-469,54,-468,51,-480,47,-468,10,-465,-1,-454,3,-420,14,-422,21,-435,62]],["Agricultural Engineering North",[-370,143],[-391,155,-370,160,-356,163,-349,135,-349,134,-368,130,-370,130,-386,126,-391,155]],["Agricultural Engineering Center",[-377,119],[-395,123,-386,126,-370,130,-369,125,-367,125,-366,119,-368,119,-365,109,-381,105,-390,103,-395,123]],["Agricultural Engineering South",[-354,86],[-339,62,-342,74,-351,112,-358,111,-365,109,-381,105,-369,55,-343,61,-339,62]],["Cold Storage Building",[-332,67],[-322,87,-341,83,-339,74,-342,74,-339,62,-343,61,-341,53,-339,53,-334,54,-335,56,-316,60,-316,64,-317,67,-322,87]],["Chenoweth Laboratory",[-313,74],[-317,67,-315,68,-321,94,-316,95,-306,97,-298,65,-313,61,-314,65,-316,64,-317,67]],["Chenoweth Lab Addition",[-318,120],[-306,97,-306,99,-298,142,-317,151,-317,150,-332,157,-334,158,-340,144,-316,132,-322,103,-319,102,-320,100,-316,99,-317,96,-316,95,-306,97]],["",[-318,-418],[-322,-417,-318,-415,-314,-414,-312,-419,-317,-420,-321,-422,-322,-417]],["John W. Olver Design Building",[231,-298],[205,-284,208,-283,219,-279,220,-279,221,-279,246,-271,261,-266,261,-274,264,-281,267,-288,273,-303,239,-325,232,-329,222,-319,230,-314,230,-311,229,-309,217,-312,216,-313,214,-313,211,-302,205,-284]],["Orchard Hill Observatory",[404,349],[407,348,407,349,407,350,407,351,406,352,405,352,404,352,403,352,402,352,402,351,401,350,401,349,401,348,402,347,403,346,404,346,405,346,406,346,406,347,407,347,407,348]],["South College",[-221,-148],[-197,-123,-195,-131,-198,-132,-197,-133,-194,-146,-193,-147,-190,-155,-190,-156,-199,-158,-199,-157,-235,-168,-236,-163,-237,-162,-240,-162,-240,-163,-266,-170,-266,-172,-278,-175,-286,-147,-239,-134,-239,-135,-238,-137,-212,-129,-210,-129,-210,-126,-197,-123]],["Herter Annex",[-68,-348],[-88,-337,-83,-355,-82,-355,-80,-359,-81,-360,-80,-363,-72,-361,-73,-361,-72,-360,-69,-359,-53,-355,-46,-353,-47,-349,-48,-349,-49,-345,-48,-344,-54,-326,-70,-331,-69,-333,-71,-334,-72,-334,-73,-332,-88,-337]],["Kennedy Champions Center",[-516,-286],[-469,-303,-485,-253,-487,-253,-491,-241,-552,-260,-548,-271,-539,-300,-539,-302,-541,-302,-538,-314,-535,-324,-469,-303]],["UMass Receiving",[-485,-4],[-510,-3,-504,-19,-472,-8,-470,-8,-463,-6,-465,-1,-468,10,-507,-2,-510,-3]],["Physical Sciences Building",[-25,289],[-40,279,-42,282,-43,284,-44,287,-50,302,-47,303,9,327,16,311,19,304,20,301,4,294,-16,290,-18,289,-20,288,-30,280,-33,278,-35,276,-37,278,-38,279,-40,278,-40,279]],["North Energy Exchange Center",[-426,393],[-443,408,-426,372,-408,372,-410,376,-424,407,-425,408,-443,408]],["Marcus-Marston Skyway",[-200,360],[-196,360,-197,363,-206,359,-205,356,-196,360]],["LGRT-Goessmann Skyway",[-72,294],[-74,296,-74,294,-72,291,-72,290,-70,290,-69,291,-70,293,-71,295,-72,297,-72,298,-74,298,-75,297,-74,296]],["PSB-Goessmann Skyway",[-47,284],[-52,284,-49,285,-46,286,-44,287,-43,284,-44,284,-48,282,-50,281,-52,284]],["LGRC-LGRT Skyway",[-72,334],[-82,328,-69,334,-64,336,-65,337,-65,339,-70,337,-83,331,-82,328]],["",[-31,277],[-33,278,-30,274,-27,277,-30,280,-33,278]],["",[148,-33],[144,-28,148,-40,150,-40,152,-39,148,-27,146,-28,144,-28]],["",[-69,-364],[-70,-366,-67,-366,-69,-359,-72,-360,-70,-366]],["Morrill Greenhouses",[182,-206],[186,-197,191,-196,200,-225,194,-226,174,-232,173,-227,191,-221,190,-219,172,-224,170,-219,188,-214,188,-211,170,-217,168,-211,186,-206,185,-203,168,-209,166,-203,184,-198,182,-191,176,-192,173,-190,172,-188,190,-182,191,-185,189,-188,184,-190,186,-197]],["East Experiment Station",[75,270],[69,272,71,266,74,261,83,265,81,270,79,273,78,276,74,274,69,272]],["Newman Catholic Center",[373,-408],[355,-383,349,-401,367,-407,368,-406,374,-407,367,-427,370,-428,370,-429,379,-432,380,-430,384,-431,392,-406,390,-405,394,-393,371,-385,370,-388,355,-383]],["Morrill IV South",[161,-48],[202,-47,166,-58,150,-64,149,-62,150,-62,148,-57,146,-58,141,-42,148,-40,150,-40,152,-39,158,-38,159,-41,196,-29,202,-47]],["",[28,279],[29,276,30,277,27,283,26,282,29,276]],["",[43,314],[44,311,45,312,43,318,41,318,44,311]],["",[110,58],[109,60,110,61,111,54,110,54,109,60]],["",[260,-364],[257,-363,258,-362,263,-366,262,-367,257,-363]],["",[191,-331],[188,-330,194,-333,195,-332,188,-329,188,-330]],["",[494,206],[455,209,456,195,553,203,552,216,455,209]],["",[508,236],[479,246,481,216,551,221,549,252,479,246]],["",[505,272],[476,282,479,252,549,257,547,288,476,282]],["",[594,197],[592,197,593,196,596,196,596,197,592,197]],["Clark Hall Greenhouses",[227,-210],[233,-204,233,-209,241,-209,242,-217,213,-220,212,-211,220,-211,219,-205,233,-204]],["",[395,334],[399,336,390,334,390,330,400,332,399,336]],["",[385,332],[387,333,387,330,382,330,382,332,387,333]],["",[398,325],[401,327,393,326,394,322,402,324,401,327]],["",[-365,-139],[-362,-136,-372,-139,-370,-144,-360,-141,-362,-136]],["Computer Science Laboratories",[-332,489],[-356,493,-349,478,-342,481,-336,466,-315,475,-312,480,-309,484,-303,480,-286,488,-341,528,-359,520,-348,496,-356,493]],["Bowditch Hall",[-446,195],[-451,183,-447,181,-443,189,-442,188,-436,200,-431,210,-439,214,-443,216,-454,195,-455,195,-459,187,-451,183]],["Orchard Hill Pavilion",[492,455],[486,447,494,445,500,467,492,469,486,447]],["",[484,430],[483,436,480,435,486,422,489,423,483,436]],["Sustainable Engineering Laboratories",[-187,222],[-211,229,-193,188,-152,216,-168,249,-211,229]],["",[535,101],[536,102,534,102,535,99,536,99,536,102]],["",[-440,370],[-444,367,-434,367,-434,375,-444,375,-444,367]],["W.E.B. Du Bois Library",[-148,-150],[-181,-100,-118,-81,-89,-175,-99,-178,-148,-193,-152,-195,-152,-193,-160,-170,-168,-145,-175,-120,-181,-100]],["Whitmore Administration Building",[-20,-545],[-55,-519,-39,-514,-38,-517,-37,-516,-19,-510,-21,-504,-19,-504,-17,-505,-17,-506,-4,-503,14,-560,22,-582,6,-587,5,-584,-14,-591,-13,-596,-16,-598,-17,-595,-29,-599,-48,-541,-55,-519]],["Isenberg School of Management",[134,-459],[143,-422,144,-425,152,-422,157,-420,162,-416,166,-411,167,-409,168,-405,170,-399,170,-394,170,-388,168,-383,166,-378,163,-374,159,-370,154,-367,149,-364,143,-363,137,-362,131,-363,122,-366,99,-373,108,-400,108,-404,119,-400,120,-402,120,-403,109,-406,114,-422,109,-424,103,-426,103,-424,93,-422,88,-428,86,-430,89,-439,99,-441,106,-434,105,-432,111,-430,116,-428,127,-464,125,-465,126,-468,127,-471,129,-470,134,-486,137,-486,140,-493,137,-493,135,-493,133,-494,132,-495,131,-497,131,-499,131,-502,132,-503,134,-504,132,-505,131,-505,130,-503,126,-502,121,-502,116,-503,112,-504,114,-511,114,-512,115,-513,114,-513,116,-520,117,-520,118,-524,120,-523,121,-527,134,-523,135,-523,135,-524,138,-523,141,-522,140,-521,154,-517,153,-514,156,-513,155,-510,158,-510,157,-507,160,-506,159,-503,161,-502,157,-488,154,-489,153,-485,152,-483,151,-481,154,-480,136,-424,138,-424,142,-422,143,-422]],["Skinner Hall",[151,74],[156,53,155,54,155,55,136,52,134,64,133,64,133,67,132,66,131,76,130,86,131,86,129,98,137,99,157,102,157,100,158,100,157,106,157,107,164,108,168,80,169,75,169,64,165,63,166,59,163,58,164,56,159,55,160,54,159,53,156,53]],["472 North Pleasant Street",[284,-470],[246,-459,247,-462,246,-462,246,-464,247,-464,256,-494,273,-489,275,-488,294,-483,295,-486,298,-485,300,-488,304,-487,303,-484,302,-482,306,-480,306,-478,303,-468,302,-467,303,-467,302,-464,301,-462,300,-460,298,-450,297,-450,296,-448,284,-452,266,-458,265,-452,258,-454,258,-456,246,-459]],["Murray D. Lincoln Campus Center",[-50,87],[-95,133,-94,133,-77,138,-72,139,-70,140,-46,148,-23,155,-20,156,-4,106,9,64,3,59,-5,55,-8,54,-16,51,-29,49,-49,44,-47,36,-66,27,-68,35,-65,36,-66,39,-78,76,-83,91,-95,133]],["",[-45,95],[-75,94,-73,88,-72,84,-70,76,-7,95,-10,102,-11,106,-13,114,-75,94]],["",[-56,91],[-72,91,-69,82,-34,91,-36,102,-72,91]],["",[-9,105],[-11,106,-8,107,-6,103,-10,102,-11,106]],["",[-74,85],[-72,84,-73,88,-76,87,-75,83,-72,84]]];
+const LANDMARKS = [
+  ...CAMPUS.filter((b) => b[0]).map((b) => ({ name: b[0], x: b[1][0], y: b[1][1] })),
+  { name: "Campus Pond", x: 15, y: -125 }, { name: "Metawampe Lawn", x: -25, y: 15 }, { name: "the lot off Thatcher Road", x: 300, y: 25 },
+];
+/* how the air feels: NWS heat index (Rothfusz regression) when hot, NWS wind chill when cold and windy */
+function heatIndex(T, RH) {
+  const simple = 0.5 * (T + 61 + (T - 68) * 1.2 + RH * 0.094);
+  if ((simple + T) / 2 < 80) return simple;
+  let hi = -42.379 + 2.04901523 * T + 10.14333127 * RH - 0.22475541 * T * RH - 0.00683783 * T * T - 0.05481717 * RH * RH + 0.00122874 * T * T * RH + 0.00085282 * T * RH * RH - 0.00000199 * T * T * RH * RH;
+  if (RH < 13 && T <= 112) hi -= ((13 - RH) / 4) * Math.sqrt((17 - Math.abs(T - 95)) / 17);
+  else if (RH > 85 && T <= 87) hi += ((RH - 85) / 10) * ((87 - T) / 5);
+  return hi;
+}
+const windChill = (T, V) => 35.74 + 0.6215 * T - 35.75 * Math.pow(V, 0.16) + 0.4275 * T * Math.pow(V, 0.16);
+function feelsLike(T, RH, wind) {
+  if (T >= 80) { const f = heatIndex(T, RH); return { f, kind: "heat index", cat: f >= 125 ? "Extreme danger" : f >= 103 ? "Danger" : f >= 90 ? "Extreme caution" : "Caution" }; }
+  if (T <= 50 && wind >= 3) { const f = windChill(T, wind); return { f, kind: "wind chill", cat: f <= -18 ? "Frostbite in 30 min" : f <= 0 ? "Danger" : f <= 32 ? "Cold stress" : "" }; }
+  return null;
+}
+const nearPlace = (x, y) => { const l = nearest(LANDMARKS, x, y); return Math.hypot(l.x - x, l.y - y) < 90 ? l.name : ""; };
+const streetView = (x, y) => { const [la, lo] = toLatLon(x, y); return `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${la.toFixed(6)},${lo.toFixed(6)}`; };
+const gmaps = (x, y, q) => { const [la, lo] = toLatLon(x, y); return q ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q + ", UMass Amherst")}` : `https://www.google.com/maps/search/?api=1&query=${la.toFixed(6)},${lo.toFixed(6)}`; };
 const isInside = (x, y) => x >= 0 && x <= BUILDING.width_m && y >= 0 && y <= BUILDING.depth_m;
 const PEOPLE = [
-  { badge: "B1", name: "Rose Patel", pronoun: "her" },
-  { badge: "B2", name: "Joe Rivera", pronoun: "him" },
-  { badge: "B3", name: "Mae Chen", pronoun: "her" },
-  { badge: "B5", name: "Dev Shah", pronoun: "him" },
-  { badge: "B6", name: "Ana Lopez", pronoun: "her" },
-  { badge: "B4", name: "You", pronoun: "you", you: true },
+  { badge: "B1", name: "Rose Patel", pronoun: "her", age: 34 },
+  { badge: "B2", name: "Joe Rivera", pronoun: "him", age: 52 },
+  { badge: "B3", name: "Mae Chen", pronoun: "her", age: 27 },
+  { badge: "B5", name: "Dev Shah", pronoun: "him", age: 45 },
+  { badge: "B6", name: "Ana Lopez", pronoun: "her", age: 61 },
+  { badge: "B4", name: "Hussein", role: "Supervisor", pronoun: "him", admin: true },
+  { badge: "B7", name: "Solon", role: "Manager", pronoun: "him", admin: true },
 ];
 
 /* ================= helpers ================= */
@@ -313,6 +621,7 @@ const r1 = (v) => Math.round(v * 10) / 10;
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 const median = (s) => { const n = s.length; return n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2; };
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+const mmss = (s) => `${Math.floor(Math.max(0, s) / 60)}:${String(Math.round(Math.max(0, s)) % 60).padStart(2, "0")}`;
 const nearest = (list, x, y) => list.reduce((a, c) => (Math.hypot(c.x - x, c.y - y) < Math.hypot(a.x - x, a.y - y) ? c : a));
 const initials = (n) => n.split(" ").map((s) => s[0]).join("").slice(0, 2).toUpperCase();
 function rng(seed) {
@@ -380,7 +689,7 @@ class HeartModel {
 /* ================= air temperature: compared with the average for that kind of place ================= */
 class AirModel {
   constructor() { this.sUp = 0; this.sDn = 0; this.guard = 0; this.alerting = false; this.dir = "high"; this.lastT = null; this.v = null; this.env = null; this.envSince = -1e9; }
-  update(t, temp, env, avg, spread) {
+  update(t, temp, env, avg, spread, feels) {
     if (temp == null) return;
     const dt = this.lastT === null ? 1 : clamp(t - this.lastT, 0, 5);
     this.lastT = t; this.v = +temp;
@@ -391,10 +700,12 @@ class AirModel {
       this.sUp = Math.min(90, Math.max(0, this.sUp + (z - 1.5) * dt));
       this.sDn = Math.min(90, Math.max(0, this.sDn + (-z - 1.5) * dt));
     }
-    this.guard = this.v >= 95 || this.v <= 25 ? this.guard + dt : 0;   // dangerous no matter what's usual
+    // dangerous no matter what's usual: very hot or cold air, or an NWS "Danger" heat index or wind chill
+    const f = feels ?? this.v;
+    this.guard = this.v >= 95 || this.v <= 25 || f >= 103 || f <= 0 ? this.guard + dt : 0;
     if (this.sUp >= 45 || this.sDn >= 45 || this.guard >= 20) this.alerting = true;
     else if (this.alerting && this.sUp < 10 && this.sDn < 10 && !this.guard) this.alerting = false;
-    this.dir = this.guard ? (this.v >= 95 ? "high" : "low") : this.sUp >= this.sDn ? "high" : "low";
+    this.dir = this.guard ? (this.v >= 95 || f >= 103 ? "high" : "low") : this.sUp >= this.sDn ? "high" : "low";
   }
   status() {
     if (this.v === null) return "sensor";
@@ -449,14 +760,30 @@ class Hub {
     this.people = Object.fromEntries(PEOPLE.map((p) => [p.badge, p]));
     this.badges = new Map(); this.ref = null; this.refHist = []; this.offsets = {}; this.wifi = new WifiMap();
     this.env = { inside: { avg: 70, spread: 2.5, floor: 2.5 }, outside: { avg: 50, spread: 4, floor: 4 } };
+    this.log = []; this.stats = { alerts: 0, help: [] };
   }
+  sos(id, t) {
+    const b = this.badges.get(id); if (!b || b.sos != null) return;
+    b.sos = t; b.okUntil = null; b.recovery = null;
+    this.logEv(t, `${b.person.name.split(" ")[0]} asked for help from the clip`, "danger", id);
+  }
+  imOk(id, t) {
+    // the wearer says they're fine: stand the alert down for 2 minutes, but keep watching
+    const b = this.badges.get(id); if (!b) return;
+    b.okUntil = t + 120; b.sos = null; b.alertT = null;
+    for (const m of [b.heart, b.air]) { m.sUp = 0; m.sDn = 0; m.guard = 0; m.alerting = false; }
+    b.fall = { impactT: null, still: 0, state: null };
+    this.logEv(t, `${b.person.name.split(" ")[0]} tapped I'm OK`, "ok", id);
+  }
+  logEv(t, text, level, id) { this.log.push({ t, text, level, id }); if (this.log.length > 60) this.log.shift(); }
   heights() { const h = {}; for (const f of BUILDING.floors) h[f] = (f - 1) * BUILDING.floor_height_m; return h; }
   badge(id) {
     if (!this.badges.has(id)) {
       this.badges.set(id, {
         id, person: this.people[id] || { name: id, pronoun: "them" }, heart: new HeartModel(), air: new AirModel(),
         tracker: new FloorTracker(), lastT: null, pHist: [], floor: null, x: null, y: null, outdoor: false, gpsT: -1e9,
-        posFloor: null, peers: {}, ackedBy: null, buzz: null, stage: {}, lastBuzz: {}, alertSent: -1e9,
+        posFloor: null, peers: {}, ackedBy: null, helper: null, arrived: false, recovery: null, buzz: null, stage: {}, lastBuzz: {}, alertSent: -1e9,
+        hist: [], lastHist: -1e9, sos: null, okUntil: null, fall: { impactT: null, still: 0, state: null }, alertT: null, arriveT: null, prevSev: 0,
       });
     }
     return this.badges.get(id);
@@ -464,6 +791,7 @@ class Hub {
   ingest(pkt, t) {
     if (pkt.ref) { this.ref = [t, pkt.p]; this.refHist.push(pkt.p); if (this.refHist.length > 15) this.refHist.shift(); return; }
     const b = this.badge(pkt.id);
+    const gap = b.lastT === null ? 1 : clamp(t - b.lastT, 0, 5);
     b.lastT = t;
     b.heart.update(t, pkt.hr, pkt.q, pkt.act);
     if (pkt.p) {
@@ -483,9 +811,26 @@ class Hub {
       }
     }
     const env = b.outdoor ? "outside" : "inside", e = this.env[env];
-    b.air.update(t, pkt.air, env, e.avg, e.spread);
+    if (pkt.rh != null) b.rh = pkt.rh;
+    if (pkt.bat != null) b.bat = pkt.bat;
+    b.wind = pkt.wind ?? 0;
+    b.feels = pkt.air != null ? feelsLike(pkt.air, b.rh ?? 40, b.wind) : null;
+    b.air.update(t, pkt.air, env, e.avg, e.spread, b.feels ? b.feels.f : null);
+    // falls: a hard jolt on the clip's accelerometer, then no movement at all
+    const f = b.fall;
+    if (pkt.g != null && pkt.g > 2.5) { f.impactT = t; f.still = 0; f.state = "maybe"; }
+    if (f.impactT !== null) {
+      f.still = (+pkt.act || 0) < 0.03 ? f.still + gap : 0;
+      if (f.still >= 30) f.state = "down";
+      if (!f.still && t - f.impactT > 10) { f.impactT = null; f.state = null; }   // they got up and moved
+    }
+    // keep the last 15 minutes for the "why" chart
+    if (t - b.lastHist >= 5) {
+      b.lastHist = t;
+      b.hist.push([t, b.heart.v, b.heart.expected, b.heart.spread, b.air.v, e.avg, e.spread, b.x, b.y]);
+      if (b.hist.length > 180) b.hist.shift();
+    }
     for (const [pid, rssi] of pkt.ble || []) { const old = b.peers[pid]; b.peers[pid] = [!old || t - old[1] > 10 ? rssi : old[0] + 0.3 * (rssi - old[0]), t]; }
-    if (b.ackedBy && !b.heart.alerting && !b.air.alerting) b.ackedBy = null;
     this.autoBuzz(b, t);
   }
   learnEnv(t, dt = 1) {
@@ -507,7 +852,10 @@ class Hub {
     const hs = st(b.heart.status(t)), as = st(b.air.status());
     const now = { rest: b.heart.dir === "high" ? hs : 0, cool: b.air.dir === "high" ? as : 0, warm: b.air.dir === "low" ? as : 0 };
     for (const why of Object.keys(now)) {
-      if (now[why] > (b.stage[why] || 0) && t - (b.lastBuzz[why] || -1e9) > 60) { b.buzz = { t, why }; b.lastBuzz[why] = t; }
+      if (now[why] > (b.stage[why] || 0) && t - (b.lastBuzz[why] || -1e9) > 60) {
+        b.buzz = { t, why }; b.lastBuzz[why] = t;
+        this.logEv(t, `${b.person.name.split(" ")[0]}'s clip buzzed: ${{ rest: "rest", cool: "cool off", warm: "warm up" }[why]}`, "info", b.id);
+      }
       b.stage[why] = now[why];
     }
   }
@@ -521,14 +869,40 @@ class Hub {
       const h = b.heart, a = b.air, hs = h.status(now), as = hs === "offline" ? "offline" : a.status();
       const cands = [
         [SEV[hs], hs === "alert" ? (h.dir === "high" ? "Heart racing" : "Heart too slow") : hs === "watch" ? (h.dir === "high" ? "Heart rising" : "Heart low") : hs === "sensor" ? "Check clip" : hs === "offline" ? "No signal" : ""],
+        [b.sos != null && !b.recovery ? 3.03 : 0, "Asked for help"],
+        [b.fall.state === "down" ? 3.01 : b.fall.state === "maybe" ? 2.01 : 0, b.fall.state === "down" ? "Fell, not moving" : "Possible fall"],
         [SEV[as] - 0.01, as === "alert" ? (a.dir === "high" ? "Too hot here" : "Too cold here") : as === "watch" ? (a.dir === "high" ? "Getting hot here" : "Getting cold here") : ""],
       ].sort((x, y) => y[0] - x[0]);
-      const raw = cands[0][0], sev = raw >= 2.5 ? 3 : raw >= 1.5 ? 2 : raw >= 0.9 ? 1 : 0;
+      const raw = cands[0][0];
+      let sev = raw >= 2.5 ? 3 : raw >= 1.5 ? 2 : raw >= 0.9 ? 1 : 0, label = cands[0][1] || "Okay";
+      if (b.okUntil != null && now < b.okUntil && b.sos == null && sev >= 2 && !b.recovery) { sev = 2; label = "Says OK, still watching"; }
+      if (b.recovery && b.recovery.stage === "yellow") { sev = 2; label = "Recovering"; }
+      if (b.recovery && b.recovery.stage === "green") {
+        sev = 0; label = "Okay";
+        if ((hs === "ok" || hs === "learning") && as === "ok") b.recovery = null;   // the readings agree again
+      }
+      const first = b.person.name.split(" ")[0];
+      if (sev === 3 && b.alertT === null && !b.recovery) { b.alertT = now; this.stats.alerts++; if (b.sos == null) this.logEv(now, `${first}: ${label.toLowerCase()}`, "danger", b.id); }
+      else if (sev === 2 && b.prevSev < 2 && !b.recovery) this.logEv(now, `${first}: ${label.toLowerCase()}`, "watch", b.id);
+      b.prevSev = sev;
+      if (hs === "offline" && !b.offLogged) { b.offLogged = true; this.logEv(now, `${first}: no signal`, "watch", b.id); } else if (hs !== "offline") b.offLogged = false;
+      if (b.helper && !b.arrived) {
+        // the admin who's on the way counts as there once their clip is a few metres off, on the same floor
+        const hb = this.badges.get(b.helper);
+        if (hb && hb.x !== null && b.x !== null && hb.outdoor === b.outdoor && (b.outdoor || (hb.floor ?? hb.posFloor) === (b.floor ?? b.posFloor))) {
+          const pr = hb.peers[b.id];
+          if ((pr && now - pr[1] < 10 && rssiToM(pr[0]) < 5) || Math.hypot(hb.x - b.x, hb.y - b.y) < 4) b.arrived = true;
+        }
+      }
+      if (b.arrived && b.arriveT === null && b.alertT !== null) {
+        b.arriveT = now; this.stats.help.push(now - b.alertT);
+        this.logEv(now, `${(this.people[b.helper] || {}).name || "Help"} reached ${first} in ${mmss(now - b.alertT)}`, "go", b.id);
+      }
       const floor = b.outdoor ? null : b.floor ?? b.posFloor;
       let place = "Nearby";
-      if (b.outdoor) place = "Outside";
+      if (b.outdoor) { const n = b.x !== null ? nearPlace(b.x, b.y) : ""; place = n ? `Outside, by ${n}` : "Outside"; }
       else if (floor != null) {
-        place = "Floor " + floor;
+        place = "ILC, floor " + floor;
         if (b.x !== null) {
           const zs = BUILDING.zones.filter((z) => z.floor === floor), z = zs.length ? nearest(zs, b.x, b.y) : null;
           if (z && Math.hypot(z.x - b.x, z.y - b.y) < 25) place += ", " + z.name;
@@ -538,12 +912,15 @@ class Hub {
       for (const [pid, [r, pt]] of Object.entries(b.peers)) if (now - pt < 10) peers[pid] = r1(rssiToM(r));
       const e = this.env[b.outdoor ? "outside" : "inside"];
       out.push({
-        id: b.id, name: b.person.name, first: b.person.name.split(" ")[0], ini: b.person.you ? "You" : initials(b.person.name),
-        obj: b.person.pronoun, you: !!b.person.you, sev, level: sev === 3 ? "danger" : sev === 2 ? "watch" : sev === 1 ? "gray" : "ok",
-        label: cands[0][1] || "Okay", risk: sev * 1000 + Math.max(h.sUp, h.sDn, a.sUp * 1.3, a.sDn * 1.3),
+        id: b.id, name: b.person.name, first: b.person.name.split(" ")[0], ini: initials(b.person.name),
+        obj: b.person.pronoun, admin: !!b.person.admin, role: b.person.role || "", sev, level: sev === 3 ? "danger" : sev === 2 ? "watch" : sev === 1 ? "gray" : "ok",
+        label, risk: sev * 1000 + (b.recovery ? 0 : Math.max(h.sUp, h.sDn, a.sUp * 1.3, a.sDn * 1.3)),
         hr: h.v && hs !== "sensor" && hs !== "offline" ? Math.round(h.v) : null, hrUsual: Math.round(h.mu), hrExp: h.expected, hrSpread: h.spread, hrState: [hs, h.dir],
         air: a.v !== null && as !== "offline" ? Math.round(a.v) : null, airAvg: e.avg, airSpread: e.spread, airState: [as, a.dir],
-        outdoor: b.outdoor, floor, x: b.x, y: b.y, place, peers, acked_by: b.ackedBy, buzz: b.buzz, alertSent: now - b.alertSent < 60,
+        outdoor: b.outdoor, floor, x: b.x, y: b.y, place, peers, age: b.person.age || 40, hist: b.hist, hrN: Math.round(h.rest.length / 60),
+        hrZ: h.v !== null ? (h.v - h.expected) / h.spread : 0, evidence: Math.max(h.sUp / 60, h.sDn / 60, a.sUp / 45, a.sDn / 45), fall: b.fall.state, impactT: b.fall.impactT,
+        alertT: b.alertT, arriveT: b.arriveT, sos: b.sos != null, bat: hs === "offline" ? 0 : b.bat ?? null, seenAgo: b.lastT != null ? now - b.lastT : 0,
+        feels: b.feels && a.v !== null ? { f: Math.round(b.feels.f), kind: b.feels.kind, cat: b.feels.cat } : null, rh: b.rh ?? null, wind: b.wind ? Math.round(b.wind) : 0, acked_by: b.ackedBy, helper: b.helper, arrived: b.arrived, stage: b.recovery ? b.recovery.stage : null, buzz: b.buzz, alertSent: now - b.alertSent < 60,
       });
     }
     out.sort((a, b) => b.risk - a.risk || a.name.localeCompare(b.name));
@@ -558,7 +935,7 @@ const CLIP = 1.2, WALK = 1.2, CLIMB = 0.35;
 class SimPerson {
   constructor(id, floor, x, y, base, gain, offset, spot, wobble = 0.45) {
     Object.assign(this, { id, floor, x, y, base, gain, offset, spot, wobble });
-    this.z = 0; this.path = []; this.act = 0.05; this.hr = base; this.wander = 0; this.amb = null;
+    this.z = 0; this.path = []; this.act = 0.05; this.down = false; this.g = 0; this.hr = base; this.wander = 0; this.amb = null;
     this.extra = 0; this.extraTarget = 0; this.airExtra = 0; this.airTarget = 0; this.lastScan = -99;
   }
   go(floor, x, y) {
@@ -578,11 +955,13 @@ class Sim {
     this.people = {
       B1: new SimPerson("B1", 2, 64, 12, 58, 32, +0.55, 0.8),         // Rose: low resting heart rate, sunny window
       B2: new SimPerson("B2", 1, 45, 26, 91, 26, -0.40, 0.0, 0.9),    // Joe: high, variable resting heart rate
-      B3: new SimPerson("B3", 1, 128, 66, 72, 34, +0.20, 0.0),        // Mae: out in the garden
-      B5: new SimPerson("B5", 1, 172, 28, 68, 30, -0.30, 1.0),        // Dev: out by the parking lot
+      B3: new SimPerson("B3", 1, 80, -100, 72, 34, +0.20, 0.0),       // Mae: on the lawn by Campus Pond
+      B5: new SimPerson("B5", 1, 300, 20, 68, 30, -0.30, 1.0),        // Dev: in the lot off Thatcher Road
       B6: new SimPerson("B6", 3, 25, 40, 64, 30, +0.35, -0.6),        // Ana: floor 3
-      B4: new SimPerson("B4", 1, 70, 15, 66, 30, -0.75, 0.3),         // you
+      B4: new SimPerson("B4", 1, 70, 15, 66, 30, -0.75, 0.3),         // Hussein, supervisor
+      B7: new SimPerson("B7", 1, -35, 20, 70, 30, +0.15, 0.5),        // Solon, manager, out on Metawampe Lawn
     };
+    for (const [id, bat] of Object.entries({ B1: 88, B2: 64, B3: 71, B5: 93, B6: 19, B4: 80, B7: 76 })) this.people[id].bat = bat;
     this.aps = [];
     for (const f of BUILDING.floors) [[15, 12], [45, 10], [75, 12], [15, 38], [45, 40], [75, 38], [45, 25]].forEach(([x, y], i) => this.aps.push([`ap${f}${i}`, f, x, y]));
   }
@@ -608,6 +987,7 @@ class Sim {
     return out;
   }
   move(p, dt) {
+    if (p.down) { p.act = 0.004 + Math.abs(this.r.gauss(0, 0.003)); return; }   // lying still
     if (!p.path.length) { p.act = 0.05 + Math.abs(this.r.gauss(0, 0.03)); return; }
     const [kind, f, tx, ty] = p.path[0];
     if (kind === "walk") {
@@ -621,27 +1001,34 @@ class Sim {
     }
   }
   heart(p, dt) {
-    p.extra += (1 - Math.exp(-dt / 12)) * (p.extraTarget - p.extra);
+    p.extra += (1 - Math.exp(-dt / (p.fast ? 2 : 12))) * (p.extraTarget - p.extra);
     const target = p.base + p.gain * Math.max(0, p.act - 0.05) + p.extra;
-    p.hr += (1 - Math.exp(-dt / (target > p.hr ? 25 : 65))) * (target - p.hr);
+    p.hr += (1 - Math.exp(-dt / (p.fast ? 3 : target > p.hr ? 25 : 65))) * (target - p.hr);
     p.wander = 0.97 * p.wander + this.r.gauss(0, p.wobble);
     return p.hr + p.wander + this.r.gauss(0, 1.2);
   }
   air(t, p, dt) {
-    p.airExtra += (1 - Math.exp(-dt / 60)) * (p.airTarget - p.airExtra);
+    p.airExtra += (1 - Math.exp(-dt / (p.fast ? 2 : 60))) * (p.airTarget - p.airExtra);
     const target = this.placeTemp(t, p) + p.airExtra + 1.0;           // the clip sits a little warm from the body
-    p.amb = p.amb === null ? target : p.amb + (1 - Math.exp(-dt / 40)) * (target - p.amb);   // the sensor takes time to settle
+    p.amb = p.amb === null ? target : p.amb + (1 - Math.exp(-dt / (p.fast ? 3 : 40))) * (target - p.amb);   // the sensor takes time to settle
+    if (p.fast && Math.abs(p.extra) < 0.5 && Math.abs(p.airExtra) < 0.3 && Math.abs(p.amb - target) < 0.5) p.fast = false;
     return p.amb + this.r.gauss(0, 0.25);
   }
   step(t, dt = 1) {
     this.hub.ingest({ ref: true, p: this.pressure(t, 0.8) + this.r.gauss(0, 0.02) }, t);
     for (const p of Object.values(this.people)) {
       this.move(p, dt);
+      p.bat = Math.max(0, (p.bat ?? 90) - dt * 0.0008);   // about 3% an hour
+      if (p.dead) continue;                                // a dead clip sends nothing
       const pkt = {
         id: p.id, hr: Math.round(this.heart(p, dt)), q: 0.95, act: Math.max(0, p.act), air: r1(this.air(t, p, dt)),
-        p: this.pressure(t, this.height(p)) + p.offset + this.r.gauss(0, 0.02), ble: this.ble(p),
+        p: this.pressure(t, this.height(p)) + p.offset + this.r.gauss(0, 0.02), ble: this.ble(p), bat: Math.round(p.bat),
       };
+      if (p.g) { pkt.g = p.g; pkt.act = 3; p.g = 0; }
       if (!isInside(p.x, p.y)) pkt.gps = toLatLon(p.x + this.r.gauss(0, 3), p.y + this.r.gauss(0, 3));
+      // humidity, and wind outdoors (from the clip's humidity sensor and the campus weather feed)
+      pkt.rh = Math.round(isInside(p.x, p.y) ? (p.airTarget > 10 ? 58 : 34) : 62);
+      if (!isInside(p.x, p.y)) pkt.wind = Math.max(0, r1(7 + 3 * Math.sin(t / 900) + (p.airTarget < -10 ? 12 : 0) + this.r.gauss(0, 1)));
       else if (t - p.lastScan >= 5) { pkt.wifi = this.scan(p); p.lastScan = t; }
       this.hub.ingest(pkt, t);
     }
@@ -662,75 +1049,55 @@ class Sim {
       this.hub.wifi.add(f, x, y, avg);
     }
     for (const p of Object.values(this.people)) p.lastScan = -99;
-    const walks = { 200: ["B2", 1, 30, 12], 360: ["B2", 1, 45, 26], 480: ["B5", 1, 190, 50], 640: ["B5", 1, 172, 28] };
+    const walks = { 200: ["B2", 1, 30, 12], 360: ["B2", 1, 45, 26], 480: ["B5", 1, 290, 38], 640: ["B5", 1, 300, 20] };
     for (let t = start + 12, i = 0; t < now; t++, i++) {
       if (walks[i]) { const [id, f, x, y] = walks[i]; this.people[id].go(f, x, y); }
       this.step(t);
     }
   }
-  action(name, targetId) {
+  recover(id) {
+    // help has arrived: they sit down, cool off or warm up, and settle quickly
+    const p = this.people[id]; if (!p) return;
+    p.extraTarget = 0; p.airTarget = 0; p.fast = true; p.down = false;
+  }
+  action(name, targetId, adminId = "B4") {
     const P = this.people;
     if (name === "rose_heart") { P.B1.path = []; P.B1.extraTarget = 38; }
     else if (name === "joe_hot") P.B2.airTarget = 30;       // the boiler room
-    else if (name === "mae_cold") P.B3.airTarget = -24;     // wind off the river
-    else if (name === "walk") { const t = P[targetId] || P.B1; if (t !== P.B4) P.B4.go(t.floor, t.x + 1.5, t.y + 1); }
+    else if (name === "mae_cold") P.B3.airTarget = -24;     // wind off Campus Pond
+    else if (name === "ana_dead") { P.B6.dead = true; P.B6.bat = 0; }   // battery runs out on floor 3
+    else if (name === "dev_fall") { P.B5.path = []; P.B5.down = true; P.B5.g = 4.2; P.B5.extraTarget = 14; }   // slips on ice in the lot
+    else if (name === "walk") { const who = P[adminId] || P.B4, t = P[targetId] || P.B1; if (t !== who) who.go(t.floor, t.x + 1.5, t.y + 1); }
     else if (name === "reset") {
-      for (const p of Object.values(P)) { p.extraTarget = 0; p.airTarget = 0; p.path = []; }
-      P.B4.go(1, 70, 15);
+      for (const p of Object.values(P)) { p.extraTarget = 0; p.airTarget = 0; p.path = []; p.down = false; p.dead = false; }
+      if (P.B6.bat < 19) P.B6.bat = 19;
+      P.B4.go(1, 70, 15); P.B7.go(1, -35, 20);
     }
   }
 }
 
 /* ================= the map image ================= */
-function worldSvg() {
-  const R = rng(5), W = (WORLD.x1 - WORLD.x0) * PPM, H = (WORLD.y1 - WORLD.y0) * PPM;
-  const pt = (x, y) => `${WX(x).toFixed(1)},${WY(y).toFixed(1)}`;
-  const rect = (x0, y0, x1, y1, fill, extra = "") => `<rect x="${WX(x0)}" y="${WY(y1)}" width="${(x1 - x0) * PPM}" height="${(y1 - y0) * PPM}" fill="${fill}" ${extra}/>`;
-  const keep = [];
-  let s = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><rect width="${W}" height="${H}" fill="#E8ECE3"/>`;
-  for (const poly of [[[-260, 150], [-70, 175], [-60, 70], [-250, 45]], [[-40, -60], [150, -75], [160, -130], [-30, -140]], [[190, 185], [410, 175], [415, 95], [195, 105]], [[-300, -40], [-120, -30], [-130, -115], [-295, -110]]]) {
-    s += `<polygon points="${poly.map(([x, y]) => pt(x, y)).join(" ")}" fill="#E2E8DB"/>`;
+// Satellite photo of campus (Esri World Imagery) with OpenStreetMap building outlines on top.
+const MAP_URL = "campus.jpg";
+const HI = { url: "campus-hi.jpg", x0: -200, x1: 360, y0: -220, y1: 260 };   // a sharper photo of the blocks around the ILC
+function worldMap() {
+  const W = (WORLD.x1 - WORLD.x0) * PPM, H = (WORLD.y1 - WORLD.y0) * PPM;
+  let polys = "", labels = "";
+  for (const [name, c, p] of CAMPUS) {
+    let pts = "";
+    for (let i = 0; i < p.length; i += 2) pts += `${WX(p[i])},${WY(p[i + 1])} `;
+    const ilc = name === "Integrative Learning Center";
+    polys += `<polygon points="${pts}" class="bld${ilc ? " ilc" : ""}"${name ? ` data-bld="${esc(name)}"` : ""}/>`;
+    if (name) labels += `<text x="${WX(c[0])}" y="${WY(c[1])}" class="blab${ilc ? " ilc" : ""}">${esc(name.replace(/ (Building|Laboratory)$/, ""))}</text>`;
   }
-  // river along the south
-  const top = [], bot = [], mid = [];
-  for (let x = WORLD.x0 - 20; x <= WORLD.x1 + 20; x += 20) { const y = -170 + 8 * Math.sin(x / 60); top.push(pt(x, y + 15)); bot.unshift(pt(x, y - 15)); mid.push(pt(x, y)); }
-  s += `<polygon points="${top.concat(bot).join(" ")}" fill="#BDD4E3"/><polyline points="${mid.join(" ")}" fill="none" stroke="#D6E5EF" stroke-width="8" stroke-linecap="round"/>`;
-  keep.push([WORLD.x0, -195, WORLD.x1, -145]);
-  // road along the north
-  const road = [];
-  for (let x = WORLD.x0 - 20; x <= WORLD.x1 + 20; x += 20) road.push(pt(x, 100 + 6 * Math.sin(x / 90)));
-  s += `<polyline points="${road.join(" ")}" fill="none" stroke="#D3D8CD" stroke-width="${14 * PPM}" stroke-linecap="round"/><polyline points="${road.join(" ")}" fill="none" stroke="#F7F5EE" stroke-width="${11 * PPM}" stroke-linecap="round"/>`;
-  keep.push([WORLD.x0, 88, WORLD.x1, 112]);
-  // plaza, paths, parking, garden
-  s += rect(-12, -14, 102, 64, "#EEF0EA"); keep.push([-14, -16, 104, 66]);
-  for (const [a, b] of [[[45, 0], [45, -60]], [[45, 50], [45, 100]], [[90, 25], [137, 25]], [[0, 25], [-90, 25]], [[-90, 25], [-110, 100]], [[45, -60], [200, -60]], [[45, -60], [-200, -55]], [[110, 25], [128, 52]]]) {
-    s += `<line x1="${WX(a[0])}" y1="${WY(a[1])}" x2="${WX(b[0])}" y2="${WY(b[1])}" stroke="#F7F5EE" stroke-width="${4 * PPM}" stroke-linecap="round"/>`;
-    keep.push([Math.min(a[0], b[0]) - 3, Math.min(a[1], b[1]) - 3, Math.max(a[0], b[0]) + 3, Math.max(a[1], b[1]) + 3]);
-  }
-  s += rect(137, -11, 205, 69, "#DDE1D8"); keep.push([135, -13, 207, 71]);
-  for (let y = -8; y < 67; y += 3) s += rect(140, y, 166, y + 0.3, "#F7F5EE") + rect(176, y, 202, y + 0.3, "#F7F5EE");
-  s += rect(112, 52, 146, 80, "#D6E3C8"); keep.push([110, 50, 148, 82]);
-  for (let y = 54; y < 80; y += 3) s += rect(114, y, 144, y + 1, "#C3D4B2");
-  // buildings
-  for (const [x0, y0, x1, y1] of [[-140, 20, -80, 70], [-150, -50, -100, -10], [-40, 125, 60, 165], [180, 125, 260, 170], [-210, 190, -130, 240], [250, -100, 330, -40], [300, 20, 390, 80]]) {
-    s += rect(x0, y0, x1, y1, "#D3D7CE", `stroke="#BCC2B7" stroke-width="2"`); keep.push([x0 - 4, y0 - 4, x1 + 4, y1 + 4]);
-  }
-  s += rect(0, 0, 90, 50, "#D3D7CE", `stroke="#BCC2B7" stroke-width="2"`);
-  s += `<text x="${WX(45)}" y="${WY(25) + 7}" text-anchor="middle" font-family="Space Grotesk, Inter, sans-serif" font-weight="600" font-size="20" fill="#8A9088">ILC</text>`;
-  // trees
-  let g1 = "", g2 = "";
-  for (let i = 0; i < 260; i++) {
-    const x = WORLD.x0 + R.random() * (WORLD.x1 - WORLD.x0), y = WORLD.y0 + R.random() * (WORLD.y1 - WORLD.y0);
-    if (keep.some(([a, b, c, d]) => x > a && x < c && y > b && y < d)) continue;
-    const r = (3 + R.random() * 4) * PPM;
-    g1 += `<circle cx="${WX(x).toFixed(1)}" cy="${WY(y).toFixed(1)}" r="${r.toFixed(1)}"/>`;
-    g2 += `<circle cx="${(WX(x) + r * 0.15).toFixed(1)}" cy="${(WY(y) - r * 0.15).toFixed(1)}" r="${(r * 0.5).toFixed(1)}"/>`;
-  }
-  s += `<g fill="#B7C8AB">${g1}</g><g fill="#A6B99A">${g2}</g></svg>`;
-  return s;
+  const d = document.createElement("div");
+  d.className = "sat";
+  d.style.cssText = `width:${W}px;height:${H}px`;
+  d.innerHTML = `<img alt="Satellite view of central UMass Amherst" src="${MAP_URL}" width="${W}" height="${H}" draggable="false">
+    <img alt="" src="${HI.url}" class="hi" draggable="false" style="left:${WX(HI.x0)}px;top:${WY(HI.y1)}px;width:${(HI.x1 - HI.x0) * PPM}px;height:${(HI.y1 - HI.y0) * PPM}px">
+    <svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true"><g>${polys}</g><g>${labels}</g></svg>`;
+  return d;
 }
-const MAP_SVG = worldSvg();
-const MAP_URL = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(MAP_SVG);
 
 /* ================= the app ================= */
 const LOOK = {
@@ -744,6 +1111,7 @@ const ICON = {
   bell: "M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0",
   check: "M20 6L9 17l-5-5",
   close: `<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>`,
+  street: `<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="2.5"/><path d="M9 21v-6l-1-1V10a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v4l-1 1v6M5 18c-1.5.6-2 1.2-2 1.8C3 21 7 22 12 22s9-1 9-2.2c0-.6-.5-1.2-2-1.8"/></svg>`,
   locate: `<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 3L3 10.5l7.2 2.3L12.5 20z"/></svg>`,
   buzz: `<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="3" width="8" height="18" rx="2"/><path d="M4 8v8M20 8v8"/></svg>`,
 };
@@ -751,11 +1119,32 @@ const TILT_X = 55, TURN_Z = -28, ARROW = "M35 4 L62 60 L35 47 L8 60 Z", CHECK = 
 const $ = (id) => document.getElementById(id);
 const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private window */ } } };
 
-let state = null, sel = "", railHidden = false, locating = false, locDom = null, lastAngle = 0;
+let privacy = false, summaryText = "";
+// one-line shift handoff: written by Claude when the page may ask it, otherwise from the numbers
+function localSummary() {
+  const n = hub.stats.alerts, H = hub.stats.help, open = workers().filter((w) => w.level === "danger" || w.level === "watch").length;
+  if (!n) return `Quiet shift. ${workers().length} workers, no alerts.`;
+  return `${n} alert${n > 1 ? "s" : ""}${H.length ? `, avg help ${mmss(H.reduce((a, v) => a + v, 0) / H.length)}` : ""}. ${open ? `${open} still need${open > 1 ? "" : "s"} attention.` : "Everyone safe."}`;
+}
+async function summarize() {
+  summaryText = "…"; renderRail();
+  let sample = null;
+  try { sample = window.claude && window.claude.use ? await window.claude.use("sample") : null; } catch (e) { sample = null; }
+  if (!sample) { summaryText = localSummary(); renderRail(); return; }
+  const events = hub.log.slice(-30).map((e) => `${clock(e.t)} ${e.text}`).join("\n") || "(no events)";
+  const now = workers().map((w) => `${w.first}: ${w.label}`).join("; ");
+  try {
+    const r = await sample(`Write a one-line shift handoff for a night safety supervisor. At most 16 words. Plain, factual, no greeting, no names of tools. Facts:\nNow: ${now}\nEvents:\n${events}\nStats: ${localSummary()}`, { modelTier: "quick", cache: false });
+    summaryText = (r && r.text ? r.text : localSummary()).trim().split("\n")[0].slice(0, 160);
+  } catch (e) { summaryText = localSummary(); }
+  renderRail();
+}
+const hidden = (p) => privacy && !p.admin && p.sev < 2;
+let state = null, sel = "", railHidden = false, locating = false, locDom = null, lastAngle = 0, adminId = "B4";
 let cam = { cx: 0, cy: 0, k: 1 }, drag = null;
 const person = (id) => state && state.people.find((p) => p.id === id);
-const me = () => state && state.people.find((p) => p.you);
-const workers = () => state.people.filter((p) => !p.you);
+const me = () => person(adminId);
+const workers = () => state.people.filter((p) => !p.admin);
 const paint = (el, level) => { const l = LOOK[level]; el.style.setProperty("--fill", l.fill); el.style.setProperty("--ink2", l.ink); el.style.setProperty("--card", l.card); el.style.setProperty("--cline", l.line); };
 function setHtml(el, h) { if (el && el.dataset.h !== h) { el.innerHTML = h; el.dataset.h = h; } }
 function sync(box, items, make, update) {
@@ -783,7 +1172,9 @@ function renderRail() {
       ? `<div class="chips"><button class="ctl" data-act="rail" aria-expanded="false" aria-label="Show list" style="width:44px;padding:0"><svg class="i" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button><div id="chips" style="display:contents"></div></div>`
       : `<div class="rail-head"><div style="display:flex;flex-direction:column;gap:1px"><h2>Workers</h2><span>Sorted by risk</span></div><button class="ctl" data-act="rail" aria-expanded="true">Hide list</button></div>
          <div class="counts"><div><b><i style="background:var(--danger)"></i><span id="n-d"></span></b><small>In danger</small></div><div><b><i style="background:var(--watch)"></i><span id="n-w"></span></b><small>Questionable</small></div><div><b><i style="background:var(--ok)"></i><span id="n-o"></span></b><small>Okay</small></div></div>
-         <div class="list" id="wlist" role="list" aria-label="Workers, sorted by risk"></div>`;
+         <div class="privrow"><span>Location</span><button class="switch" data-act="privacy" id="priv-sw" aria-pressed="false"><i></i><span id="priv-l">Always</span></button></div>
+         <div class="list" id="wlist" role="list" aria-label="Workers, sorted by risk"></div>
+         <div class="log"><div class="log-h"><span>Activity <span class="lstat" id="log-stat"></span></span><span class="lh-r"><small id="log-clock"></small><button class="sumb" data-act="summary" aria-label="Shift summary"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg></button></span></div><div class="sumline" id="sumline" hidden></div><ol id="logl"></ol></div>`;
   }
   if (railHidden) {
     sync($("chips"), ws, (w) => { const b = document.createElement("button"); b.className = "av"; b.dataset.sel = w.id; return b; }, (b, w) => {
@@ -791,58 +1182,91 @@ function renderRail() {
     });
     return;
   }
+  $("priv-sw").setAttribute("aria-pressed", String(privacy)); $("priv-l").textContent = privacy ? "Alerts only" : "Always";
+  $("log-clock").textContent = clock(state.t);
+  $("sumline").hidden = !summaryText; $("sumline").textContent = summaryText;
+  const H = hub.stats.help, n = hub.stats.alerts;
+  setHtml($("log-stat"), n ? `<b>${n}</b> alert${n > 1 ? "s" : ""}${H.length ? ` · <b>${mmss(H.reduce((a, v) => a + v, 0) / H.length)}</b> avg help` : ""}` : "");
+  const L = hub.log.slice(-14).reverse();
+  setHtml($("logl"), L.length ? L.map((e) => `<li class="lv-${e.level}${e.id ? " tap" : ""}${replay && replay.t === e.t && replay.id === e.id ? " on" : ""}"${e.id ? ` data-rid="${esc(e.id)}" data-rt="${e.t}"` : ""}><time>${clock(e.t)}</time><span>${esc(e.text)}</span></li>`).join("") : `<li class="none">No events yet</li>`);
   $("n-d").textContent = ws.filter((w) => w.level === "danger").length;
   $("n-w").textContent = ws.filter((w) => w.level === "watch" || w.level === "gray").length;
   $("n-o").textContent = ws.filter((w) => w.level === "ok").length;
   sync($("wlist"), ws, (w) => {
     const b = document.createElement("button"); b.className = "wcard"; b.dataset.sel = w.id; b.setAttribute("role", "listitem");
-    b.innerHTML = `<span class="av"></span><span class="who"><span class="nm"></span><span class="st"></span></span><span class="vals"></span>`;
+    b.innerHTML = `<span class="av"></span><span class="who"><span class="nm"></span><span class="st"></span><span class="pl"></span></span><span class="vals"></span>`;
     return b;
   }, (b, w) => {
     paint(b, w.level);
     b.classList.toggle("sel", w.id === sel);
     b.querySelector(".av").textContent = w.ini;
-    b.querySelector(".nm").textContent = w.name;
-    setHtml(b.querySelector(".st"), `${iconSvg(LOOK[w.level].icon)}<span>${esc(w.label)}</span>`);
+    setHtml(b.querySelector(".nm"), esc(w.name) + (liveWear.has(w.id) ? `<span class="livetag">LIVE</span>` : "") + (w.bat != null && w.bat < 25 ? `<span class="bat${w.bat < 10 ? " dead" : ""}" title="Clip battery">${BAT_ICON}${w.bat}%</span>` : ""));
     setHtml(b.querySelector(".vals"), `<b>${w.air ?? "–"}°F</b><span>${w.hr ?? "–"} BPM</span>`);
+    setHtml(b.querySelector(".st"), `${iconSvg(LOOK[w.level].icon)}<span>${esc(w.label)}</span>`);
+    b.querySelector(".pl").textContent = hidden(w) ? "Hidden" : w.label === "No signal" ? `Last seen ${ago(w.seenAgo)} · ${w.place}` : w.place;
     b.setAttribute("aria-label", `${w.name}, ${w.label}, ${w.air}°F, ${w.hr} BPM. Show on the map.`);
   });
 }
 
 /* ---------- map ---------- */
-function camTransform() { $("world").style.transform = `scale(${cam.k.toFixed(4)}) translate(${(-cam.cx).toFixed(1)}px, ${(-cam.cy).toFixed(1)}px)`; }
+function camTransform() {
+  $("world").style.transform = `scale(${cam.k.toFixed(4)}) translate(${(-cam.cx).toFixed(1)}px, ${(-cam.cy).toFixed(1)}px)`;
+  $("world").style.setProperty("--lab", `${(12 / cam.k).toFixed(2)}px`);
+  $("mapv").classList.toggle("far", cam.k < 0.9);
+}
 function fitAll() {
   const v = $("mapv"), pts = state.people.filter((p) => p.x !== null);
   const xs = pts.map((p) => WX(p.x)), ys = pts.map((p) => WY(p.y));
   const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
-  cam = { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2 + 20, k: clamp(Math.min(v.clientWidth / (x1 - x0 + 260), v.clientHeight / (y1 - y0 + 300)), 0.6, 2.4) };
+  cam = { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2 + 20, k: clamp(Math.min(v.clientWidth / (x1 - x0 + 260), v.clientHeight / (y1 - y0 + 300)), 0.4, 2.4) };
   camTransform(); renderPins();
 }
 function focusOn(p) {
-  if (!p || p.x === null) return;
+  if (!p || p.x === null || hidden(p)) return;
   const k = 2.4, v = $("mapv");
   cam = { cx: WX(p.x), cy: WY(p.y) + Math.min(130, v.clientHeight * 0.22) / k, k };
   camTransform(); renderPins();
 }
-function zoomBy(f) { cam.k = clamp(cam.k * f, 0.5, 4); camTransform(); renderPins(); }
+function fitPts(pts) {
+  const v = $("mapv"); pts = pts.filter((p) => p && p.x !== null); if (!pts.length) return;
+  const xs = pts.map((p) => WX(p.x)), ys = pts.map((p) => WY(p.y));
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  cam = { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2 + 40, k: clamp(Math.min(v.clientWidth / (x1 - x0 + 260), v.clientHeight / (y1 - y0 + 380)), 0.4, 2.4) };
+  camTransform(); renderPins();
+}
+function zoomBy(f) { cam.k = clamp(cam.k * f, 0.3, 5); camTransform(); renderPins(); }
 
+/* the last few minutes of where someone went; tapping a log entry replays the path up to that moment */
+let replay = null;
+function drawTrail(box) {
+  const p = sel && person(sel);
+  if (!p || hidden(p)) { setHtml(box, ""); return; }
+  const end = replay && replay.id === p.id ? replay.t : state.t;
+  const H = p.hist.filter((h) => h[7] != null && h[0] <= end && h[0] >= end - 300);
+  if (H.length < 2) { setHtml(box, ""); return; }
+  const W = (WORLD.x1 - WORLD.x0) * PPM, Hh = (WORLD.y1 - WORLD.y0) * PPM, last = H[H.length - 1];
+  const pts = H.map((h) => `${WX(h[7]).toFixed(1)},${WY(h[8]).toFixed(1)}`).join(" ");
+  setHtml(box, `<svg width="${W}" height="${Hh}" viewBox="0 0 ${W} ${Hh}" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity=".55" vector-effect="non-scaling-stroke"/><polyline points="${pts}" fill="none" stroke="var(--you)" stroke-width="3" stroke-dasharray="1 7" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>${replay && replay.id === p.id ? `<circle cx="${WX(last[7])}" cy="${WY(last[8])}" r="10" fill="none" stroke="var(--you)" stroke-width="3" vector-effect="non-scaling-stroke"/>` : ""}</svg>`);
+}
 function renderPins() {
   const w = $("world");
-  sync(w, [{ id: "__map" }, ...state.people.filter((p) => p.x !== null)], (p) => {
-    if (p.id === "__map") { const d = document.createElement("div"); d.innerHTML = MAP_SVG; return d.firstElementChild; }
+  sync(w, [{ id: "__map" }, { id: "__trail" }, ...state.people.filter((p) => p.x !== null && !hidden(p))], (p) => {
+    if (p.id === "__map") return worldMap();
+    if (p.id === "__trail") { const d = document.createElement("div"); d.className = "trail"; return d; }
     const b = document.createElement("button");
-    b.className = "pin" + (p.you ? " you" : "");
-    if (!p.you) b.dataset.sel = p.id; else b.tabIndex = -1;
+    b.className = "pin" + (p.admin ? " you" : "");
+    if (!p.admin) b.dataset.sel = p.id; else b.tabIndex = -1;
     b.innerHTML = `<span class="pulse" hidden></span><span class="ini"></span><span class="fl" hidden></span><span class="tag" hidden></span>`;
     return b;
   }, (b, p) => {
     if (p.id === "__map") return;
+    if (p.id === "__trail") return drawTrail(b);
     b.style.left = `${WX(p.x)}px`; b.style.top = `${WY(p.y)}px`;
     b.style.transform = `translate(-50%, -50%) scale(${(1 / cam.k).toFixed(4)})`;
-    b.style.zIndex = p.you ? 1 : p.id === sel ? 4 : p.level === "danger" ? 3 : 2;
-    b.querySelector(".ini").textContent = p.ini;
+    b.style.zIndex = p.admin ? (p.id === adminId ? 1 : 0) : p.id === sel ? 4 : p.level === "danger" ? 3 : 2;
+    b.querySelector(".ini").textContent = p.admin && p.id === adminId ? "You" : p.ini;
     const fl = b.querySelector(".fl"); fl.hidden = p.outdoor || p.floor == null; fl.textContent = p.floor ?? "";
-    if (p.you) { b.setAttribute("aria-label", "You"); return; }
+    if (p.admin) { b.setAttribute("aria-label", p.id === adminId ? "You" : `${p.role} ${p.name}`); return; }
     paint(b, p.level);
     b.classList.toggle("sel", p.id === sel);
     b.querySelector(".pulse").hidden = p.level !== "danger";
@@ -851,14 +1275,52 @@ function renderPins() {
   });
 }
 
+const hyp = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+function pathLen(m, p) {
+  if (!m || !p || m.x === null || p.x === null) return Infinity;
+  const climb = (f) => Math.max(0, (f || 1) - 1) * BUILDING.floor_height_m * 2;
+  if (!m.outdoor && !p.outdoor) {
+    if (m.floor === p.floor) return hyp(m, p);
+    const st = nearest(BUILDING.stairs, m.x, m.y);
+    return hyp(m, st) + Math.abs((m.floor || 1) - (p.floor || 1)) * BUILDING.floor_height_m * 2 + hyp(st, p);
+  }
+  if (m.outdoor && p.outdoor) return hyp(m, p);
+  const [inn, out] = m.outdoor ? [p, m] : [m, p], d = nearest(BUILDING.doors, out.x, out.y);
+  if ((inn.floor || 1) > 1) { const st = nearest(BUILDING.stairs, inn.x, inn.y); return hyp(out, d) + hyp(d, st) + climb(inn.floor) + hyp(st, inn); }
+  return hyp(out, d) + hyp(d, inn);
+}
+function nearestHelper(p) {
+  let best = null;
+  for (const a of state.people.filter((q) => q.admin)) { const d = pathLen(a, p); if (!best || d < best.d) best = { a, d }; }
+  return best && isFinite(best.d) ? best : null;
+}
+function nearHtml(p) {
+  // who should go: whoever can walk there fastest
+  const n = nearestHelper(p); if (!n) return "";
+  const m = Math.max(1, Math.round(n.d));
+  return n.a.id === adminId ? `<span class="near">You're nearest · ${m} m</span>` : `<button class="btn go" data-go="${esc(p.id)}" data-by="${esc(n.a.id)}">Send ${esc(n.a.name)} <span style="font-weight:500;opacity:.7">${m} m</span></button>`;
+}
+function onWayText(p) {
+  if (!p.acked_by) return "";
+  if (p.arrived) return p.arriveT != null && p.alertT != null ? `${p.acked_by} reached ${p.first} in ${mmss(p.arriveT - p.alertT)}` : `${p.acked_by} is there`;
+  return `${p.acked_by} is on the way` + (p.alertT != null ? ` · ${mmss(state.t - p.alertT)}` : "");
+}
+let night = false;   // night shift: the demo clock starts at 11 PM and the campus goes dark
+function clock(t) { const s = Math.floor(t - (1e6 - (night ? 23 : 9) * 3600)), h = Math.floor(s / 3600) % 24, m = Math.floor(s / 60) % 60; return `${((h + 11) % 12) + 1}:${String(m).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; }
+const BAT_ICON = `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="17" height="10" rx="2"/><path d="M22 11v2"/></svg>`;
+const WALK_ICON = `<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="13" cy="4" r="2"/><path d="M10 21l2-6 3 3v3M8 12l3-4 4 3 3 1M11 8l-1 5"/></svg>`;
 function renderBanner() {
-  const top = workers().find((w) => w.level === "danger");
-  $("banner").hidden = !top || locating;
+  const top = workers().find((w) => w.level === "danger" && !w.stage);
+  $("banner").hidden = !top || locating || (sel === top.id && matchMedia("(max-width: 760px)").matches);   // on a phone the open card already has these buttons
   if (!top) return;
   $("bn-nm").textContent = `${top.first} is in danger`;
-  $("bn-v").textContent = `${top.hr ?? "–"} BPM · ${top.air ?? "–"}°F`;
+  $("bn-v").textContent = `${top.hr ?? "–"} BPM · ${top.air ?? "–"}°F` + (top.alertT != null && !top.acked_by ? ` · ${mmss(state.t - top.alertT)} since alert` : "");
   $("bn-show").dataset.sel = top.id;
   alertBtn($("bn-alert"), top);
+  $("bn-go").hidden = !!top.acked_by; $("bn-go").dataset.go = top.id;
+  setHtml($("bn-near"), top.acked_by ? "" : nearHtml(top));
+  const otw = $("bn-otw"); otw.hidden = !top.acked_by; setHtml(otw, top.acked_by ? `${WALK_ICON}<span>${esc(onWayText(top))}</span>` : "");
+  $("bn-check").hidden = !top.arrived; $("bn-check").dataset.arrived = top.id;
 }
 function alertBtn(btn, p) {
   btn.dataset.alert = p.id;
@@ -891,24 +1353,73 @@ function renderPop() {
   if (pop.dataset.for !== p.id) {
     pop.dataset.for = p.id;
     pop.innerHTML = `<div class="pop-head"><span class="av" id="pp-av"></span><h2 id="pp-nm"></h2><span class="pill" id="pp-pill"></span><span class="where" id="pp-where"></span><span class="grow"></span>
-      <button class="btn dark" data-act="locate">${ICON.locate}<span>Locate</span></button><button class="btn red" id="pp-alert"></button>
-      <button class="x" data-act="close-pop" aria-label="Close readings">${ICON.close}</button></div>
-      <div role="table" aria-label="Readings" id="pp-rows"></div><div class="buzzline" id="pp-buzz"></div>`;
+      <a class="lnk" id="pp-sv" target="_blank" rel="noopener">${ICON.street}<span>Street View</span></a><button class="btn dark" data-act="locate">${ICON.locate}<span>Locate</span></button><button class="btn red" id="pp-alert"></button><span id="pp-go" style="display:contents"></span>
+      </div><button class="x pop-x" data-act="close-pop" aria-label="Close readings">${ICON.close}</button>
+      <div role="table" aria-label="Readings" id="pp-rows"></div><div class="buzzline" id="pp-buzz"></div><div class="why" id="pp-why"></div>`;
   }
   paint(pop, p.level);
   $("pp-av").textContent = p.ini;
   $("pp-nm").textContent = p.name;
   setHtml($("pp-pill"), `${iconSvg(LOOK[p.level].icon)}<span>${esc(p.label)}</span>`);
-  setHtml($("pp-where"), `${ICON.pin}${esc(p.place)}`);
+  setHtml($("pp-where"), hidden(p) ? `${ICON.pin}Hidden` : `${ICON.pin}${p.label === "No signal" ? `Last seen ${ago(p.seenAgo)} · ` : ""}${esc(p.place)}`);
+  pop.querySelector('[data-act="locate"]').hidden = hidden(p);
+  const sv = $("pp-sv"); sv.hidden = p.x === null || hidden(p);
+  if (p.x !== null) { const href = streetView(p.x, p.y); if (sv.getAttribute("href") !== href) sv.setAttribute("href", href); sv.setAttribute("aria-label", `Open Street View where ${p.first} is`); }
   alertBtn($("pp-alert"), p);
+  setHtml($("pp-go"), p.sev < 2 || p.stage ? "" : p.acked_by ? `<span class="otw">${WALK_ICON}<span>${esc(onWayText(p))}</span></span>` : `<button class="btn go" data-go="${esc(p.id)}">On my way</button>${nearHtml(p)}`);
   const E = p.hrExp, S = p.hrSpread, A = p.airAvg, T = p.airSpread;
   const hb = bands(["Too low", "Normal", "Elevated", "Too high"], ["var(--cold)", "var(--ok)", "var(--watch)", "var(--danger)"], [E - 45, E - 3 * S, E + 2.5 * S, E + 2.5 * S + 15, E + 70]);
   const ab = bands(["Too cold", "Normal", "Warm", "Too hot"], ["var(--cold)", "var(--ok)", "var(--watch)", "var(--danger)"], [A - 40, A - 2.5 * T, A + 2.5 * T, A + 2.5 * T + 10, A + 40]);
   setHtml($("pp-rows"),
     (p.hr != null ? vitalRow("Heart rate", `${p.hr} BPM`, `usual ${p.hrUsual}`, p.hr, hb, E - 45, E + 70, p.hrState, ["Too low", "Normal", "Elevated", "Too high"]) : "") +
-    (p.air != null ? vitalRow("Air temp", `${p.air}°F`, `usual here ${Math.round(A)}°`, p.air, ab, A - 40, A + 40, p.airState, ["Too cold", "Normal", "Warm", "Too hot"]) : ""));
-  const bz = p.buzz ? `${ICON.buzz}<span>${{ rest: "Clip told them to rest", cool: "Clip told them to cool off", warm: "Clip told them to warm up" }[p.buzz.why]}, ${ago(state.t - p.buzz.t)}</span>` : "";
+    (p.air != null ? vitalRow("Air temp", `${p.air}°F`, p.feels ? `feels ${p.feels.f}°` : `usual here ${Math.round(A)}°`, p.air, ab, A - 40, A + 40, p.airState, ["Too cold", "Normal", "Warm", "Too hot"]) : ""));
+  const bz = p.buzz ? `${ICON.buzz}<span>Buzzed: ${{ rest: "rest", cool: "cool off", warm: "warm up" }[p.buzz.why]} · ${ago(state.t - p.buzz.t)}</span>` : "";
   setHtml($("pp-buzz"), bz); $("pp-buzz").hidden = !bz;
+  const wh = whyHtml(p); setHtml($("pp-why"), wh); $("pp-why").hidden = !wh;
+}
+
+/* ---------- why: the evidence behind a status ---------- */
+const POSS = { her: "her", him: "his", them: "their" };
+function whyHtml(p) {
+  const poss = POSS[p.obj] || "their", f = p.first;
+  const kv = (a, b) => `<div class="kv"><b>${a}</b><span>${b}</span></div>`;
+  const meter = () => `<div class="ev${p.evidence >= 1 ? " hot" : ""}" role="img" aria-label="Evidence toward an alert: ${Math.round(Math.min(1, p.evidence) * 100)}%"><span style="width:${Math.min(100, p.evidence * 100).toFixed(0)}%"></span></div>`;
+  if (p.sos && !p.stage) return `<div class="kvs">${kv("SOS", "from the clip")}</div>`;
+  if (p.fall && !p.stage) {
+    const secs = p.impactT != null ? state.t - p.impactT : 0;
+    return `<div class="kvs">${kv("4.2 g", "jolt")}${kv(mmss(secs), p.fall === "down" ? "not moving" : "since")}</div>`;
+  }
+  const heat = /hot|cold/i.test(p.label) || (p.airState[0] === "alert" || p.airState[0] === "watch") && !(p.hrState[0] === "alert" || p.hrState[0] === "watch");
+  const H = p.hist.slice(-60).filter((h) => (heat ? h[4] : h[1]) != null);
+  if (H.length < 4) return "";
+  const t0 = H[0][0], t1 = H[H.length - 1][0];
+  const V = heat ? H.map((h) => [h[0], h[4], h[5] - 2.5 * h[6], h[5] + 2.5 * h[6]]) : H.map((h) => [h[0], h[1], h[2] - 2.5 * h[3], h[2] + 2.5 * h[3]]);
+  const fixed = heat ? null : 180 - p.age;
+  let lo = Math.min(...V.map((v) => Math.min(v[1], v[2]))), hi = Math.max(...V.map((v) => Math.max(v[1], v[3])));
+  if (fixed) hi = Math.max(hi, fixed + 3);
+  const pad = (hi - lo) * 0.06 + 1; lo -= pad; hi += pad;
+  const W = 600, HH = 80, X = (t) => (((t - t0) / Math.max(1, t1 - t0)) * W).toFixed(1), Y = (v) => (HH - ((v - lo) / (hi - lo)) * HH).toFixed(1);
+  const band = V.map((v) => `${X(v[0])},${Y(v[3])}`).join(" ") + " " + V.slice().reverse().map((v) => `${X(v[0])},${Y(v[2])}`).join(" ");
+  const line = V.map((v) => `${X(v[0])},${Y(v[1])}`).join(" ");
+  const fy = fixed ? (((HH - ((fixed - lo) / (hi - lo)) * HH) / HH) * 100) : 0;
+  const plot = `<div><div class="why-plot"><svg class="why-chart" viewBox="0 0 ${W} ${HH}" preserveAspectRatio="none" aria-hidden="true">
+      <polygon points="${band}" fill="var(--ok-card)" stroke="var(--ok-line)" stroke-width="1" vector-effect="non-scaling-stroke"/>
+      ${fixed ? `<line x1="0" x2="${W}" y1="${Y(fixed)}" y2="${Y(fixed)}" stroke="var(--ink-3)" stroke-width="1.5" stroke-dasharray="6 5" vector-effect="non-scaling-stroke"/>` : ""}
+      ${replay && replay.id === p.id && replay.t >= t0 && replay.t <= t1 ? `<line x1="${X(replay.t)}" x2="${X(replay.t)}" y1="0" y2="${HH}" stroke="var(--you)" stroke-width="2" vector-effect="non-scaling-stroke"/>` : ""}
+      <polyline points="${line}" fill="none" stroke="var(--ink)" stroke-width="2.2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>
+      ${fixed ? `<span class="why-fixed" style="top:calc(6px + ${(fy * 0.8).toFixed(1)}px)">Fixed alarm ${fixed}</span>` : ""}</div>
+    <div class="why-key"><span><i style="background:var(--ink)"></i>${heat ? "Air" : "Heart"}</span><span><i style="background:var(--ok-card);box-shadow:inset 0 0 0 1px var(--ok-line)"></i>Normal</span><span>${Math.max(1, Math.round((t1 - t0) / 60))} min</span></div></div>`;
+  let txt;
+  if (heat) {
+    txt = kv(`${p.air}°`, "now") + (p.feels ? kv(`${p.feels.f}°`, `feels like · ${p.feels.kind === "heat index" ? `${p.rh}% humid` : `${p.wind} mph wind`}`) : "") + kv(`${Math.round(p.airAvg)}°`, "usual here");
+  } else if (p.hrState[0] === "learning") {
+    txt = kv("…", `learning ${esc(f)}'s normal`);
+  } else if (p.sev >= 2 && p.hrState[0] !== "ok") {
+    txt = kv(p.hr, "BPM now") + kv(Math.round(p.hrExp), `${esc(f)}'s normal`) + (fixed ? kv(fixed, "fixed alarm") : "");
+  } else {
+    txt = kv(Math.round(p.hrExp), `${esc(f)}'s normal`) + kv(`${p.hrN}m`, "learned");
+  }
+  return plot + `<div><div class="kvs">${txt}</div>${meter()}</div>`;
 }
 
 /* ---------- locate: the route diagram ---------- */
@@ -929,7 +1440,7 @@ function route(p, m) {
   } else if (!p.outdoor && p.floor !== m.floor) {
     to = nearest(BUILDING.stairs, m.x, m.y); const n = p.floor - m.floor;
     then = `${cap(to.name)}, then ${Math.abs(n)} floor${Math.abs(n) > 1 ? "s" : ""} ${n > 0 ? "up" : "down"}`;
-  } else then = cap(p.outdoor ? "outside" : p.place.replace(/^Floor \d+,?\s*/, "") || "on your floor");
+  } else then = cap(p.outdoor ? "outside" : p.place.replace(/^ILC, floor \d+,?\s*/, "") || "on your floor");
   const d = together && peer !== undefined && peer < 10 ? peer : Math.hypot(to.x - m.x, to.y - m.y);
   return { big: `${Math.max(1, Math.round(d))} m`, then, dx: to.x - m.x, dy: to.y - m.y };
 }
@@ -944,6 +1455,7 @@ function renderLocate() {
         <div class="dir"><div class="arrow-wrap" id="lc-aw"><svg class="arrow" id="lc-arrow" viewBox="0 0 70 70" aria-hidden="true"><path id="lc-ap" d="${ARROW}" fill="currentColor"/></svg></div>
           <div><div class="big" id="lc-big"></div><div class="then" id="lc-then"></div></div></div>
         <div class="where" id="lc-where"></div>
+        <a class="lnk" id="lc-sv" target="_blank" rel="noopener" style="align-self:flex-start">${ICON.street}<span>Street View here</span></a>
         <div id="lc-act" style="margin-top:auto"></div>
       </div><div class="loc-view" id="lc-view"></div>`;
     const el = $("lc-view");
@@ -964,8 +1476,9 @@ function renderLocate() {
     svg.style.transform = `rotate(${lastAngle}deg)`;
   }
   setHtml($("lc-where"), `${ICON.pin}${esc(p.place)}`);
-  setHtml($("lc-act"), p.sev >= 2
-    ? (p.acked_by ? `<button class="btn green" disabled>${iconSvg(ICON.check, 'class="i"')}On my way</button>` : `<button class="btn dark" data-act="ack">On my way</button>`)
+  if (p.x !== null) { const href = streetView(p.x, p.y); if ($("lc-sv").getAttribute("href") !== href) $("lc-sv").setAttribute("href", href); }
+  setHtml($("lc-act"), p.sev >= 2 && !p.stage
+    ? (p.acked_by ? `<div class="btn green">${WALK_ICON}${esc(onWayText(p))}</div>` : `<button class="btn dark" data-go="${esc(p.id)}">On my way</button>`)
     : "");
   if (mode === "in") updateScene(p, m); else updateFlat(p, m);
 }
@@ -1073,14 +1586,325 @@ function updateFlat(p, m) {
 /* ================= run ================= */
 const hub = new Hub(), sim = new Sim(hub);
 let simT = 1e6, timer = null;
-function renderAll() { renderRail(); renderPins(); renderBanner(); renderPop(); if (locating) renderLocate(); }
-function tick() { simT += 1; sim.step(simT); state = hub.snapshot(simT); renderAll(); }
-function setSpeed(n) {
+let audio = null, soundOn = true;
+const dangerNow = new Set();
+function chime() {
+  if (!soundOn || !audio) return;
+  try {
+    if (audio.state === "suspended") audio.resume();
+    [0, 0.22].forEach((d, i) => {
+      const o = audio.createOscillator(), g = audio.createGain(), t = audio.currentTime + d;
+      o.type = "sine"; o.frequency.value = i ? 660 : 880;
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.2, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.4);
+      o.connect(g).connect(audio.destination); o.start(t); o.stop(t + 0.45);
+    });
+  } catch (e) { /* no sound available */ }
+}
+document.addEventListener("pointerdown", () => { if (!audio) { try { audio = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { audio = null; } } }, { once: true });
+function checkChime() {
+  let fresh = false;
+  for (const w of workers()) { if (w.level === "danger" && !w.stage) { if (!dangerNow.has(w.id)) fresh = true; dangerNow.add(w.id); } else dangerNow.delete(w.id); }
+  if (fresh) chime();
+}
+function renderAll() { if (!clipMode) { renderRail(); renderPins(); renderBanner(); renderPop(); if (locating) renderLocate(); checkChime(); } renderClips(); pushBoardPresence(); }
+let speed = 1, ff = null, fastFrom = null;   // ff: fast-forward a demo scenario until its effect shows
+function tick() {
+  simT += 1; sim.step(simT); state = hub.snapshot(simT); renderAll(); storyFast();
+  if (fastFrom !== null) { const s = simT - fastFrom; $("ff-clock").textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; }
+  if (ff && (simT >= ff.cap || ff.done())) { ff = null; setRate(speed); }
+}
+function setRate(n) {
   document.documentElement.style.setProperty("--move", `${Math.max(0.05, 0.8 / n)}s`);
-  document.querySelectorAll("[data-speed]").forEach((b) => b.setAttribute("aria-pressed", String(+b.dataset.speed === n)));
   clearInterval(timer); timer = setInterval(tick, 1000 / n);
+  // whenever time runs faster than real life, say so loudly
+  const fast = n > 1;
+  $("ffpill").hidden = !fast || !!story; $("mapv").classList.toggle("fast", fast); $("ff-rate").textContent = `${n}×`;
+  if (fast && fastFrom === null) { fastFrom = simT; $("ff-clock").textContent = "0:00"; }
+  if (!fast) fastFrom = null;
+}
+function refresh() { state = hub.snapshot(simT); renderAll(); }
+function goHelp(id, helperId) {
+  // this admin (or the one sent) heads over; everyone sees who's coming, and the walk plays sped up
+  const b = hub.badges.get(id), m = helperId ? person(helperId) : me();
+  if (!b || !m) return;
+  b.ackedBy = m.name; b.helper = m.id; b.arrived = false;
+  hub.logEv(simT, `${m.name} is on the way to ${b.person.name.split(" ")[0]}`, "go", id);
+  sim.action("walk", id, m.id);
+  let idle = 0;
+  ff = { cap: simT + 600, done: () => {
+    if (b.arrived) return true;
+    if (!sim.people[m.id].path.length && ++idle > 3) { b.arrived = true; refresh(); return true; }
+    return false;
+  } };
+  setRate(Math.max(speed, 15));
+  if (!locating) fitPts([person(id), m]);
+  refresh();
+}
+function resolve(id) {
+  // they're safe: clear the alert now, yellow in 3 seconds, green 3 seconds after that
+  const b = hub.badges.get(id);
+  if (!b) return;
+  b.recovery = { stage: "cleared" }; sim.recover(id); b.sos = null;
+  b.fall = { impactT: null, still: 0, state: null };
+  hub.logEv(simT, `${b.person.name.split(" ")[0]} is safe. Alert cleared${b.arriveT != null && b.alertT != null ? ` (help in ${mmss(b.arriveT - b.alertT)})` : ""}`, "ok", id);
+  refresh();
+  setTimeout(() => { if (b.recovery) { b.recovery.stage = "yellow"; refresh(); } }, 3000);
+  setTimeout(() => {
+    if (!b.recovery) return;
+    b.recovery.stage = "green";
+    for (const m of [b.heart, b.air]) { m.sUp = 0; m.sDn = 0; m.guard = 0; m.alerting = false; }
+    b.ackedBy = null; b.helper = null; b.arrived = false; b.alertT = null; b.arriveT = null; b.fall = { impactT: null, still: 0, state: null }; b.sos = null; b.okUntil = null; refresh();
+  }, 6000);
+}
+function switchAdmin(id) {
+  adminId = id;
+  document.querySelectorAll("[data-admin]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.admin === id)));
+  store.set("beacon.admin", id);
+  if (locating) locDom = null;
+  refresh();
+}
+function setSpeed(n) {
+  speed = n; ff = null;
+  document.querySelectorAll("[data-speed]").forEach((b) => b.setAttribute("aria-pressed", String(+b.dataset.speed === n)));
+  setRate(n);
+}
+function runDemo(name) {
+  const top = workers().find((w) => w.level === "danger");
+  const pick = { rose_heart: "B1", joe_hot: "B2", mae_cold: "B3", dev_fall: "B5", ana_dead: "B6" }[name];
+  const walkTo = sel || (top && top.id) || "B1";
+  sim.action(name, walkTo, adminId);
+  let done, cap = simT + 180;
+  if (pick) {
+    if (locating) closeLocate();
+    sel = pick; focusOn(person(pick));
+    done = () => person(pick).level === (name === "ana_dead" ? "gray" : "danger");
+  } else if (name === "walk") {
+    if (locating && sel !== walkTo) closeLocate();
+    sel = walkTo; focusOn(person(walkTo));
+    if (!locating) openLocate();
+    done = () => !sim.people[adminId].path.length;
+  } else {   // reset
+    if (locating) closeLocate();
+    for (const b of hub.badges.values()) { b.recovery = null; b.ackedBy = null; b.helper = null; b.arrived = false; b.alertT = null; b.arriveT = null; b.fall = { impactT: null, still: 0, state: null }; b.sos = null; b.okUntil = null; }
+    sel = ""; cap = simT + 300;
+    done = () => workers().every((w) => w.level === "ok");
+  }
+  ff = { done, cap }; setRate(Math.max(speed, name === "reset" ? 40 : 15));
+  renderAll();
+}
+/* ---------- the worker's clip: what the wearer sees ---------- */
+const ARTIFACT_URL = "https://claude.ai/artifact/P1asgviC4uxEymPG1DcGf4";
+const CLIP_URL = ARTIFACT_URL + "#clip";
+let clipMode = false, dockOpen = false, clipAs = "B1", room = null, remoteBoard = null, liveWear = new Map();
+let mine = { sos: 0, ok: 0 };
+const seenClips = {};
+function clipData(id) {
+  // on a phone, show what the supervisor's screen sees when one is open; otherwise this page's own readings
+  const r = clipMode && remoteBoard && remoteBoard.people && remoteBoard.people[id];
+  const p = person(id);
+  if (r) return { live: true, first: p ? p.first : id, level: r.l, label: r.lb, hr: r.hr, air: r.air, place: r.pl, help: r.hp, buzz: r.bz, sos: r.sos, fl: r.fl };
+  if (!p) return null;
+  return { live: false, first: p.first, level: p.level, label: p.label, hr: p.hr, air: p.air, place: p.place, help: p.acked_by ? onWayText(p) : "", buzz: p.buzz && state.t - p.buzz.t < 90 ? p.buzz.why : "", sos: p.sos, fl: p.feels ? p.feels.f : null };
+}
+function advice(d) {
+  const L = d.label || "", red = d.level === "danger";
+  if (d.sos) return ["Help is coming", "Stay put if safe"];
+  if (/fell|fall/i.test(L)) return [red ? "Did you fall?" : "Hard bump", "Tap I'm OK if fine"];
+  if (/cold/i.test(L)) return [red ? "Too cold" : "Getting cold", "Get warm"];
+  if (/hot/i.test(L)) return [red ? "Too hot" : "Getting hot", "Get cool, drink water"];
+  if (/heart/i.test(L)) return [red ? "Heart racing" : "Heart up", "Sit and rest"];
+  if (/says ok/i.test(L)) return ["Noted", "Still watching"];
+  if (/recover/i.test(L)) return ["Settling", ""];
+  if (d.buzz) return ["Buzz", { rest: "Rest", cool: "Cool off", warm: "Warm up" }[d.buzz] || ""];
+  return ["You're okay", ""];
+}
+function clipShell(box, where) {
+  const opts = PEOPLE.filter((q) => !q.admin).map((q) => `<option value="${q.badge}">${esc(q.name)}</option>`).join("");
+  box.innerHTML = `<div class="clip-top"><b>Beacon clip</b><span class="conn" data-k="conn"></span>${where === "dock" ? `<button class="x" data-act="close-dock" aria-label="Close worker's view" style="width:32px;height:32px">${ICON.close}</button>` : ""}</div>
+    <label>Wearer <select data-k="as" aria-label="Whose clip">${opts}</select></label>
+    <div class="cstat" data-k="stat"><h3 data-k="h"></h3><p data-k="p"></p></div>
+    <div class="chelp" data-k="help" hidden></div>
+    <div class="cread"><div><b data-k="hr"></b><small>heart</small></div><div><b data-k="air"></b><small data-k="airl">air</small></div><div class="wide" data-k="pl"></div></div>
+    <button class="okbtn" data-k="ok" data-clip="ok">I'm OK</button>
+    <button class="sos" data-k="sos" data-clip="sos"><span>Hold for help<small>Hold 1 second</small></span></button>
+    ${where === "dock" ? `<div class="share"><div class="qr" data-k="qr"></div><p><b>Scan to wear it</b><br><code>${esc(CLIP_URL)}</code></p></div>` : ""}`;
+  box.dataset.built = where;
+  const sel = box.querySelector('[data-k="as"]');
+  sel.value = clipAs;
+  sel.addEventListener("change", () => { clipAs = sel.value; pushClipPresence(); renderClips(); });
+  if (where === "dock" && window.qrcode) {
+    try { const q = window.qrcode(0, "M"); q.addData(CLIP_URL); q.make(); box.querySelector('[data-k="qr"]').innerHTML = q.createSvgTag({ cellSize: 3, margin: 0, scalable: true }); } catch (e) { /* no code */ }
+  }
+  wireHold(box.querySelector(".sos"));
+}
+function renderClip(box, where) {
+  if (box.dataset.built !== where) clipShell(box, where);
+  const k = (n) => box.querySelector(`[data-k="${n}"]`);
+  if (k("as").value !== clipAs) k("as").value = clipAs;
+  const d = clipData(clipAs); if (!d) return;
+  const conn = k("conn");
+  const linked = where === "phone" ? !!remoteBoard : liveWear.size > 0;
+  conn.classList.toggle("live", linked);
+  conn.textContent = where === "phone" ? (remoteBoard ? "Live" : room ? "Waiting…" : "Practice") : (linked ? `${liveWear.size} live` : "Preview");
+  paint(k("stat"), d.level || "ok");
+  const [h, pp] = advice(d);
+  k("h").textContent = h; k("p").textContent = pp; k("p").hidden = !pp;
+  k("help").hidden = !d.help; if (d.help) setHtml(k("help"), `${WALK_ICON}<span>${esc(d.help)}</span>`);
+  k("hr").textContent = d.hr != null ? `${d.hr} BPM` : "–";
+  k("air").textContent = d.air != null ? `${d.air}°F` : "–";
+  k("airl").textContent = d.fl ? `feels ${d.fl}°F` : "air";
+  k("pl").textContent = d.place || "";
+  k("ok").hidden = !(d.level === "danger" || d.level === "watch" || d.buzz || d.sos);
+  k("sos").disabled = !!d.sos;
+  k("sos").querySelector("span").firstChild.textContent = d.sos ? "Help requested" : "Hold for help";
+  k("sos").querySelector("small").textContent = d.sos ? "Sent" : "Hold 1 second";
+}
+function renderClips() {
+  if (clipMode) renderClip($("clip-p"), "phone");
+  $("clipdock").hidden = !dockOpen || clipMode;
+  $("mapv").classList.toggle("docked", dockOpen && !clipMode);
+  if (dockOpen && !clipMode) renderClip($("clip-d"), "dock");
+  const n = liveWear.size, chip = $("livechip");
+  chip.hidden = !n || clipMode; chip.textContent = `${n} live clip${n > 1 ? "s" : ""}`;
+}
+function clipAction(kind) {
+  // act here at once, and tell any supervisor screen through presence
+  if (kind === "sos") hub.sos(clipAs, simT); else { hub.imOk(clipAs, simT); sim.recover(clipAs); }
+  if (clipMode) { mine[kind] += 1; pushClipPresence(); }
+  refresh();
+}
+function wireHold(btn) {
+  let timer = null;
+  const start = (e) => { if (btn.disabled || timer) return; if (e && e.preventDefault) e.preventDefault(); btn.classList.add("holding"); timer = setTimeout(() => { timer = null; btn.classList.remove("holding"); clipAction("sos"); }, 1200); };
+  const stop = () => { if (timer) { clearTimeout(timer); timer = null; } btn.classList.remove("holding"); };
+  btn.addEventListener("pointerdown", start);
+  ["pointerup", "pointerleave", "pointercancel"].forEach((ev) => btn.addEventListener(ev, stop));
+  btn.addEventListener("keydown", (e) => { if ((e.key === " " || e.key === "Enter") && !e.repeat) start(e); });
+  btn.addEventListener("keyup", stop);
+  btn.addEventListener("contextmenu", (e) => e.preventDefault());
+}
+function pushClipPresence() { if (room && clipMode) room.presence({ role: "clip", as: clipAs, sos: mine.sos, ok: mine.ok }).catch(() => {}); }
+let lastBoardPush = 0;
+function pushBoardPresence() {
+  if (!room || clipMode || Date.now() - lastBoardPush < 1000) return;
+  lastBoardPush = Date.now();
+  const people = {};
+  for (const w of workers()) people[w.id] = { l: w.level, lb: w.label, hr: w.hr, air: w.air, pl: hidden(w) ? "Hidden" : w.place, hp: w.acked_by ? onWayText(w) : "", bz: w.buzz && state.t - w.buzz.t < 90 ? w.buzz.why : "", sos: !!w.sos, fl: w.feels ? w.feels.f : null };
+  room.presence({ role: "board", people }).catch(() => {});
+}
+function onRoomPeers(ch) {
+  let board = null; const wear = new Map();
+  for (const pr of ch.peers) {
+    if (pr.sameTab) continue;
+    const ps = pr.presence || {};
+    if (ps.role === "board" && ps.people && typeof ps.people === "object" && (!board || pr.updatedAt > board.at)) board = { at: pr.updatedAt, people: ps.people };
+    if (ps.role === "clip" && typeof ps.as === "string" && hub.people[ps.as] && !hub.people[ps.as].admin) {
+      wear.set(ps.as, pr.peer);
+      const sos = Math.max(0, ps.sos | 0), ok = Math.max(0, ps.ok | 0), seen = seenClips[pr.peer];
+      if (seen && !clipMode) {
+        if (sos > seen.sos) { hub.sos(ps.as, simT); if (!story) { if (locating) closeLocate(); sel = ps.as; focusOn(person(ps.as)); } }
+        if (ok > seen.ok) { hub.imOk(ps.as, simT); sim.recover(ps.as); }
+      }
+      seenClips[pr.peer] = { sos, ok };
+    }
+  }
+  remoteBoard = board; liveWear = wear;
+  if (state) refresh();
+}
+async function connectRoom() {
+  try { room = window.claude && window.claude.use ? await window.claude.use("room") : null; } catch (e) { room = null; }
+  if (!room) return;
+  room.onPeers(onRoomPeers, () => { room = null; remoteBoard = null; liveWear = new Map(); });
+  pushClipPresence();
+}
+setInterval(() => { if (remoteBoard && clipMode && Date.now() - remoteBoard.at > 15000) { remoteBoard = null; } }, 3000);
+
+/* ---------- the 60-second story: one scripted walk-through for judges ---------- */
+let story = null;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+async function waitFor(fn, ms) {
+  const end = Date.now() + ms;
+  while (Date.now() < end) { if (!story || story.stopped) throw new Error("stopped"); if (fn()) return true; await sleep(120); }
+  if (!story || story.stopped) throw new Error("stopped");
+  return false;
+}
+async function hold(ms) { await waitFor(() => false, ms); }
+function caption(n, html) {
+  $("caption").hidden = false; $("cap-n").textContent = n; $("cap-t").innerHTML = html;
+}
+function storyFast() { const c = $("cap-fast"); if (!story) return; const fast = !!ff || speed > 1; c.hidden = !fast; c.textContent = fast ? "▸▸" : ""; }
+function stopStory() {
+  if (!story) return;
+  story.stopped = true; story = null;
+  $("caption").hidden = true; $("story-btn").setAttribute("aria-pressed", "false"); $("story-btn").querySelector("span").textContent = "Play story";
+  renderBanner();
+}
+let loopOn = false;
+function syncLoop() { $("loop-btn").setAttribute("aria-pressed", String(loopOn)); }
+function userStop() { loopOn = false; syncLoop(); stopStory(); }
+// an unattended expo table: in loop mode the story replays until someone touches the page
+document.addEventListener("pointerdown", (e) => {
+  if (loopOn && !e.target.closest("#story-btn, #loop-btn, #cap-stop")) { loopOn = false; syncLoop(); if (story) stopStory(); }
+}, true);
+async function playStory() {
+  if (story) return userStop();
+  story = { stopped: false };
+  $("story-btn").setAttribute("aria-pressed", "true"); $("story-btn").querySelector("span").textContent = "Stop";
+  $("about").hidden = true;
+  if (privacy) { privacy = false; }
+  try {
+    if (adminId !== "B4") switchAdmin("B4");
+    if (locating) closeLocate();
+    caption(1, "Resetting…");
+    runDemo("reset");
+    await waitFor(() => !ff, 20000);
+    sel = ""; renderAll(); fitAll();
+    setNight(true);
+    caption(1, "<b>11 PM.</b> Five people working alone. Each clip knows <b>their own</b> normal.");
+    await hold(3500);
+    caption(2, "<b>Rose</b>'s heart races. She hasn't moved.");
+    runDemo("rose_heart");
+    await hold(3500);
+    await waitFor(() => { const r = person("B1"); return r.buzz && state.t - r.buzz.t < 90; }, 25000);
+    caption(3, "Her clip buzzes: <b>rest</b>.");
+    await hold(3000);
+    await waitFor(() => person("B1").level === "danger", 30000);
+    await hold(600);
+    const r = person("B1");
+    caption(4, `<b>${r.hr} BPM</b> vs her normal ${Math.round(r.hrExp)}. A fixed alarm waits for ${180 - r.age}.`);
+    await hold(4500);
+    caption(5, "Hussein: <b>On my way</b>.");
+    await hold(1500);
+    goHelp("B1");
+    await hold(1200);
+    if (!locating) { sel = "B1"; openLocate(); }
+    caption(6, "Which stairs. Which floor. How far.");
+    await hold(5000);
+    await waitFor(() => person("B1").arrived, 45000);
+    await hold(600);
+    const r2 = person("B1");
+    caption(7, `Help in <b>${r2.arriveT != null && r2.alertT != null ? mmss(r2.arriveT - r2.alertT) : "minutes"}</b>.`);
+    await hold(3500);
+    if (locating) closeLocate();
+    resolve("B1");
+    caption(8, "Safe. Logged.");
+    await hold(4000);
+  } catch (e) { /* stopped */ }
+  stopStory();
+  if (loopOn) setTimeout(() => { if (loopOn && !story) playStory(); }, 3000);
+}
+
+function replayAt(id, t) {
+  // jump to that moment: select the person and show the path that led there
+  if (locating) closeLocate();
+  const p = person(id); if (!p) return;
+  replay = { id, t: +t }; sel = id;
+  const h = p.hist.filter((x) => x[7] != null && x[0] <= +t).pop();
+  if (h && !hidden(p)) { const k = 2.4, v = $("mapv"); cam = { cx: WX(h[7]), cy: WY(h[8]) + Math.min(130, v.clientHeight * 0.22) / k, k }; camTransform(); }
+  renderAll();
 }
 function select(id) {
+  replay = null;
   if (locating) closeLocate();
   sel = sel === id ? "" : id;
   if (sel) focusOn(person(sel));
@@ -1089,11 +1913,24 @@ function select(id) {
 }
 
 document.addEventListener("click", (e) => {
+  const rl = e.target.closest("[data-rid]"); if (rl) return replayAt(rl.dataset.rid, rl.dataset.rt);
+  if (e.target.closest("#story-btn")) return playStory();
+  if (e.target.closest("#cap-stop")) return userStop();
+  if (e.target.closest("#loop-btn")) { loopOn = !loopOn; syncLoop(); if (loopOn && !story) playStory(); return; }
+  if (e.target.closest("#about-btn")) { $("about").hidden = false; return; }
+  if (e.target.closest("#clip-btn")) { dockOpen = !dockOpen; if (dockOpen && sel && !person(sel).admin) clipAs = sel; $("clip-btn").setAttribute("aria-pressed", String(dockOpen)); renderClips(); return; }
+  const cb = e.target.closest('[data-clip="ok"]'); if (cb) return clipAction("ok");
+  if (e.target.closest("[data-clip]")) return;
+  if (e.target.id === "about") { $("about").hidden = true; return; }
+  if (e.target.closest("#sound-btn")) { soundOn = !soundOn; $("sound-btn").setAttribute("aria-pressed", String(soundOn)); if (soundOn) chime(); return; }
   const sp = e.target.closest("[data-speed]"); if (sp) return setSpeed(+sp.dataset.speed);
   const demo = e.target.closest("[data-demo]");
-  if (demo) { const top = workers().find((w) => w.level === "danger"); sim.action(demo.dataset.demo, sel || (top && top.id)); return; }
+  if (demo) { $("demo-pop").hidden = true; $("demo-btn").setAttribute("aria-expanded", "false"); return runDemo(demo.dataset.demo); }
   if (e.target.closest("#demo-btn")) { const p = $("demo-pop"); p.hidden = !p.hidden; $("demo-btn").setAttribute("aria-expanded", String(!p.hidden)); return; }
   if (!e.target.closest("#demo-pop")) { $("demo-pop").hidden = true; $("demo-btn").setAttribute("aria-expanded", "false"); }
+  const adm = e.target.closest("[data-admin]"); if (adm) return switchAdmin(adm.dataset.admin);
+  const go = e.target.closest("[data-go]"); if (go) return goHelp(go.dataset.go, go.dataset.by || undefined);
+  const ok = e.target.closest("[data-arrived]"); if (ok) return resolve(ok.dataset.arrived);
   const s = e.target.closest("[data-sel]");
   if (s) { if (s.id === "bn-show") { sel = ""; } return select(s.dataset.sel); }
   const al = e.target.closest("[data-alert]");
@@ -1103,37 +1940,70 @@ document.addEventListener("click", (e) => {
   if (act === "rail") { railHidden = !railHidden; renderRail(); }
   else if (act === "locate") openLocate();
   else if (act === "close-locate") closeLocate();
-  else if (act === "close-pop") { sel = ""; renderAll(); }
-  else if (act === "ack") { const b = hub.badges.get(sel); if (b) b.ackedBy = "You"; state = hub.snapshot(simT); renderAll(); }
+  else if (act === "close-pop") { sel = ""; replay = null; renderAll(); }
+  else if (act === "close-bcard") hideBuilding();
+  else if (act === "close-about") $("about").hidden = true;
+  else if (act === "summary") summarize();
+  else if (act === "close-dock") { dockOpen = false; $("clip-btn").setAttribute("aria-pressed", "false"); renderClips(); }
+  else if (act === "privacy") { privacy = !privacy; if (sel && hidden(person(sel))) { if (locating) closeLocate(); } renderAll(); }
 });
 document.addEventListener("keydown", (e) => {
+  if (e.key === " " && (e.target === document.body || e.target === document.documentElement) && !clipMode) { e.preventDefault(); playStory(); return; }
   if (e.key !== "Escape") return;
-  if (!$("demo-pop").hidden) $("demo-pop").hidden = true; else if (locating) closeLocate(); else if (sel) { sel = ""; renderAll(); }
+  if (!$("about").hidden) $("about").hidden = true; else if (story) userStop(); else if (!$("demo-pop").hidden) $("demo-pop").hidden = true; else if (locating) closeLocate(); else if (sel) { sel = ""; renderAll(); }
 });
-$("z-in").onclick = () => zoomBy(1.35);
-$("z-out").onclick = () => zoomBy(1 / 1.35);
+$("z-in").onclick = () => { hideBuilding(); zoomBy(1.35); };
+function setNight(on) { night = on; $("mapv").classList.toggle("night", on); document.body.classList.toggle("night-on", on); $("z-night").setAttribute("aria-pressed", String(on)); if (state) refresh(); }
+$("z-night").onclick = () => setNight(!night);
+$("z-out").onclick = () => { hideBuilding(); zoomBy(1 / 1.35); };
 $("z-fit").onclick = () => { sel = ""; fitAll(); renderAll(); };
 const mapv = $("mapv");
+let dragMoved = 0, picked = null;
+function showBuilding(poly, e) {
+  const name = poly.dataset.bld, c = CAMPUS.find((b) => b[0] === name), card = $("bcard"), r = mapv.getBoundingClientRect();
+  if (picked) picked.classList.remove("picked");
+  picked = poly; poly.classList.add("picked");
+  card.style.left = `${clamp(e.clientX - r.left, 140, r.width - 140)}px`; card.style.top = `${Math.max(e.clientY - r.top, 130)}px`;
+  card.innerHTML = `<h3>${esc(name)}</h3><div class="links"><a class="lnk" target="_blank" rel="noopener" href="${streetView(c[1][0], c[1][1])}">${ICON.street}<span>Street View</span></a><a class="lnk" target="_blank" rel="noopener" href="${gmaps(c[1][0], c[1][1], name)}">${ICON.pin}<span>Google Maps</span></a></div><button class="x" data-act="close-bcard" aria-label="Close">${ICON.close}</button>`;
+  card.hidden = false;
+}
+function hideBuilding() { $("bcard").hidden = true; if (picked) { picked.classList.remove("picked"); picked = null; } }
+mapv.addEventListener("click", (e) => {
+  if (dragMoved > 6 || e.target.closest("button, a, [data-nodrag]")) return;
+  // the map captures the pointer while dragging, so look under the tap for the building
+  const under = document.elementFromPoint(e.clientX, e.clientY), poly = under && under.closest("[data-bld]");
+  if (poly) showBuilding(poly, e); else hideBuilding();
+});
 mapv.addEventListener("pointerdown", (e) => {
-  if (e.target.closest("button, [data-nodrag]")) return;
+  if (e.target.closest("button, a, [data-nodrag]")) return;
+  dragMoved = 0;
   drag = { px: e.clientX, py: e.clientY, cx: cam.cx, cy: cam.cy };
   try { mapv.setPointerCapture(e.pointerId); } catch (err) { /* fine without capture */ }
   mapv.classList.add("drag");
 });
 mapv.addEventListener("pointermove", (e) => {
   if (!drag) return;
+  dragMoved = Math.max(dragMoved, Math.hypot(e.clientX - drag.px, e.clientY - drag.py));
+  if (dragMoved > 6) hideBuilding();
   cam.cx = clamp(drag.cx - (e.clientX - drag.px) / cam.k, 0, WX(WORLD.x1));
   cam.cy = clamp(drag.cy - (e.clientY - drag.py) / cam.k, 0, WY(WORLD.y0));
   camTransform();
 });
 const endDrag = () => { if (!drag) return; drag = null; mapv.classList.remove("drag"); };
 mapv.addEventListener("pointerup", endDrag); mapv.addEventListener("pointercancel", endDrag); mapv.addEventListener("pointerleave", endDrag);
-mapv.addEventListener("wheel", (e) => { if (e.target.closest("[data-nodrag]")) return; e.preventDefault(); zoomBy(e.deltaY < 0 ? 1.12 : 1 / 1.12); }, { passive: false });
+mapv.addEventListener("wheel", (e) => { if (e.target.closest("[data-nodrag]")) return; e.preventDefault(); hideBuilding(); zoomBy(e.deltaY < 0 ? 1.12 : 1 / 1.12); }, { passive: false });
 let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { if (locating) locDom = null; renderAll(); }, 200); });
 
 (function start() {
   if (matchMedia("(max-width: 760px)").matches) railHidden = false;
+  const saved = store.get("beacon.admin");
+  if (saved === "B4" || saved === "B7") { adminId = saved; document.querySelectorAll("[data-admin]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.admin === saved))); }
+  clipMode = location.hash === "#clip";
+  document.body.classList.toggle("clipmode", clipMode);
+  window.addEventListener("hashchange", () => { clipMode = location.hash === "#clip"; document.body.classList.toggle("clipmode", clipMode); pushClipPresence(); refresh(); });
   sim.boot(simT);
+  hub.log = []; hub.stats = { alerts: 0, help: [] };
+  connectRoom();
   state = hub.snapshot(simT);
   renderAll();
   fitAll();
@@ -1143,3 +2013,4 @@ let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTime
 
 </body>
 </html>
+
