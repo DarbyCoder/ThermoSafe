@@ -51,6 +51,7 @@ svg.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor;
 .hdr h1 { margin: 0; font-family: var(--display); font-weight: 600; font-size: 16px; letter-spacing: -0.01em; display: flex; align-items: center; gap: 8px; }
 .legend { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; font-size: 13px; color: var(--ink-2); }
 .legend > span { display: flex; align-items: center; gap: 8px; }
+.legend > span:not(.livechip) { display: none; }
 .dot { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; flex: none; }
 .dot svg { width: 12px; height: 12px; fill: none; stroke-width: 3.4; stroke-linecap: round; stroke-linejoin: round; }
 .demo-btn { height: 34px; padding: 0 12px; border: 1px dashed var(--edge); border-radius: 8px; background: var(--panel); font-weight: 600; font-size: 13px; color: var(--ink-2); }
@@ -392,9 +393,29 @@ body.clipmode .clip { flex: 1; max-width: 480px; width: 100%; margin: 0 auto; }
 .share .qr svg { width: 100%; height: 100%; display: block; }
 .share p { margin: 0; font-size: 12px; color: var(--ink-2); line-height: 1.4; }
 .share code { font-size: 11px; word-break: break-all; color: var(--ink); }
+.sunchip { margin-left: 6px; display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 700; vertical-align: 1px; font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.sunchip svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.2; }
+.sunchip.u1 { color: #8A6D00; } .sunchip.u2 { color: #C25E00; } .sunchip.u3 { color: var(--danger); }
 .bat { margin-left: 6px; display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 700; color: #A66A00; vertical-align: 1px; }
 .bat svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.2; }
 .bat.dead { color: var(--danger); }
+.hbtn.ask { color: var(--you); border-color: #BFD0FA; }
+.hbtn.ask[aria-pressed="true"] { background: var(--you); color: var(--white); border-color: var(--you); }
+.ask-in { gap: 10px; }
+.conn.gem { background: #EEF3FE; color: var(--you); }
+.keyrow, .askrow { display: flex; gap: 6px; }
+.keyrow { flex-wrap: wrap; }
+.keyrow input, .askrow input { flex: 1 1 120px; min-width: 0; height: 40px; border: 1px solid var(--line); border-radius: 8px; padding: 0 10px; font: inherit; background: var(--panel); color: var(--ink); }
+.keyrow .btn, .askrow .btn { height: 40px; padding: 0 12px; }
+.chips2 { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips2 button { height: 32px; padding: 0 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); font-weight: 600; font-size: 12px; }
+.chips2 button:hover { background: var(--hover); }
+.thread { display: flex; flex-direction: column; gap: 8px; max-height: 340px; overflow-y: auto; }
+.thread:empty { display: none; }
+.thread .q { align-self: flex-end; max-width: 90%; background: var(--ink); color: var(--white); padding: 7px 10px; border-radius: 12px 12px 2px 12px; font-size: 13px; }
+.thread .a { align-self: flex-start; max-width: 95%; background: #EEF3FE; color: var(--ink); padding: 8px 10px; border-radius: 12px 12px 12px 2px; font-size: 14px; line-height: 1.4; white-space: pre-wrap; }
+.thread .a.err { background: var(--danger-card); }
+.thread .a.wait { color: var(--ink-3); }
 .livetag { margin-left: 6px; font-size: 10px; font-weight: 700; letter-spacing: .04em; padding: 1px 6px; border-radius: 999px; background: var(--you); color: var(--white); vertical-align: 2px; }
 .livechip { font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: 999px; background: var(--you); color: var(--white); }
 @media (max-width: 760px) {
@@ -410,7 +431,7 @@ body.clipmode .clip { flex: 1; max-width: 480px; width: 100%; margin: 0 auto; }
   .views button { padding: 3px 8px; }
   .views button span { font-size: 13px; }
   .legend { gap: 6px; width: 100%; }
-  .legend > span:not(.livechip) { display: none; }
+  .legend { width: 100%; }
   .hbtn, .demo-btn { height: 32px; padding: 0 9px; font-size: 12px; }
   .mapv { height: min(540px, 68svh); min-height: 380px; }
   .pop { max-height: 62%; }
@@ -465,9 +486,10 @@ body.clipmode .clip { flex: 1; max-width: 480px; width: 100%; margin: 0 auto; }
       <span><span class="dot" style="background:var(--watch)"><svg viewBox="0 0 24 24" aria-hidden="true" style="stroke:var(--watch-ink)"><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg></span>Questionable</span>
       <span><span class="dot" style="background:var(--danger)"><svg viewBox="0 0 24 24" aria-hidden="true" style="stroke:var(--white)"><path d="M18 6L6 18M6 6l12 12"/></svg></span>In danger</span>
       <span class="livechip" id="livechip" hidden></span>
-      <button class="hbtn" id="clip-btn" aria-pressed="false"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>Worker's view</button>
+      <button class="hbtn" id="clip-btn" aria-pressed="false" aria-label="Worker's view"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>Worker</button>
+      <button class="hbtn ask" id="ask-btn" aria-pressed="false"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg>Ask</button>
       <button class="hbtn" id="about-btn">About</button>
-      <button class="hbtn" id="sound-btn" aria-pressed="true" aria-label="Alert sound"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5L6 9H3v6h3l5 4zM16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12"/></svg>Sound</button>
+      <button class="hbtn" id="sound-btn" aria-pressed="true" aria-label="Alert sound"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5L6 9H3v6h3l5 4zM16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12"/></svg></button>
       <button class="demo-btn" id="demo-btn" aria-expanded="false" aria-controls="demo-pop">Demo</button>
     </div>
     <div class="demo-pop" id="demo-pop" hidden>
@@ -476,6 +498,7 @@ body.clipmode .clip { flex: 1; max-width: 480px; width: 100%; margin: 0 auto; }
       <button class="d" id="d-mae" data-demo="mae_cold">Mae gets cold outside</button>
       <button class="d" id="d-dev" data-demo="dev_fall">Dev falls in the lot</button>
       <button class="d" id="d-ana" data-demo="ana_dead">Ana's clip dies</button>
+      <button class="d" id="d-sun" data-demo="dev_sun">Dev in full sun</button>
       <button class="d" id="d-walk" data-demo="walk">Walk me there</button>
       <button class="d" id="d-reset" data-demo="reset">Reset</button>
       <div class="speed" role="group" aria-label="Speed">Speed
@@ -510,6 +533,20 @@ body.clipmode .clip { flex: 1; max-width: 480px; width: 100%; margin: 0 auto; }
         <button id="z-fit" aria-label="Show everyone"><svg class="i" viewBox="0 0 24 24"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg></button>
       </div>
       <div class="bcard" id="bcard" data-nodrag hidden></div>
+      <aside class="clipdock askdock" id="askdock" data-nodrag hidden aria-label="Ask Beacon">
+        <div class="clip ask-in">
+          <div class="clip-top"><b>Ask Beacon</b><span class="conn gem">Gemini</span><button class="x" data-act="ask-key" aria-label="Gemini key" style="width:32px;height:32px"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M15 8l2 2"/></svg></button><button class="x" data-act="close-ask" aria-label="Close" style="width:32px;height:32px"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
+          <form class="keyrow" id="ask-keyrow" hidden><input id="ask-key" type="password" placeholder="Gemini API key" autocomplete="off" aria-label="Gemini API key"><input id="ask-model" type="text" aria-label="Gemini model"><button class="btn dark" type="submit">Save</button></form>
+          <div class="chips2" id="ask-chips">
+            <button type="button" data-q="Who has the most risk right now?">Most risk?</button>
+            <button type="button" data-q="I can take someone off for 30 minutes. Who should I take off?">30 min off: who?</button>
+            <button type="button" data-q="Who has been outside the longest, and how strong is their sun?">Longest outside?</button>
+            <button type="button" data-q="Who is closest to help if something goes wrong on floor 2?">Who covers floor 2?</button>
+          </div>
+          <div class="thread" id="ask-thread" aria-live="polite"></div>
+          <form class="askrow" id="ask-form"><input id="ask-q" type="text" placeholder="Ask about your crew" autocomplete="off" aria-label="Question"><button class="btn dark" type="submit" aria-label="Send"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></form>
+        </div>
+      </aside>
       <aside class="clipdock" id="clipdock" data-nodrag hidden aria-label="What the worker's clip shows"><div class="clip" id="clip-d"></div></aside>
       <div class="attrib" data-nodrag>Imagery © <a href="https://www.esri.com" target="_blank" rel="noopener">Esri</a>, Maxar, Earthstar Geographics · Buildings © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></div>
       <section class="pop" id="pop" data-nodrag hidden></section>
@@ -715,6 +752,24 @@ class AirModel {
   }
 }
 
+/* ================= sun: a light sensor on the clip, and how long they've been outside ================= */
+// The clip's photoresistor gives 0-100. We read it as a rough UV index (0-11) using the WHO bands.
+// Strong sun (UV 6+) adds up while outside and drains twice as fast in the shade.
+const SUN_WATCH = 25 * 60, SUN_ALERT = 40 * 60;
+const uvCat = (u) => (u >= 11 ? "Extreme" : u >= 8 ? "Very high" : u >= 6 ? "High" : u >= 3 ? "Moderate" : "Low");
+class SunModel {
+  constructor() { this.light = null; this.outT = 0; this.hot = 0; this.lastT = null; }
+  get uvi() { return this.light == null ? 0 : Math.round((this.light / 100) * 11); }
+  update(t, light, outdoor) {
+    const dt = this.lastT === null ? 1 : clamp(t - this.lastT, 0, 5);
+    this.lastT = t;
+    if (light != null) this.light = this.light == null ? light : this.light + 0.3 * (light - this.light);
+    if (outdoor) this.outT += dt;
+    if (outdoor && this.uvi >= 6) this.hot += dt; else this.hot = Math.max(0, this.hot - 2 * dt);
+  }
+  status() { return this.hot >= SUN_ALERT ? "alert" : this.hot >= SUN_WATCH ? "watch" : "ok"; }
+}
+
 /* ================= where: pressure for floors, Wi-Fi inside, GPS outside, Bluetooth up close ================= */
 const pressureToAlt = (p) => 44330 * (1 - Math.pow(p / 1013.25, 0.1903));
 const rssiToM = (rssi) => Math.pow(10, (-59 - rssi) / 22);
@@ -780,7 +835,7 @@ class Hub {
   badge(id) {
     if (!this.badges.has(id)) {
       this.badges.set(id, {
-        id, person: this.people[id] || { name: id, pronoun: "them" }, heart: new HeartModel(), air: new AirModel(),
+        id, person: this.people[id] || { name: id, pronoun: "them" }, heart: new HeartModel(), air: new AirModel(), sun: new SunModel(),
         tracker: new FloorTracker(), lastT: null, pHist: [], floor: null, x: null, y: null, outdoor: false, gpsT: -1e9,
         posFloor: null, peers: {}, ackedBy: null, helper: null, arrived: false, recovery: null, buzz: null, stage: {}, lastBuzz: {}, alertSent: -1e9,
         hist: [], lastHist: -1e9, sos: null, okUntil: null, fall: { impactT: null, still: 0, state: null }, alertT: null, arriveT: null, prevSev: 0,
@@ -816,6 +871,7 @@ class Hub {
     b.wind = pkt.wind ?? 0;
     b.feels = pkt.air != null ? feelsLike(pkt.air, b.rh ?? 40, b.wind) : null;
     b.air.update(t, pkt.air, env, e.avg, e.spread, b.feels ? b.feels.f : null);
+    b.sun.update(t, pkt.light, b.outdoor);
     // falls: a hard jolt on the clip's accelerometer, then no movement at all
     const f = b.fall;
     if (pkt.g != null && pkt.g > 2.5) { f.impactT = t; f.still = 0; f.state = "maybe"; }
@@ -850,11 +906,11 @@ class Hub {
     // the clip buzzes its wearer when things start going the wrong way
     const st = (s) => (s === "alert" ? 3 : s === "watch" ? 2 : 0);
     const hs = st(b.heart.status(t)), as = st(b.air.status());
-    const now = { rest: b.heart.dir === "high" ? hs : 0, cool: b.air.dir === "high" ? as : 0, warm: b.air.dir === "low" ? as : 0 };
+    const now = { rest: b.heart.dir === "high" ? hs : 0, cool: b.air.dir === "high" ? as : 0, warm: b.air.dir === "low" ? as : 0, shade: st(b.sun.status()) };
     for (const why of Object.keys(now)) {
       if (now[why] > (b.stage[why] || 0) && t - (b.lastBuzz[why] || -1e9) > 60) {
         b.buzz = { t, why }; b.lastBuzz[why] = t;
-        this.logEv(t, `${b.person.name.split(" ")[0]}'s clip buzzed: ${{ rest: "rest", cool: "cool off", warm: "warm up" }[why]}`, "info", b.id);
+        this.logEv(t, `${b.person.name.split(" ")[0]}'s clip buzzed: ${{ rest: "rest", cool: "cool off", warm: "warm up", shade: "find shade" }[why]}`, "info", b.id);
       }
       b.stage[why] = now[why];
     }
@@ -870,6 +926,7 @@ class Hub {
       const cands = [
         [SEV[hs], hs === "alert" ? (h.dir === "high" ? "Heart racing" : "Heart too slow") : hs === "watch" ? (h.dir === "high" ? "Heart rising" : "Heart low") : hs === "sensor" ? "Check clip" : hs === "offline" ? "No signal" : ""],
         [b.sos != null && !b.recovery ? 3.03 : 0, "Asked for help"],
+        [hs === "offline" ? 0 : { alert: 2.98, watch: 1.98, ok: 0 }[b.sun.status()], b.sun.status() === "alert" ? "Too long in sun" : "Long in sun"],
         [b.fall.state === "down" ? 3.01 : b.fall.state === "maybe" ? 2.01 : 0, b.fall.state === "down" ? "Fell, not moving" : "Possible fall"],
         [SEV[as] - 0.01, as === "alert" ? (a.dir === "high" ? "Too hot here" : "Too cold here") : as === "watch" ? (a.dir === "high" ? "Getting hot here" : "Getting cold here") : ""],
       ].sort((x, y) => y[0] - x[0]);
@@ -918,8 +975,9 @@ class Hub {
         hr: h.v && hs !== "sensor" && hs !== "offline" ? Math.round(h.v) : null, hrUsual: Math.round(h.mu), hrExp: h.expected, hrSpread: h.spread, hrState: [hs, h.dir],
         air: a.v !== null && as !== "offline" ? Math.round(a.v) : null, airAvg: e.avg, airSpread: e.spread, airState: [as, a.dir],
         outdoor: b.outdoor, floor, x: b.x, y: b.y, place, peers, age: b.person.age || 40, hist: b.hist, hrN: Math.round(h.rest.length / 60),
-        hrZ: h.v !== null ? (h.v - h.expected) / h.spread : 0, evidence: Math.max(h.sUp / 60, h.sDn / 60, a.sUp / 45, a.sDn / 45), fall: b.fall.state, impactT: b.fall.impactT,
-        alertT: b.alertT, arriveT: b.arriveT, sos: b.sos != null, bat: hs === "offline" ? 0 : b.bat ?? null, seenAgo: b.lastT != null ? now - b.lastT : 0,
+        hrZ: h.v !== null ? (h.v - h.expected) / h.spread : 0, evidence: Math.max(h.sUp / 60, h.sDn / 60, a.sUp / 45, a.sDn / 45, b.sun.hot / SUN_ALERT), fall: b.fall.state, impactT: b.fall.impactT,
+        alertT: b.alertT, arriveT: b.arriveT, sos: b.sos != null,
+        uvi: b.sun.light == null ? null : b.sun.uvi, sunMin: Math.round(b.sun.hot / 60), outMin: Math.round(b.sun.outT / 60), sunState: b.sun.status(), bat: hs === "offline" ? 0 : b.bat ?? null, seenAgo: b.lastT != null ? now - b.lastT : 0,
         feels: b.feels && a.v !== null ? { f: Math.round(b.feels.f), kind: b.feels.kind, cat: b.feels.cat } : null, rh: b.rh ?? null, wind: b.wind ? Math.round(b.wind) : 0, acked_by: b.ackedBy, helper: b.helper, arrived: b.arrived, stage: b.recovery ? b.recovery.stage : null, buzz: b.buzz, alertSent: now - b.alertSent < 60,
       });
     }
@@ -1026,6 +1084,9 @@ class Sim {
       };
       if (p.g) { pkt.g = p.g; pkt.act = 3; p.g = 0; }
       if (!isInside(p.x, p.y)) pkt.gps = toLatLon(p.x + this.r.gauss(0, 3), p.y + this.r.gauss(0, 3));
+      // the photoresistor: dim indoors, open sky outside (dark at night), full sun when the clouds clear
+      const sky = night ? 3 : p.sun != null ? p.sun : 36 + 4 * Math.sin(t / 1300);
+      pkt.light = Math.round(clamp((isInside(p.x, p.y) ? 7 : sky) + this.r.gauss(0, 1.5), 0, 100));
       // humidity, and wind outdoors (from the clip's humidity sensor and the campus weather feed)
       pkt.rh = Math.round(isInside(p.x, p.y) ? (p.airTarget > 10 ? 58 : 34) : 62);
       if (!isInside(p.x, p.y)) pkt.wind = Math.max(0, r1(7 + 3 * Math.sin(t / 900) + (p.airTarget < -10 ? 12 : 0) + this.r.gauss(0, 1)));
@@ -1058,18 +1119,20 @@ class Sim {
   recover(id) {
     // help has arrived: they sit down, cool off or warm up, and settle quickly
     const p = this.people[id]; if (!p) return;
-    p.extraTarget = 0; p.airTarget = 0; p.fast = true; p.down = false;
+    p.extraTarget = 0; p.airTarget = 0; p.fast = true; p.down = false; p.sun = null;
   }
   action(name, targetId, adminId = "B4") {
     const P = this.people;
     if (name === "rose_heart") { P.B1.path = []; P.B1.extraTarget = 38; }
     else if (name === "joe_hot") P.B2.airTarget = 30;       // the boiler room
     else if (name === "mae_cold") P.B3.airTarget = -24;     // wind off Campus Pond
+    else if (name === "dev_sun") { P.B5.sun = 92; const b = this.hub.badges.get("B5"); if (b) b.sun.hot = Math.max(b.sun.hot, 18 * 60); }   // clouds clear over the lot
     else if (name === "ana_dead") { P.B6.dead = true; P.B6.bat = 0; }   // battery runs out on floor 3
     else if (name === "dev_fall") { P.B5.path = []; P.B5.down = true; P.B5.g = 4.2; P.B5.extraTarget = 14; }   // slips on ice in the lot
     else if (name === "walk") { const who = P[adminId] || P.B4, t = P[targetId] || P.B1; if (t !== who) who.go(t.floor, t.x + 1.5, t.y + 1); }
     else if (name === "reset") {
-      for (const p of Object.values(P)) { p.extraTarget = 0; p.airTarget = 0; p.path = []; p.down = false; p.dead = false; }
+      for (const p of Object.values(P)) { p.extraTarget = 0; p.airTarget = 0; p.path = []; p.down = false; p.dead = false; p.sun = null; }
+      for (const b of this.hub.badges.values()) b.sun.hot = 0;
       if (P.B6.bat < 19) P.B6.bat = 19;
       P.B4.go(1, 70, 15); P.B7.go(1, -35, 20);
     }
@@ -1170,7 +1233,7 @@ function renderRail() {
     rail.classList.toggle("min", railHidden);
     rail.innerHTML = railHidden
       ? `<div class="chips"><button class="ctl" data-act="rail" aria-expanded="false" aria-label="Show list" style="width:44px;padding:0"><svg class="i" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button><div id="chips" style="display:contents"></div></div>`
-      : `<div class="rail-head"><div style="display:flex;flex-direction:column;gap:1px"><h2>Workers</h2><span>Sorted by risk</span></div><button class="ctl" data-act="rail" aria-expanded="true">Hide list</button></div>
+      : `<div class="rail-head"><h2>Workers</h2><button class="ctl" data-act="rail" aria-expanded="true" aria-label="Hide list" style="width:44px;padding:0"><svg class="i" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button></div>
          <div class="counts"><div><b><i style="background:var(--danger)"></i><span id="n-d"></span></b><small>In danger</small></div><div><b><i style="background:var(--watch)"></i><span id="n-w"></span></b><small>Questionable</small></div><div><b><i style="background:var(--ok)"></i><span id="n-o"></span></b><small>Okay</small></div></div>
          <div class="privrow"><span>Location</span><button class="switch" data-act="privacy" id="priv-sw" aria-pressed="false"><i></i><span id="priv-l">Always</span></button></div>
          <div class="list" id="wlist" role="list" aria-label="Workers, sorted by risk"></div>
@@ -1200,7 +1263,7 @@ function renderRail() {
     paint(b, w.level);
     b.classList.toggle("sel", w.id === sel);
     b.querySelector(".av").textContent = w.ini;
-    setHtml(b.querySelector(".nm"), esc(w.name) + (liveWear.has(w.id) ? `<span class="livetag">LIVE</span>` : "") + (w.bat != null && w.bat < 25 ? `<span class="bat${w.bat < 10 ? " dead" : ""}" title="Clip battery">${BAT_ICON}${w.bat}%</span>` : ""));
+    setHtml(b.querySelector(".nm"), esc(w.name) + (liveWear.has(w.id) ? `<span class="livetag">LIVE</span>` : "") + (w.outdoor && w.outMin > 0 ? `<span class="sunchip u${w.uvi >= 8 ? 3 : w.uvi >= 6 ? 2 : w.uvi >= 3 ? 1 : 0}" title="Time outside · UV ${w.uvi}">${SUN_ICON}${hm(w.outMin)}</span>` : "") + (w.bat != null && w.bat < 25 ? `<span class="bat${w.bat < 10 ? " dead" : ""}" title="Clip battery">${BAT_ICON}${w.bat}%</span>` : ""));
     setHtml(b.querySelector(".vals"), `<b>${w.air ?? "–"}°F</b><span>${w.hr ?? "–"} BPM</span>`);
     setHtml(b.querySelector(".st"), `${iconSvg(LOOK[w.level].icon)}<span>${esc(w.label)}</span>`);
     b.querySelector(".pl").textContent = hidden(w) ? "Hidden" : w.label === "No signal" ? `Last seen ${ago(w.seenAgo)} · ${w.place}` : w.place;
@@ -1307,6 +1370,8 @@ function onWayText(p) {
 }
 let night = false;   // night shift: the demo clock starts at 11 PM and the campus goes dark
 function clock(t) { const s = Math.floor(t - (1e6 - (night ? 23 : 9) * 3600)), h = Math.floor(s / 3600) % 24, m = Math.floor(s / 60) % 60; return `${((h + 11) % 12) + 1}:${String(m).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; }
+const SUN_ICON = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>`;
+const hm = (min) => `${Math.floor(min / 60)}:${String(min % 60).padStart(2, "0")}`;
 const BAT_ICON = `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="17" height="10" rx="2"/><path d="M22 11v2"/></svg>`;
 const WALK_ICON = `<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="13" cy="4" r="2"/><path d="M10 21l2-6 3 3v3M8 12l3-4 4 3 3 1M11 8l-1 5"/></svg>`;
 function renderBanner() {
@@ -1333,6 +1398,19 @@ function alertBtn(btn, p) {
 /* ---------- readings pop-up ---------- */
 function bands(names, colors, edges) {
   return names.map((n, i) => ({ n, c: colors[i], f: Math.max(0.5, edges[i + 1] - edges[i]) }));
+}
+function sunRow(p) {
+  // UV bands (WHO): the bar shows where the clip's light reading sits; the words say how long in strong sun
+  const idx = p.uvi >= 8 ? 3 : p.uvi >= 6 ? 2 : p.uvi >= 3 ? 1 : 0;
+  const b = [{ n: "Low", c: "var(--ok)", f: 3 }, { n: "Moderate", c: "var(--watch)", f: 3 }, { n: "High", c: "#F08A24", f: 2 }, { n: "Very high", c: "var(--danger)", f: 4 }];
+  const lvl = p.sunState === "alert" ? 3 : p.sunState === "watch" ? 2 : 1;
+  return `<div class="vrow" role="row">
+    <div class="lbl" role="cell">Sun</div>
+    <div class="now" role="cell">UV ${p.uvi}<small>${hm(p.outMin)} outside</small></div>
+    <div class="rng" role="cell"><div class="bar"><div class="bands">${b.map((x, i) => `<span style="flex:${x.f} 1 0;background:${x.c};opacity:${i === idx ? 1 : 0.45}"></span>`).join("")}</div><span class="mark" style="left:${clamp((p.uvi / 12) * 100, 0, 100).toFixed(1)}%"></span></div>
+      <div class="bnames">${b.map((x, i) => `<span style="flex:${x.f} 1 0;font-weight:${i === idx ? 700 : 400};color:${i === idx ? "var(--ink)" : "var(--ink-2)"}">${x.n}</span>`).join("")}</div></div>
+    <div class="lvl" role="cell"><i style="background:${["", "var(--ok)", "var(--watch)", "var(--danger)"][lvl]}"></i>${p.sunMin}m strong</div>
+  </div>`;
 }
 function vitalRow(label, nowTxt, sub, value, b, min, max, state, words) {
   const idx = state[0] === "alert" ? (state[1] === "high" ? 3 : 0) : state[0] === "watch" ? (state[1] === "high" ? 2 : 0) : 1;
@@ -1372,8 +1450,9 @@ function renderPop() {
   const ab = bands(["Too cold", "Normal", "Warm", "Too hot"], ["var(--cold)", "var(--ok)", "var(--watch)", "var(--danger)"], [A - 40, A - 2.5 * T, A + 2.5 * T, A + 2.5 * T + 10, A + 40]);
   setHtml($("pp-rows"),
     (p.hr != null ? vitalRow("Heart rate", `${p.hr} BPM`, `usual ${p.hrUsual}`, p.hr, hb, E - 45, E + 70, p.hrState, ["Too low", "Normal", "Elevated", "Too high"]) : "") +
+    (p.uvi != null && (p.outdoor || p.sunMin > 0) ? sunRow(p) : "") +
     (p.air != null ? vitalRow("Air temp", `${p.air}°F`, p.feels ? `feels ${p.feels.f}°` : `usual here ${Math.round(A)}°`, p.air, ab, A - 40, A + 40, p.airState, ["Too cold", "Normal", "Warm", "Too hot"]) : ""));
-  const bz = p.buzz ? `${ICON.buzz}<span>Buzzed: ${{ rest: "rest", cool: "cool off", warm: "warm up" }[p.buzz.why]} · ${ago(state.t - p.buzz.t)}</span>` : "";
+  const bz = p.buzz ? `${ICON.buzz}<span>Buzzed: ${{ rest: "rest", cool: "cool off", warm: "warm up", shade: "find shade" }[p.buzz.why]} · ${ago(state.t - p.buzz.t)}</span>` : "";
   setHtml($("pp-buzz"), bz); $("pp-buzz").hidden = !bz;
   const wh = whyHtml(p); setHtml($("pp-why"), wh); $("pp-why").hidden = !wh;
 }
@@ -1385,6 +1464,7 @@ function whyHtml(p) {
   const kv = (a, b) => `<div class="kv"><b>${a}</b><span>${b}</span></div>`;
   const meter = () => `<div class="ev${p.evidence >= 1 ? " hot" : ""}" role="img" aria-label="Evidence toward an alert: ${Math.round(Math.min(1, p.evidence) * 100)}%"><span style="width:${Math.min(100, p.evidence * 100).toFixed(0)}%"></span></div>`;
   if (p.sos && !p.stage) return `<div class="kvs">${kv("SOS", "from the clip")}</div>`;
+  if (/sun/i.test(p.label) && !p.stage) return `<div class="kvs">${kv(`UV ${p.uvi}`, uvCat(p.uvi).toLowerCase())}${kv(`${p.sunMin}m`, "strong sun")}${kv(hm(p.outMin), "outside")}${kv(`${SUN_ALERT / 60}m`, "limit")}</div>${meter()}`;
   if (p.fall && !p.stage) {
     const secs = p.impactT != null ? state.t - p.impactT : 0;
     return `<div class="kvs">${kv("4.2 g", "jolt")}${kv(mmss(secs), p.fall === "down" ? "not moving" : "since")}</div>`;
@@ -1644,7 +1724,7 @@ function resolve(id) {
   // they're safe: clear the alert now, yellow in 3 seconds, green 3 seconds after that
   const b = hub.badges.get(id);
   if (!b) return;
-  b.recovery = { stage: "cleared" }; sim.recover(id); b.sos = null;
+  b.recovery = { stage: "cleared" }; sim.recover(id); b.sos = null; b.sun.hot = 0;
   b.fall = { impactT: null, still: 0, state: null };
   hub.logEv(simT, `${b.person.name.split(" ")[0]} is safe. Alert cleared${b.arriveT != null && b.alertT != null ? ` (help in ${mmss(b.arriveT - b.alertT)})` : ""}`, "ok", id);
   refresh();
@@ -1670,7 +1750,7 @@ function setSpeed(n) {
 }
 function runDemo(name) {
   const top = workers().find((w) => w.level === "danger");
-  const pick = { rose_heart: "B1", joe_hot: "B2", mae_cold: "B3", dev_fall: "B5", ana_dead: "B6" }[name];
+  const pick = { rose_heart: "B1", joe_hot: "B2", mae_cold: "B3", dev_fall: "B5", ana_dead: "B6", dev_sun: "B5" }[name];
   const walkTo = sel || (top && top.id) || "B1";
   sim.action(name, walkTo, adminId);
   let done, cap = simT + 180;
@@ -1689,11 +1769,12 @@ function runDemo(name) {
     sel = ""; cap = simT + 300;
     done = () => workers().every((w) => w.level === "ok");
   }
-  ff = { done, cap }; setRate(Math.max(speed, name === "reset" ? 40 : 15));
+  if (name === "dev_sun") cap = simT + 1800;
+  ff = { done, cap }; setRate(Math.max(speed, name === "reset" ? 40 : name === "dev_sun" ? 60 : 15));
   renderAll();
 }
 /* ---------- the worker's clip: what the wearer sees ---------- */
-const ARTIFACT_URL = "https://claude.ai/artifact/P1asgviC4uxEymPG1DcGf4";
+const ARTIFACT_URL = "https://claude.ai/artifact/8Z5PzHerT3tJoqMquzxjeu";
 const CLIP_URL = ARTIFACT_URL + "#clip";
 let clipMode = false, dockOpen = false, clipAs = "B1", room = null, remoteBoard = null, liveWear = new Map();
 let mine = { sos: 0, ok: 0 };
@@ -1711,11 +1792,12 @@ function advice(d) {
   if (d.sos) return ["Help is coming", "Stay put if safe"];
   if (/fell|fall/i.test(L)) return [red ? "Did you fall?" : "Hard bump", "Tap I'm OK if fine"];
   if (/cold/i.test(L)) return [red ? "Too cold" : "Getting cold", "Get warm"];
+  if (/sun/i.test(L)) return [red ? "Too much sun" : "Long in the sun", "Find shade"];
   if (/hot/i.test(L)) return [red ? "Too hot" : "Getting hot", "Get cool, drink water"];
   if (/heart/i.test(L)) return [red ? "Heart racing" : "Heart up", "Sit and rest"];
   if (/says ok/i.test(L)) return ["Noted", "Still watching"];
   if (/recover/i.test(L)) return ["Settling", ""];
-  if (d.buzz) return ["Buzz", { rest: "Rest", cool: "Cool off", warm: "Warm up" }[d.buzz] || ""];
+  if (d.buzz) return ["Buzz", { rest: "Rest", cool: "Cool off", warm: "Warm up", shade: "Find shade" }[d.buzz] || ""];
   return ["You're okay", ""];
 }
 function clipShell(box, where) {
@@ -1762,7 +1844,7 @@ function renderClip(box, where) {
 function renderClips() {
   if (clipMode) renderClip($("clip-p"), "phone");
   $("clipdock").hidden = !dockOpen || clipMode;
-  $("mapv").classList.toggle("docked", dockOpen && !clipMode);
+  $("mapv").classList.toggle("docked", (dockOpen && !clipMode) || askOpen);
   if (dockOpen && !clipMode) renderClip($("clip-d"), "dock");
   const n = liveWear.size, chip = $("livechip");
   chip.hidden = !n || clipMode; chip.textContent = `${n} live clip${n > 1 ? "s" : ""}`;
@@ -1818,6 +1900,89 @@ async function connectRoom() {
   pushClipPresence();
 }
 setInterval(() => { if (remoteBoard && clipMode && Date.now() - remoteBoard.at > 15000) { remoteBoard = null; } }, 3000);
+
+/* ---------- Ask Beacon: Gemini answers questions about the live crew data ---------- */
+// The key is pasted in the page and kept only in this browser. Calls go straight to Google's Gemini API,
+// which works from GitHub Pages or a local file (a claude.ai artifact blocks outside calls).
+const GEM_DEFAULT_MODEL = "gemini-2.5-flash";
+let askOpen = false; const askLog = [];
+const gemKey = () => store.get("beacon.gemini.key") || "";
+const gemModel = () => store.get("beacon.gemini.model") || GEM_DEFAULT_MODEL;
+function crewData() {
+  // everything the assistant may use, as plain numbers and words
+  return {
+    clock: clock(state.t), shift: night ? "night" : "day", you: me() ? me().name : "",
+    workers: workers().map((w) => ({
+      name: w.name, status: w.label, level: { danger: "in danger", watch: "questionable", gray: "questionable", ok: "okay" }[w.level],
+      place: hidden(w) ? "hidden" : w.place, outdoor: w.outdoor,
+      heart_bpm: w.hr, heart_normal_bpm: Math.round(w.hrExp), fixed_alarm_bpm: 180 - w.age,
+      air_f: w.air, feels_like_f: w.feels ? w.feels.f : null, usual_air_f: Math.round(w.airAvg),
+      uv_index: w.uvi, uv_level: w.uvi != null ? uvCat(w.uvi) : null, minutes_in_strong_sun: w.sunMin, minutes_outside: w.outMin,
+      clip_battery_pct: w.bat, help_on_the_way: w.acked_by ? onWayText(w) : null, asked_for_help: !!w.sos,
+      nearest_responder: (() => { const n = nearestHelper(w); return n ? `${n.a.name}, ${Math.round(n.d)} m` : null; })(),
+    })),
+    responders: state.people.filter((q) => q.admin).map((a) => ({ name: a.name, role: a.role, place: a.place })),
+    recent_events: hub.log.slice(-15).map((e) => `${clock(e.t)} ${e.text}`),
+    alerts_today: hub.stats.alerts,
+  };
+}
+const ASK_RULES = "You are Beacon, a safety assistant for a supervisor of custodial and grounds staff at UMass Amherst. " +
+  "Answer from the JSON data only. Be brief: at most 2 short sentences, no lists unless asked. Name the person, then the reason with its number. " +
+  "Risk order: asked for help or in danger first, then questionable, then long strong sun, heat or cold, then heart above their own normal, then low clip battery. " +
+  "For time off, pick who gains the most from rest and say for how long. If the data cannot answer, say so. You support decisions; you do not give medical advice.";
+async function askGemini(q) {
+  const key = gemKey();
+  if (!key) throw new Error("nokey");
+  const body = {
+    systemInstruction: { parts: [{ text: ASK_RULES }] },
+    contents: [
+      ...askLog.slice(-4).flatMap((m) => [{ role: "user", parts: [{ text: m.q }] }, { role: "model", parts: [{ text: m.a }] }]),
+      { role: "user", parts: [{ text: `${q}\n\nDATA:\n${JSON.stringify(crewData())}` }] },
+    ],
+    generationConfig: { temperature: 0.2, maxOutputTokens: 400 },
+  };
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(gemModel())}:generateContent`, {
+    method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": key }, body: JSON.stringify(body),
+  });
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error((j.error && j.error.message) || `HTTP ${res.status}`);
+  const text = ((j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts) || []).map((x) => x.text || "").join("").trim();
+  if (!text) throw new Error("Gemini sent an empty answer.");
+  return text;
+}
+function renderThread(pending) {
+  const t = $("ask-thread");
+  t.innerHTML = askLog.slice(-6).map((m) => `<div class="q">${esc(m.q)}</div><div class="a${m.err ? " err" : ""}">${esc(m.a)}</div>`).join("") +
+    (pending ? `<div class="q">${esc(pending)}</div><div class="a wait">…</div>` : "");
+  t.scrollTop = t.scrollHeight;
+}
+async function ask(q) {
+  q = (q || "").trim(); if (!q) return;
+  if (!gemKey()) { showKeyRow(true); $("ask-key").focus(); return; }
+  $("ask-q").value = ""; renderThread(q);
+  let a, err = false;
+  try { a = await askGemini(q); }
+  catch (e) {
+    err = true;
+    a = e.message === "nokey" ? "Add your Gemini key first." :
+      e instanceof TypeError ? "Couldn't reach Gemini. Open the GitHub Pages version to use it (claude.ai blocks outside calls)." : `Gemini: ${e.message}`;
+  }
+  askLog.push({ q, a, err }); renderThread();
+}
+function showKeyRow(on) { $("ask-keyrow").hidden = !on; if (on) { $("ask-key").value = gemKey(); $("ask-model").value = gemModel(); } }
+function setAsk(on) {
+  askOpen = on; $("askdock").hidden = !on; $("ask-btn").setAttribute("aria-pressed", String(on));
+  if (on && dockOpen) { dockOpen = false; $("clip-btn").setAttribute("aria-pressed", "false"); renderClips(); }
+  $("mapv").classList.toggle("docked", on || (dockOpen && !clipMode));
+  if (on) { showKeyRow(!gemKey()); setTimeout(() => (gemKey() ? $("ask-q") : $("ask-key")).focus(), 0); }
+}
+$("ask-form").addEventListener("submit", (e) => { e.preventDefault(); ask($("ask-q").value); });
+$("ask-keyrow").addEventListener("submit", (e) => {
+  e.preventDefault();
+  store.set("beacon.gemini.key", $("ask-key").value.trim()); store.set("beacon.gemini.model", $("ask-model").value.trim() || GEM_DEFAULT_MODEL);
+  showKeyRow(false); $("ask-q").focus();
+});
+$("ask-chips").addEventListener("click", (e) => { const b = e.target.closest("[data-q]"); if (b) ask(b.dataset.q); });
 
 /* ---------- the 60-second story: one scripted walk-through for judges ---------- */
 let story = null;
@@ -1918,7 +2083,11 @@ document.addEventListener("click", (e) => {
   if (e.target.closest("#cap-stop")) return userStop();
   if (e.target.closest("#loop-btn")) { loopOn = !loopOn; syncLoop(); if (loopOn && !story) playStory(); return; }
   if (e.target.closest("#about-btn")) { $("about").hidden = false; return; }
-  if (e.target.closest("#clip-btn")) { dockOpen = !dockOpen; if (dockOpen && sel && !person(sel).admin) clipAs = sel; $("clip-btn").setAttribute("aria-pressed", String(dockOpen)); renderClips(); return; }
+  if (e.target.closest("#ask-btn")) { setAsk(!askOpen); return; }
+  if (e.target.closest('[data-act="close-ask"]')) { setAsk(false); return; }
+  if (e.target.closest('[data-act="ask-key"]')) { showKeyRow($("ask-keyrow").hidden); return; }
+  if (e.target.closest("#askdock")) return;
+  if (e.target.closest("#clip-btn")) { if (!dockOpen && askOpen) setAsk(false); dockOpen = !dockOpen; if (dockOpen && sel && !person(sel).admin) clipAs = sel; $("clip-btn").setAttribute("aria-pressed", String(dockOpen)); renderClips(); return; }
   const cb = e.target.closest('[data-clip="ok"]'); if (cb) return clipAction("ok");
   if (e.target.closest("[data-clip]")) return;
   if (e.target.id === "about") { $("about").hidden = true; return; }
@@ -2002,6 +2171,7 @@ let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTime
   document.body.classList.toggle("clipmode", clipMode);
   window.addEventListener("hashchange", () => { clipMode = location.hash === "#clip"; document.body.classList.toggle("clipmode", clipMode); pushClipPresence(); refresh(); });
   sim.boot(simT);
+  { const d = hub.badges.get("B5"); if (d) d.sun.outT = 100 * 60; const m = hub.badges.get("B3"); if (m) m.sun.outT = 35 * 60; }
   hub.log = []; hub.stats = { alerts: 0, help: [] };
   connectRoom();
   state = hub.snapshot(simT);
