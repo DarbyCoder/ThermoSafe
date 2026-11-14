@@ -11,8 +11,12 @@
 // The MAX30102 has to touch skin (fingertip clip, earlobe, or strapped to the wrist).
 // Clipped to clothing it reads nothing, and the app will say "Check sensor".
 //
+// Sun: a photoresistor (LDR) facing out. 3V3 -> LDR -> GPIO 34, and GPIO 34 -> 10k -> GND.
+// Brighter light reads higher. The badge sends it as "light" from 0 (dark) to 100 (full sun),
+// and the app reads that as a rough UV index (light / 100 * 11). A real UV sensor can replace it later.
+//
 // Every second the badge POSTs this to the server:
-//   {"id":"B1","hr":72,"q":0.9,"act":0.12,"p":1003.421,
+//   {"id":"B1","hr":72,"q":0.9,"act":0.12,"p":1003.421,"light":64,
 //    "wifi":[["aa:bb:cc:dd:ee:ff",-61],...],"ble":[["B2",-70],...]}
 // The reference badge (IS_REFERENCE 1) sits still on the ground floor and only sends
 //   {"id":"REF","ref":true,"p":1003.9}
@@ -35,6 +39,7 @@ const char* BADGE_ID  = "B1";             // must match config/people.json
 #define IS_REFERENCE 0                    // 1 for the one badge that stays on the ground floor
 #define USE_BLE 1                         // set 0 if Bluetooth + Wi-Fi together is unstable
 const char* SCAN_ONLY = "eduroam";        // only map the building's own Wi-Fi ("" = all networks)
+#define LIGHT_PIN 34                      // photoresistor divider (input-only ADC pin); -1 if not fitted
 // ----------------------------------------------
 
 MAX30105 heart;
@@ -43,6 +48,7 @@ Adafruit_MPU6050 mpu;
 bool haveHeart = false, haveBaro = false, haveMotion = false;
 
 volatile float hrNow = 0, quality = 0, actNow = 0, pressureNow = 0;
+volatile float lightNow = -1;             // 0..100, -1 until the first reading
 SemaphoreHandle_t lock;
 
 // heart: average the last 4 beats
@@ -99,6 +105,10 @@ void setup() {
   lock = xSemaphoreCreateMutex();
   Wire.begin(21, 22);
   Wire.setClock(400000);
+#if LIGHT_PIN >= 0
+  analogReadResolution(12);                       // 0..4095
+  analogSetPinAttenuation(LIGHT_PIN, ADC_11db);   // full 0..3.3 V range
+#endif
 
   haveBaro = bmp.begin(0x76) || bmp.begin(0x77);
   if (haveBaro) {
@@ -141,7 +151,7 @@ void setup() {
 }
 
 // Sensors run here on core 1 so Wi-Fi never interrupts beat detection.
-unsigned long lastAcc = 0, lastBaro = 0;
+unsigned long lastAcc = 0, lastBaro = 0, lastLight = 0;
 
 void loop() {
   unsigned long now = millis();
@@ -193,6 +203,14 @@ void loop() {
     lastBaro = now;
     pressureNow = bmp.readPressure() / 100.0f;   // Pa -> hPa
   }
+
+#if LIGHT_PIN >= 0
+  if (now - lastLight >= 200) {
+    lastLight = now;
+    float pct = analogRead(LIGHT_PIN) * 100.0f / 4095.0f;
+    lightNow = lightNow < 0 ? pct : lightNow + 0.2f * (pct - lightNow);   // smooth out flicker and shadows
+  }
+#endif
 }
 
 void keepScan(int n) {
@@ -228,6 +246,7 @@ void sendPacket() {
     if (haveHeart && quality >= 0.5f) { b += ",\"hr\":"; b += String(hrNow, 0); }
     b += ",\"q\":"; b += String(haveHeart ? (float)quality : 0.0f, 2);
     b += ",\"act\":"; b += String((float)actNow, 2);
+    if (lightNow >= 0) { b += ",\"light\":"; b += String((float)lightNow, 0); }
     xSemaphoreTake(lock, portMAX_DELAY);
     if (scanFresh) {
       b += ",\"wifi\":[";

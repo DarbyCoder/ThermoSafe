@@ -38,7 +38,20 @@ Keep `campus.jpg` and `campus-hi.jpg` next to `index.html`. The live phone link 
 - BME280 (air pressure for the floor, plus air temperature and humidity; mount it facing out, away from the body)
 - GPS module, about $10, for position outside
 - Coin vibration motor and piezo buzzer
+- Photoresistor (LDR) facing out, for sun intensity: 3V3 → LDR → GPIO 34 → 10k → GND. The clip sends `light` from 0 to 100, which the app reads as a rough UV index. A real UV sensor can replace it later.
 - One extra ESP32 + BME280 that stays still on the ground floor as the pressure reference
+
+## Ask Beacon (Gemini)
+
+The **Ask** button opens a panel where a supervisor asks questions about the live crew, for example "Who has the most risk right now?" or "I can take someone off for 30 minutes. Who should I take off?"
+
+- The first time, tap the key icon and paste a [Gemini API key](https://aistudio.google.com/apikey). It's kept only in that browser's local storage and is never committed. The model defaults to `gemini-2.5-flash` and can be changed in the same box.
+- Each question goes to the Gemini API with a JSON snapshot of the crew: status, heart rate against each person's own normal, air temperature and feels-like, UV index, minutes in strong sun, time outside, location, clip battery, nearest responder and recent events.
+- Gemini works from GitHub Pages or a local `index.html`. A claude.ai artifact blocks outside calls, so the panel says to open the Pages version there.
+
+## Sun exposure
+
+Each clip's light reading becomes a UV index (WHO bands: Low, Moderate, High, Very high). Time outside is counted from GPS. Minutes in strong sun (UV 6+) build up while outside and drain twice as fast in shade: 25 minutes buzzes the wearer to find shade and turns them yellow, and 40 minutes turns them red. Try **Demo › Dev in full sun**.
 
 ## Still to do
 

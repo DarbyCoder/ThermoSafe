@@ -36,6 +36,9 @@ class Badge:
                                 rest_min=person.get("rest_min", 40))
         self.tracker = FloorTracker()
         self.last_t = None
+        self.light = None      # photoresistor, 0..100
+        self.sun_s = 0.0       # seconds of strong light (about UV 6+), drains twice as fast in shade
+        self.light_t = None
         self.p = None
         self.p_hist = deque(maxlen=15)
         self.height = None
@@ -110,6 +113,13 @@ class Hub:
                 if self.ref and t - self.ref[0] < 30:
                     off = self.cal["offsets"].get(b.id, 0.0)
                     b.floor, b.height = b.tracker.update(t, b.p, self.ref[1], off, self.floor_heights())
+
+            if pkt.get("light") is not None:
+                lv = max(0.0, min(100.0, float(pkt["light"])))
+                dt = min(5.0, t - b.light_t) if b.light_t else 1.0
+                b.light = lv if b.light is None else b.light + 0.3 * (lv - b.light)
+                b.light_t = t
+                b.sun_s = b.sun_s + dt if b.light / 100 * 11 >= 6 else max(0.0, b.sun_s - 2 * dt)
 
             if pkt.get("wifi"):
                 b.scan = {str(m).lower(): float(r) for m, r in pkt["wifi"]}
@@ -260,6 +270,9 @@ class Hub:
                     "peers": peers,
                     "history": [[round(t - now), hr, lo, hi] for t, hr, _e, lo, hi in hist],
                     "seen_s": round(now - b.last_t) if b.last_t else None,
+                    "light": round(b.light) if b.light is not None else None,
+                    "uv_index": round(b.light / 100 * 11) if b.light is not None else None,
+                    "sun_min": round(b.sun_s / 60),
                     "debug": {"p": b.p, "z": round(h.z, 2), "cusum": round(max(h.s_up, h.s_dn), 1),
                               "scan_aps": len(b.scan or {}), "offset_m": round(self.cal["offsets"].get(b.id, 0.0), 2)},
                 })
