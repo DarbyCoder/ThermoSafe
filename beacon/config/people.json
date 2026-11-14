@@ -1,0 +1,6 @@
+[
+  {"badge": "B1", "name": "Rose", "pronoun": "her", "phone": "", "rest_max": 130, "rest_min": 40},
+  {"badge": "B2", "name": "Joe", "pronoun": "his", "phone": ""},
+  {"badge": "B3", "name": "Mae", "pronoun": "her", "phone": ""},
+  {"badge": "B4", "name": "You", "pronoun": "their", "phone": "", "caregiver": true}
+]

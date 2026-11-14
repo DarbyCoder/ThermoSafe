@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Beacon setup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+<style>
+  .wrap { max-width: 760px; }
+  section { padding: 18px 0 22px; border-bottom: 1px solid var(--line); }
+  section:last-of-type { border-bottom: 0; }
+  h1 { font-size: 28px; margin: 4px 0 4px; }
+  h2 { font-size: 21px; margin: 0 0 6px; }
+  p { margin: 0 0 12px; color: var(--ink-2); font-size: 17px; }
+  table { width: 100%; border-collapse: collapse; font-size: 16px; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); }
+  th { color: var(--ink-2); font-weight: 600; }
+  .ok { color: var(--ok); font-weight: 600; }
+  .bad { color: var(--alert); font-weight: 600; }
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; }
+  select { font: inherit; font-size: 17px; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); }
+  .btn { flex: none; padding: 12px 18px; font-size: 17px; }
+  .tabs { display: flex; gap: 6px; }
+  .tabs button { border: 1.5px solid var(--line); background: var(--surface); border-radius: 10px; padding: 9px 14px; font-weight: 600; }
+  .tabs button[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  #plan { width: 100%; background: var(--surface); border: 1.5px solid var(--line); border-radius: 12px; cursor: crosshair; touch-action: manipulation; display: block; }
+  .msg { min-height: 24px; font-weight: 600; font-size: 16px; margin-top: 8px; }
+  .demo .btn { background: var(--surface); color: var(--ink); }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="top"><a href="/" class="back">‹ Back to the app</a></header>
+  <h1>Setup</h1>
+  <p>For the team. Do these once when you set up in a new building.</p>
+
+  <section>
+    <h2>Badges</h2>
+    <p id="ref"></p>
+    <table>
+      <thead><tr><th>Badge</th><th>Last heard</th><th>Height</th><th>Floor</th><th>Wi-Fi heard</th><th>Heart</th></tr></thead>
+      <tbody id="badges"></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Zero the badges</h2>
+    <p>Put every badge next to the reference badge on the ground floor. Wait 10 seconds, then zero them. This removes each pressure sensor's built-in error.</p>
+    <button class="btn" id="zero">Zero all badges</button>
+    <div class="msg" id="zero-msg" role="status"></div>
+  </section>
+
+  <section>
+    <h2>Check each floor</h2>
+    <p>Optional, but makes floors more reliable. Carry one badge to each floor, stand still for 10 seconds, and save.</p>
+    <div class="controls">
+      <select id="fc-badge" aria-label="Badge"></select>
+      <select id="fc-floor" aria-label="Floor"></select>
+      <button class="btn" id="fc-save">Save this floor's height</button>
+    </div>
+    <div class="msg" id="fc-msg" role="status"></div>
+  </section>
+
+  <section>
+    <h2>Map the Wi-Fi</h2>
+    <p>Walk around with one badge. Every few metres, stand still for 5 seconds and tap where you are. 15 to 20 spots per floor is plenty.</p>
+    <div class="controls">
+      <select id="sv-badge" aria-label="Badge carrying out the mapping"></select>
+      <div class="tabs" id="sv-tabs" role="group" aria-label="Floor"></div>
+    </div>
+    <svg id="plan" role="img" aria-label="Floor plan. Tap to record a Wi-Fi spot."></svg>
+    <div class="controls" style="margin-top:10px">
+      <span id="sv-count"></span>
+      <button class="link-btn" id="sv-clear">Clear this floor</button>
+    </div>
+    <div class="msg" id="sv-msg" role="status"></div>
+  </section>
+
+  <section class="demo" id="demo" hidden>
+    <h2>Demo controls</h2>
+    <p>Only shows when the server runs with --sim. Keep this open on a second screen while you present.</p>
+    <div class="controls">
+      <button class="btn" data-demo="rose_episode">Rose's heart races while sitting</button>
+      <button class="btn" data-demo="joe_95">Joe at 95 (normal for him)</button>
+      <button class="btn" data-demo="mae_stairs">Mae takes the stairs</button>
+      <button class="btn" data-demo="walk_to_rose">Walk me to Rose</button>
+      <button class="btn" data-demo="reset">Reset</button>
+    </div>
+    <div class="msg" id="demo-msg" role="status"></div>
+  </section>
+</main>
+<script>
+"use strict";
+let B = null, S = null, svFloor = null;
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+async function post(url, body) {
+  try {
+    const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
+    return await r.json();
+  } catch (e) { return { ok: false, error: "Can't reach the server." }; }
+}
+function say(id, res, okText) {
+  const el = $(id);
+  el.className = "msg " + (res.ok ? "ok" : "bad");
+  el.textContent = res.ok ? okText(res) : res.error;
+}
+
+async function loadBuilding() {
+  B = await (await fetch("/api/building")).json();
+  $("demo").hidden = !B.sim;
+  $("fc-floor").innerHTML = B.floors.map((f) => `<option value="${f}">Floor ${f}</option>`).join("");
+  if (svFloor === null) svFloor = B.floors[0];
+  $("sv-tabs").innerHTML = B.floors.map((f) => `<button data-floor="${f}" aria-pressed="${f === svFloor}">Floor ${f}</button>`).join("");
+  drawPlan();
+}
+
+function badgeOptions(sel) {
+  const keep = sel.value;
+  sel.innerHTML = (S ? S.people : []).map((p) => `<option value="${esc(p.id)}">${esc(p.id)} (${esc(p.name)})</option>`).join("");
+  if (keep) sel.value = keep;
+}
+
+function drawPlan() {
+  const W = B.width_m, D = B.depth_m, k = 10;
+  const svg = $("plan");
+  svg.setAttribute("viewBox", `0 0 ${W * k} ${D * k}`);
+  const pts = B.wifi_points.filter((p) => p.floor === svFloor);
+  const stairs = (B.stairs || []).map((s) => `<rect x="${s.x * k - 25}" y="${(D - s.y) * k - 25}" width="50" height="50" rx="6" fill="var(--line)"/><text x="${s.x * k}" y="${(D - s.y) * k + 45}" text-anchor="middle" font-size="20" fill="var(--ink-2)">${esc(s.name)}</text>`).join("");
+  const zones = (B.zones || []).filter((z) => z.floor === svFloor).map((z) => `<text x="${z.x * k}" y="${(D - z.y) * k}" text-anchor="middle" font-size="22" fill="var(--ink-2)">${esc(z.name)}</text>`).join("");
+  const dots = pts.map((p) => `<circle cx="${p.x * k}" cy="${(D - p.y) * k}" r="9" fill="var(--you)"/>`).join("");
+  const me = S && S.people.find((p) => p.id === $("sv-badge").value);
+  const live = me && me.floor === svFloor && me.x != null ? `<circle cx="${me.x * k}" cy="${(D - me.y) * k}" r="16" fill="none" stroke="var(--alert)" stroke-width="5"/>` : "";
+  svg.innerHTML = `<rect x="2" y="2" width="${W * k - 4}" height="${D * k - 4}" fill="none" stroke="var(--ink-2)" stroke-width="4" rx="8"/>${stairs}${zones}${dots}${live}`;
+  $("sv-count").textContent = `${pts.length} spots on floor ${svFloor}. Red ring: where the app thinks this badge is now.`;
+}
+
+function renderBadges() {
+  $("ref").innerHTML = S.ref_ok ? `<span class="ok">Reference badge is sending.</span> Floors work.` : `<span class="bad">Reference badge isn't sending.</span> Floors need it: one badge with "ref": true sitting still on the ground floor.`;
+  $("badges").innerHTML = S.people.map((p) => `<tr>
+    <td>${esc(p.id)} (${esc(p.name)})</td>
+    <td>${p.seen_s == null ? "never" : p.seen_s + " s ago"}</td>
+    <td>${p.height_m == null ? "–" : p.height_m + " m"}</td>
+    <td>${p.floor ?? "–"}</td>
+    <td>${p.debug.scan_aps}</td>
+    <td>${p.hr ? p.hr + " bpm" : esc(p.status_word)}</td>
+  </tr>`).join("") || `<tr><td colspan="6">No badges yet. Check the badge's server address and Wi-Fi.</td></tr>`;
+  for (const id of ["fc-badge", "sv-badge"]) badgeOptions($(id));
+}
+
+$("zero").onclick = async () => say("zero-msg", await post("/api/zero"), (r) => `Zeroed ${r.zeroed.length} badge${r.zeroed.length === 1 ? "" : "s"}: ${r.zeroed.join(", ") || "none were sending"}.`);
+$("fc-save").onclick = async () => say("fc-msg", await post("/api/floor-check", { badge: $("fc-badge").value, floor: +$("fc-floor").value }), (r) => `Saved floor ${r.floor} at ${r.height_m} m above the ground floor.`);
+$("sv-tabs").onclick = (e) => { const b = e.target.closest("[data-floor]"); if (b) { svFloor = +b.dataset.floor; loadBuilding(); } };
+$("plan").onclick = async (e) => {
+  const r = $("plan").getBoundingClientRect();
+  const x = ((e.clientX - r.left) / r.width) * B.width_m;
+  const y = B.depth_m - ((e.clientY - r.top) / r.height) * B.depth_m;
+  const res = await post("/api/survey", { badge: $("sv-badge").value, floor: svFloor, x: +x.toFixed(1), y: +y.toFixed(1) });
+  say("sv-msg", res, (r2) => `Saved. ${r2.points} spots in total.`);
+  if (res.ok) loadBuilding();
+};
+$("sv-clear").onclick = async () => { await post("/api/survey/clear", { floor: svFloor }); loadBuilding(); };
+document.querySelector(".demo").onclick = async (e) => {
+  const b = e.target.closest("[data-demo]");
+  if (b) say("demo-msg", await post("/api/demo", { action: b.dataset.demo }), () => `Started: ${b.textContent}.`);
+};
+
+const es = new EventSource("/api/stream");
+es.onmessage = (e) => { S = JSON.parse(e.data); renderBadges(); if (B) drawPlan(); };
+loadBuilding();
+</script>
+</body>
+</html>

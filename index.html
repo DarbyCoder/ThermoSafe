@@ -1,0 +1,1145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Beacon</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+body { margin: 0; }
+/* Layout: Nick's laptop layout. Risk list on the left, explorable map on the right. Tap a worker for readings; Locate pulls up the route diagram. */
+:root {
+  color-scheme: light;
+  --bg: #F3F4F1; --panel: #FFFFFF; --ink: #14171A; --ink-2: #4A5258; --ink-3: #6A7178;
+  --line: #DADDD6; --line-2: #ECEEE9; --edge: #8A9088; --hover: #EEF1EB;
+  --ok: #3DBE6C; --ok-ink: #0E1F16; --ok-card: #E2F4E8; --ok-line: #A8DABB;
+  --watch: #F5C518; --watch-ink: #1B1A12; --watch-card: #FEF5D2; --watch-line: #EBD88C;
+  --danger: #D7372B; --danger-ink: #FFFFFF; --danger-card: #FBE3E0; --danger-line: #EBB3AC;
+  --gray: #A3A99F; --gray-ink: #14171A; --gray-card: #EEF0EC; --gray-line: #CDD1CA;
+  --cold: #5B8DEF; --alert-btn: #C42F24; --you: #2563EB; --map: #E8ECE3; --white: #FFFFFF;
+  --plate: rgba(255, 255, 255, 0.62); --plate-on: rgba(255, 255, 255, 0.97); --plate-line: #B5BDB2;
+  --display: "Space Grotesk", Inter, system-ui, sans-serif;
+  --font: Inter, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  --move: 0.8s;
+}
+html { height: 100%; box-sizing: border-box; }
+*, *::before, *::after { box-sizing: inherit; }
+[hidden] { display: none !important; }
+body { height: 100%; background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 14px; line-height: 1.4; }
+button { font-family: inherit; color: inherit; cursor: pointer; }
+button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+svg.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.num { font-family: var(--display); font-variant-numeric: tabular-nums; }
+
+.app { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+.hdr {
+  flex: none; min-height: 52px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 24px;
+  padding: 8px max(20px, env(safe-area-inset-right, 0px)) 8px max(20px, env(safe-area-inset-left, 0px));
+  background: var(--panel); border-bottom: 1px solid var(--line); position: relative; z-index: 30;
+}
+.hdr h1 { margin: 0; font-family: var(--display); font-weight: 600; font-size: 16px; letter-spacing: -0.01em; display: flex; align-items: center; gap: 8px; }
+.legend { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; font-size: 13px; color: var(--ink-2); }
+.legend > span { display: flex; align-items: center; gap: 8px; }
+.dot { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; flex: none; }
+.dot svg { width: 12px; height: 12px; fill: none; stroke-width: 3.4; stroke-linecap: round; stroke-linejoin: round; }
+.demo-btn { height: 34px; padding: 0 12px; border: 1px dashed var(--edge); border-radius: 8px; background: var(--panel); font-weight: 600; font-size: 13px; color: var(--ink-2); }
+.demo-pop {
+  position: absolute; right: max(20px, env(safe-area-inset-right, 0px)); top: calc(100% + 6px); width: 250px; z-index: 60;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 10px 30px rgba(20, 23, 26, .2);
+  padding: 12px; display: grid; gap: 8px;
+}
+.demo-pop button.d { text-align: left; border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 9px 12px; font-weight: 600; font-size: 14px; }
+.demo-pop button.d:hover { background: var(--hover); }
+.speed { display: flex; gap: 6px; align-items: center; color: var(--ink-2); font-size: 13px; }
+.speed button { border: 1px solid var(--line); background: var(--panel); border-radius: 6px; padding: 4px 9px; font-weight: 600; font-size: 13px; }
+.speed button[aria-pressed="true"] { background: var(--ink); color: var(--white); border-color: var(--ink); }
+
+.main { flex: 1 1 0; min-height: 0; display: flex; flex-wrap: wrap; overflow: auto; background: var(--ink-2); }
+
+/* ---------- worker list ---------- */
+.rail { flex: 1 1 360px; max-width: 420px; min-width: 0; background: var(--panel); border-right: 1px solid var(--line); display: flex; flex-direction: column; overflow: hidden; }
+.rail.min { flex: 0 0 76px; }
+.rail-head { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px 10px 20px; }
+.rail-head h2 { margin: 0; font-family: var(--display); font-weight: 600; font-size: 15px; }
+.rail-head span { font-size: 13px; color: var(--ink-2); }
+.ctl { height: 44px; padding: 0 14px; border: 1px solid var(--edge); border-radius: 8px; background: var(--panel); font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.ctl:hover { background: var(--hover); }
+.counts { flex: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 2px 12px 14px; }
+.counts > div { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 8px; background: var(--bg); }
+.counts b { display: flex; align-items: center; gap: 8px; font-family: var(--display); font-weight: 600; font-size: 24px; line-height: 1; }
+.counts b i { width: 12px; height: 12px; border-radius: 50%; }
+.counts small { font-size: 12px; color: var(--ink-2); }
+.list { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 0 12px 12px; }
+.wcard {
+  width: 100%; padding: 12px; border: 0; border-radius: 10px; display: flex; align-items: center; gap: 12px; text-align: left;
+  background: var(--card); box-shadow: inset 0 0 0 1px var(--cline);
+}
+.wcard * { pointer-events: none; }
+.wcard:hover { filter: brightness(0.97); }
+.wcard.sel { box-shadow: inset 0 0 0 2px var(--ink); }
+.av { width: 44px; height: 44px; flex: none; border-radius: 50%; background: var(--fill); color: var(--ink2); display: grid; place-items: center; font-family: var(--display); font-weight: 700; font-size: 14px; }
+.wcard .who { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.wcard .nm { font-weight: 600; font-size: 15px; }
+.wcard .st { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); }
+.wcard .st svg { width: 13px; height: 13px; stroke: var(--ink); stroke-width: 3.2; }
+.wcard .vals { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; font-variant-numeric: tabular-nums; }
+.wcard .vals b { font-weight: 600; font-size: 16px; }
+.wcard .vals span { font-size: 13px; color: var(--ink-2); }
+.chips { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 12px 0; overflow-y: auto; }
+.chips .av { border: 0; padding: 0; }
+.chips .av.sel { box-shadow: 0 0 0 2px var(--white), 0 0 0 4px var(--ink); }
+
+/* ---------- map ---------- */
+.mapv { position: relative; flex: 999 1 560px; min-width: 0; min-height: 360px; overflow: hidden; background: var(--map); cursor: grab; touch-action: none; user-select: none; }
+.mapv.drag { cursor: grabbing; }
+.world { position: absolute; left: 50%; top: 50%; transform-origin: 0 0; transition: transform 450ms cubic-bezier(.2, .7, .2, 1); }
+.mapv.drag .world, .mapv.drag .pin { transition: none !important; }
+.world > svg { position: absolute; left: 0; top: 0; display: block; }
+.pin {
+  position: absolute; width: 44px; height: 44px; padding: 0; border: 3px solid var(--white); border-radius: 50%;
+  background: var(--fill); color: var(--ink2); font-family: var(--display); font-weight: 700; font-size: 14px;
+  display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 4px rgba(20, 23, 26, .35);
+  transition: transform 450ms cubic-bezier(.2, .7, .2, 1), left var(--move) linear, top var(--move) linear;
+}
+.pin.sel { box-shadow: 0 0 0 3px var(--ink); }
+.pin.you { background: var(--white); color: var(--ink); border: 2px solid var(--ink); font-size: 12px; cursor: default; }
+.pin .ini { position: relative; }
+.pin .pulse { position: absolute; inset: -3px; border-radius: 50%; border: 3px solid var(--danger); pointer-events: none; animation: pulse 1.6s ease-out infinite; }
+@keyframes pulse { 0% { transform: scale(1); opacity: .6; } 100% { transform: scale(2.2); opacity: 0; } }
+.pin .fl { position: absolute; top: -8px; right: -10px; min-width: 20px; height: 20px; padding: 0 4px; border-radius: 10px; background: var(--ink); color: var(--white); font-size: 11px; line-height: 20px; border: 2px solid var(--white); }
+.pin .tag { position: absolute; top: 48px; left: 50%; transform: translateX(-50%); white-space: nowrap; padding: 4px 10px; border-radius: 6px; background: var(--ink); color: var(--white); font-family: var(--font); font-weight: 600; font-size: 13px; pointer-events: none; }
+.zoom { position: absolute; right: 20px; bottom: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 5; }
+.zoom button { width: 44px; height: 44px; padding: 0; border: 1px solid var(--edge); border-radius: 8px; background: var(--panel); display: grid; place-items: center; box-shadow: 0 1px 2px rgba(20, 23, 26, .12); }
+.zoom button:hover { background: var(--hover); }
+.banner {
+  position: absolute; top: 16px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 32px); z-index: 6;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 6px 6px 6px 14px; border-radius: 12px;
+  background: var(--ink); color: var(--white); box-shadow: 0 8px 24px rgba(20, 23, 26, .25); cursor: default;
+}
+.banner .nm { font-weight: 600; font-size: 15px; white-space: nowrap; }
+.banner .v { font-size: 14px; color: #D5D9D2; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.btn { height: 44px; padding: 0 16px; border: 0; border-radius: 8px; font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap; }
+.btn.light { background: var(--white); color: var(--ink); }
+.btn.dark { background: var(--ink); color: var(--white); }
+.btn.red { background: var(--alert-btn); color: var(--white); }
+.btn.sent { background: var(--white); color: var(--ink); border: 1px solid var(--edge); }
+.banner .btn.sent { background: var(--ink); color: var(--white); border-color: var(--edge); }
+.btn.green { background: var(--ok); color: var(--ok-ink); cursor: default; }
+.x { width: 44px; height: 44px; padding: 0; border: 0; border-radius: 8px; background: var(--panel); display: grid; place-items: center; }
+.x:hover { background: var(--hover); }
+
+/* readings pop-up */
+.pop {
+  position: absolute; left: 16px; right: 84px; bottom: 16px; z-index: 7; padding: 12px 12px 14px 16px; border-radius: 12px;
+  background: var(--panel); box-shadow: 0 10px 30px rgba(20, 23, 26, .22); cursor: default; display: flex; flex-direction: column; gap: 6px;
+  animation: rise 260ms cubic-bezier(.2, .7, .2, 1);
+}
+@keyframes rise { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+.pop-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.pop-head .av { width: 36px; height: 36px; font-size: 13px; }
+.pop-head h2 { margin: 0; font-family: var(--display); font-weight: 600; font-size: 17px; }
+.pill { display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: var(--card); box-shadow: inset 0 0 0 1px var(--cline); font-size: 13px; font-weight: 600; }
+.pill svg { width: 12px; height: 12px; stroke: var(--ink); stroke-width: 3.4; }
+.where { display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--ink-2); }
+.where svg { width: 14px; height: 14px; stroke-width: 2.2; }
+.grow { flex: 1 1 auto; }
+.vrow { display: grid; grid-template-columns: 110px 120px minmax(0, 1fr) 110px; gap: 16px; align-items: center; padding: 10px 0 6px; border-top: 1px solid var(--line-2); }
+.vrow .lbl { font-weight: 600; font-size: 14px; }
+.vrow .now { font-family: var(--display); font-weight: 600; font-size: 20px; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.vrow .now small { display: block; font-family: var(--font); font-weight: 500; font-size: 12px; color: var(--ink-3); }
+.bar { position: relative; height: 14px; }
+.bar .bands { position: absolute; inset: 0; display: flex; gap: 2px; border-radius: 7px; overflow: hidden; }
+.bar .mark { position: absolute; top: -6px; bottom: -6px; width: 4px; transform: translateX(-50%); border-radius: 2px; background: var(--ink); box-shadow: 0 0 0 2px var(--white); transition: left .4s ease; }
+.bnames { display: flex; gap: 2px; font-size: 12px; color: var(--ink-2); margin-top: 4px; }
+.bnames span { min-width: 0; overflow: hidden; white-space: nowrap; text-align: center; }
+.lvl { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; }
+.lvl i { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+.buzzline { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); padding-top: 4px; }
+
+/* locate: the route diagram pulls up over the map */
+.locate {
+  position: absolute; inset: 12px; z-index: 8; background: var(--panel); border-radius: 14px; box-shadow: 0 14px 40px rgba(20, 23, 26, .28);
+  display: grid; grid-template-columns: minmax(260px, 320px) minmax(0, 1fr); overflow: hidden; cursor: default;
+  animation: pull 320ms cubic-bezier(.2, .7, .2, 1);
+}
+@keyframes pull { from { transform: translateY(60px); opacity: 0; } to { transform: none; opacity: 1; } }
+.loc-info { display: flex; flex-direction: column; gap: 18px; padding: 16px; min-width: 0; }
+.loc-head { display: flex; align-items: center; gap: 12px; }
+.loc-head h2 { margin: 0; flex: 1; min-width: 0; font-family: var(--display); font-weight: 600; font-size: 18px; }
+.dir { display: flex; flex-direction: column; gap: 10px; }
+.arrow-wrap { width: 96px; height: 96px; border-radius: 50%; background: var(--bg); display: grid; place-items: center; }
+.arrow { width: 58px; height: 58px; transition: transform .4s ease; color: var(--you); }
+.arrow.here { color: var(--ok); }
+.dir .big { font-family: var(--display); font-weight: 700; font-size: 44px; line-height: 1; }
+.dir .then { font-size: 16px; color: var(--ink-2); }
+.loc-info .btn { width: 100%; margin-top: auto; height: 48px; font-size: 15px; }
+.loc-view { position: relative; min-height: 0; background: var(--map); perspective: 1200px; overflow: hidden; }
+
+/* the building in 3D */
+.scene { position: absolute; left: 50%; top: 56%; width: 0; height: 0; transform-style: preserve-3d; transform: rotateX(55deg) rotateZ(-28deg) scale(1); transition: transform 1s cubic-bezier(.2, .7, .2, 1); }
+.scene.flat { transform: rotateX(0deg) rotateZ(-28deg) scale(0.5); }
+.ground { position: absolute; transform: translateZ(-2px); }
+.ground img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.floor { position: absolute; transform-style: preserve-3d; border: 1.5px solid var(--plate-line); background: var(--plate); border-radius: 4px; box-shadow: 0 8px 22px rgba(20, 23, 26, .10); transition: transform 1s cubic-bezier(.2, .7, .2, 1), background .3s; }
+.scene.flat .floor { transform: translateZ(0) !important; }
+.floor.on { background: var(--plate-on); border: 2.5px solid var(--c); }
+.floor.mine:not(.on) { border-color: var(--you); }
+.ring { position: absolute; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%; border: 3px solid var(--c); animation: ping 1.6s ease-out infinite; transition: left var(--move) linear, top var(--move) linear; }
+.ring.you { animation: none; opacity: .6; }
+@keyframes ping { 0% { transform: scale(.5); opacity: 1; } 100% { transform: scale(1.7); opacity: 0; } }
+.overlay { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .3s; }
+.overlay.shown { opacity: 1; }
+.floor-num { position: absolute; transform: translate(-130%, -50%); width: 26px; height: 26px; border-radius: 7px; font-size: 13px; font-weight: 700; text-align: center; line-height: 24px; background: var(--white); color: var(--ink-2); border: 1px solid var(--plate-line); }
+.floor-num.on { background: var(--c); color: var(--c-ink, var(--white)); border-color: var(--c); }
+.marker { position: absolute; width: 40px; transform: translate(-50%, -100%); display: flex; flex-direction: column; align-items: center; transition: left var(--move) linear, top var(--move) linear; }
+.marker:not(.you) { z-index: 2; }
+.marker .head { width: 40px; height: 40px; border-radius: 50%; background: var(--c); color: var(--c-ink, var(--white)); font-family: var(--display); font-size: 13px; font-weight: 700; display: grid; place-items: center; box-shadow: 0 0 0 3px var(--white), 0 4px 12px rgba(20, 23, 26, .25); }
+.marker.you .head { background: var(--white); color: var(--ink); box-shadow: 0 0 0 2px var(--ink), 0 4px 12px rgba(20, 23, 26, .2); font-size: 11px; }
+.marker .stem { width: 3px; height: 12px; background: var(--c); }
+.marker.you .stem { background: var(--ink); }
+.flatmap img { position: absolute; display: block; max-width: none; transition: left var(--move) linear, top var(--move) linear; }
+.flatmap svg.route { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+@media (max-width: 760px) {
+  .main { flex-direction: column; flex-wrap: nowrap; }
+  .mapv { order: -1; flex: 0 0 auto; height: 540px; }
+  .rail { flex: 1 0 auto; max-width: none; border-right: 0; overflow: visible; }
+  .rail.min { flex: 1 0 auto; }
+  .list { overflow: visible; }
+  .pop { right: 16px; bottom: 76px; max-height: calc(100% - 92px); overflow-y: auto; }
+  .zoom { flex-direction: row; right: auto; left: 16px; bottom: 16px; }
+  .vrow { grid-template-columns: 1fr auto; gap: 6px 12px; }
+  .vrow .rng { grid-column: 1 / -1; grid-row: 2; }
+  .vrow .lvl { justify-content: flex-end; }
+  .locate {
+    position: fixed; inset: 0; border-radius: 0; z-index: 50; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr);
+    padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .loc-info { gap: 12px; }
+  .dir { flex-direction: row; align-items: center; gap: 16px; }
+  .dir .big { font-size: 38px; }
+  .loc-view { margin: 0 12px 12px; border-radius: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .world, .pin, .scene, .floor, .ring, .marker, .arrow, .overlay, .flatmap img, .bar .mark { transition: none !important; }
+  .pin .pulse, .ring { animation: none; opacity: 0; }
+  .pop, .locate { animation: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="hdr">
+    <h1>Beacon</h1>
+    <div class="legend">
+      <span><span class="dot" style="background:var(--ok)"><svg viewBox="0 0 24 24" aria-hidden="true" style="stroke:var(--ok-ink)"><path d="M20 6L9 17l-5-5"/></svg></span>Okay</span>
+      <span><span class="dot" style="background:var(--watch)"><svg viewBox="0 0 24 24" aria-hidden="true" style="stroke:var(--watch-ink)"><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg></span>Questionable</span>
+      <span><span class="dot" style="background:var(--danger)"><svg viewBox="0 0 24 24" aria-hidden="true" style="stroke:var(--white)"><path d="M18 6L6 18M6 6l12 12"/></svg></span>In danger</span>
+      <button class="demo-btn" id="demo-btn" aria-expanded="false" aria-controls="demo-pop">Demo</button>
+    </div>
+    <div class="demo-pop" id="demo-pop" hidden>
+      <button class="d" id="d-rose" data-demo="rose_heart">Rose's heart races</button>
+      <button class="d" id="d-joe" data-demo="joe_hot">Joe's room gets hot</button>
+      <button class="d" id="d-mae" data-demo="mae_cold">Mae gets cold outside</button>
+      <button class="d" id="d-walk" data-demo="walk">Walk me there</button>
+      <button class="d" id="d-reset" data-demo="reset">Reset</button>
+      <div class="speed" role="group" aria-label="Speed">Speed
+        <button id="sp-1" data-speed="1" aria-pressed="true">1×</button>
+        <button id="sp-5" data-speed="5" aria-pressed="false">5×</button>
+        <button id="sp-20" data-speed="20" aria-pressed="false">20×</button>
+      </div>
+    </div>
+  </header>
+  <div class="main">
+    <aside class="rail" id="rail" aria-label="Workers"></aside>
+    <div class="mapv" id="mapv">
+      <div class="world" id="world"></div>
+      <div class="banner" id="banner" data-nodrag role="status" hidden>
+        <span class="dot" style="width:24px;height:24px;background:var(--danger)"><svg viewBox="0 0 24 24" aria-hidden="true" style="stroke:var(--white);width:14px;height:14px"><path d="M18 6L6 18M6 6l12 12"/></svg></span>
+        <span class="nm" id="bn-nm"></span><span class="v" id="bn-v"></span>
+        <button class="btn light" id="bn-show">Show</button>
+        <button class="btn red" id="bn-alert"></button>
+      </div>
+      <div class="zoom" data-nodrag>
+        <button id="z-in" aria-label="Zoom in"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+        <button id="z-out" aria-label="Zoom out"><svg class="i" viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+        <button id="z-fit" aria-label="Show everyone"><svg class="i" viewBox="0 0 24 24"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg></button>
+      </div>
+      <section class="pop" id="pop" data-nodrag hidden></section>
+      <section class="locate" id="locate" data-nodrag hidden></section>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ================= the site ================= */
+// metres, in the building's frame: the ILC runs x 0..90, y 0..50, north is +y
+const BUILDING = {
+  width_m: 90, depth_m: 50, floors: [1, 2, 3, 4], floor_height_m: 4.5,
+  stairs: [{ x: 8, y: 25, name: "west stairs" }, { x: 84, y: 25, name: "east stairs" }],
+  doors: [{ x: 90, y: 25, name: "east door" }, { x: 45, y: 0, name: "south door" }, { x: 0, y: 25, name: "west door" }],
+  zones: [
+    { floor: 1, name: "S120", x: 80, y: 8 }, { floor: 1, name: "S140", x: 70, y: 16 }, { floor: 1, name: "atrium", x: 45, y: 25 },
+    { floor: 1, name: "N151", x: 25, y: 42 }, { floor: 1, name: "front desk", x: 45, y: 4 },
+    { floor: 2, name: "south wing", x: 65, y: 12 }, { floor: 2, name: "balcony", x: 45, y: 25 }, { floor: 2, name: "north wing", x: 25, y: 40 },
+    { floor: 3, name: "south wing", x: 65, y: 12 }, { floor: 3, name: "balcony", x: 45, y: 25 }, { floor: 3, name: "north wing", x: 25, y: 40 },
+    { floor: 4, name: "south wing", x: 65, y: 12 }, { floor: 4, name: "north wing", x: 25, y: 40 },
+  ],
+};
+const WORLD = { x0: -320, x1: 420, y0: -210, y1: 260 }, PPM = 2;
+const WX = (x) => (x - WORLD.x0) * PPM, WY = (y) => (WORLD.y1 - y) * PPM;
+const LAT0 = 42.3909, LON0 = -72.5262, M_LAT = 110540, M_LON = 111320 * Math.cos((LAT0 * Math.PI) / 180);
+const toLatLon = (x, y) => [LAT0 + (y - 25) / M_LAT, LON0 + (x - 45) / M_LON];
+const fromLatLon = (lat, lon) => [(lon - LON0) * M_LON + 45, (lat - LAT0) * M_LAT + 25];
+const isInside = (x, y) => x >= 0 && x <= BUILDING.width_m && y >= 0 && y <= BUILDING.depth_m;
+const PEOPLE = [
+  { badge: "B1", name: "Rose Patel", pronoun: "her" },
+  { badge: "B2", name: "Joe Rivera", pronoun: "him" },
+  { badge: "B3", name: "Mae Chen", pronoun: "her" },
+  { badge: "B5", name: "Dev Shah", pronoun: "him" },
+  { badge: "B6", name: "Ana Lopez", pronoun: "her" },
+  { badge: "B4", name: "You", pronoun: "you", you: true },
+];
+
+/* ================= helpers ================= */
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const r1 = (v) => Math.round(v * 10) / 10;
+const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
+const median = (s) => { const n = s.length; return n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2; };
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+const nearest = (list, x, y) => list.reduce((a, c) => (Math.hypot(c.x - x, c.y - y) < Math.hypot(a.x - x, a.y - y) ? c : a));
+const initials = (n) => n.split(" ").map((s) => s[0]).join("").slice(0, 2).toUpperCase();
+function rng(seed) {
+  let a = seed >>> 0, spare = null;
+  const random = () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const gauss = (mu, sd) => {
+    if (spare !== null) { const v = spare; spare = null; return mu + sd * v; }
+    let u = 0; while (u === 0) u = random(); const v = random(), m = Math.sqrt(-2 * Math.log(u));
+    spare = m * Math.sin(2 * Math.PI * v); return mu + sd * m * Math.cos(2 * Math.PI * v);
+  };
+  return { random, gauss };
+}
+function robustBaseline(values, prior, priorSpread, floorSpread, k) {
+  if (values.length < 30) return [prior, priorSpread];
+  const d = values.slice().sort((a, b) => a - b), med = median(d);
+  const mad = median(d.map((x) => Math.abs(x - med)).sort((a, b) => a - b)), n = d.length / 60;
+  return [(n * med + k * prior) / (n + k), (n * Math.max(floorSpread, 1.4826 * mad) + k * priorSpread) / (n + k)];
+}
+
+/* ================= heart: each person's own normal, adjusted for activity ================= */
+const REST_ACT = 0.25;
+class HeartModel {
+  constructor() {
+    this.rest = []; this.sxx = 0; this.sxy = 0; this.load = 0; this.sUp = 0; this.sDn = 0; this.guard = 0; this.bad = 0;
+    this.alerting = false; this.dir = "high"; this.lastT = null; this.v = null; this.mu = 70; this.sigma = 6; this.since = 999;
+    this.expected = 70; this.spread = 6;
+  }
+  get learning() { return this.rest.length < 300; }
+  update(t, hr, q, act) {
+    const dt = this.lastT === null ? 1 : clamp(t - this.lastT, 0, 5);
+    this.lastT = t;
+    act = clamp(+act || 0, 0, 3);
+    this.load += (1 - Math.exp(-dt / (act > this.load ? 20 : 60))) * (act - this.load);   // speeds up fast, slows down slowly
+    if (!(hr != null && (q == null || q >= 0.5) && hr >= 25 && hr <= 230)) { this.bad += dt; return; }
+    this.bad = 0; this.v = +hr;
+    if (++this.since >= 10) { this.since = 0; [this.mu, this.sigma] = robustBaseline(this.rest, 70, 6, 2.5, 1); }
+    const extra = Math.max(0, this.load - 0.1), beta = (this.sxy + 60 * 30) / (this.sxx + 60);
+    this.spread = this.sigma * (1 + 0.5 * extra); this.expected = this.mu + beta * extra;
+    const z = (this.v - this.expected) / this.spread;
+    if (this.learning) this.sUp = this.sDn = 0;
+    else {
+      // only a clear, lasting jump counts: heart rate drifts for half a minute at a time
+      this.sUp = Math.min(120, Math.max(0, this.sUp + (z - 2.5) * dt));
+      this.sDn = this.load < 0.15 ? Math.min(120, Math.max(0, this.sDn + (-z - 2.5) * dt)) : this.sDn * 0.9;
+    }
+    const resting = this.load < REST_ACT;
+    this.guard = resting && (this.v > 130 || this.v < 40) ? this.guard + dt : 0;
+    if (this.sUp >= 60 || this.sDn >= 60 || this.guard >= 30) this.alerting = true;
+    else if (this.alerting && this.sUp < 12 && this.sDn < 12 && !this.guard) this.alerting = false;
+    this.dir = this.guard ? (this.v > 130 ? "high" : "low") : this.sUp >= this.sDn ? "high" : "low";
+    if (!this.alerting && !this.guard && (this.learning || Math.abs(z) < 4)) {   // never learn from the emergency
+      if (resting && act < REST_ACT) { this.rest.push(this.v); if (this.rest.length > 3600) this.rest.shift(); }
+      else if (extra > 0.2) { const k = Math.pow(0.999, dt); this.sxx = this.sxx * k + extra * extra * dt; this.sxy = this.sxy * k + extra * (this.v - this.mu) * dt; }
+    }
+  }
+  status(now) {
+    if (this.lastT === null || now - this.lastT > 20) return "offline";
+    if (this.bad >= 10 || this.v === null) return "sensor";
+    if (this.alerting) return "alert";
+    if (this.sUp >= 30 || this.sDn >= 30) return "watch";
+    return this.learning ? "learning" : "ok";
+  }
+}
+
+/* ================= air temperature: compared with the average for that kind of place ================= */
+class AirModel {
+  constructor() { this.sUp = 0; this.sDn = 0; this.guard = 0; this.alerting = false; this.dir = "high"; this.lastT = null; this.v = null; this.env = null; this.envSince = -1e9; }
+  update(t, temp, env, avg, spread) {
+    if (temp == null) return;
+    const dt = this.lastT === null ? 1 : clamp(t - this.lastT, 0, 5);
+    this.lastT = t; this.v = +temp;
+    if (env !== this.env) { this.env = env; this.envSince = t; }
+    const z = (this.v - avg) / spread;
+    if (t - this.envSince < 120) { this.sUp *= 0.9; this.sDn *= 0.9; }   // a couple of minutes for the sensor to catch up with a new place
+    else {
+      this.sUp = Math.min(90, Math.max(0, this.sUp + (z - 1.5) * dt));
+      this.sDn = Math.min(90, Math.max(0, this.sDn + (-z - 1.5) * dt));
+    }
+    this.guard = this.v >= 95 || this.v <= 25 ? this.guard + dt : 0;   // dangerous no matter what's usual
+    if (this.sUp >= 45 || this.sDn >= 45 || this.guard >= 20) this.alerting = true;
+    else if (this.alerting && this.sUp < 10 && this.sDn < 10 && !this.guard) this.alerting = false;
+    this.dir = this.guard ? (this.v >= 95 ? "high" : "low") : this.sUp >= this.sDn ? "high" : "low";
+  }
+  status() {
+    if (this.v === null) return "sensor";
+    if (this.alerting) return "alert";
+    if (this.sUp >= 20 || this.sDn >= 20) return "watch";
+    return "ok";
+  }
+}
+
+/* ================= where: pressure for floors, Wi-Fi inside, GPS outside, Bluetooth up close ================= */
+const pressureToAlt = (p) => 44330 * (1 - Math.pow(p / 1013.25, 0.1903));
+const rssiToM = (rssi) => Math.pow(10, (-59 - rssi) / 22);
+class FloorTracker {
+  constructor() { this.h = null; this.floor = null; this.cand = null; this.candSecs = 0; this.lastT = null; }
+  update(t, p, pRef, offset, heights) {
+    const raw = pressureToAlt(p) - pressureToAlt(pRef) - offset;
+    const dt = this.lastT === null ? 1 : clamp(t - this.lastT, 0, 5);
+    this.lastT = t;
+    this.h = this.h === null ? raw : this.h + (1 - Math.exp(-dt / 2)) * (raw - this.h);
+    let cand = null, best = Infinity;
+    for (const [f, h] of Object.entries(heights)) if (Math.abs(h - this.h) < best) { best = Math.abs(h - this.h); cand = +f; }
+    if (this.floor === null) this.floor = cand;
+    else if (cand !== this.floor) { this.candSecs = cand === this.cand ? this.candSecs + dt : dt; this.cand = cand; if (this.candSecs >= 3) { this.floor = cand; this.candSecs = 0; } }
+    else { this.cand = null; this.candSecs = 0; }
+    return this.floor;
+  }
+}
+function scanDistance(a, b) {
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  let s = 0;
+  for (const k of keys) { const d = (a[k] ?? -100) - (b[k] ?? -100); s += d * d; }
+  return keys.size ? Math.sqrt(s / keys.size) : 999;
+}
+class WifiMap {
+  constructor() { this.points = []; }
+  add(floor, x, y, scan) { this.points.push({ floor, x, y, scan }); }
+  locate(scan, floor) {
+    if (!scan || !this.points.length) return null;
+    let cands = this.points.filter((p) => floor == null || p.floor === floor);
+    if (!cands.length) cands = this.points;
+    const best = cands.map((p) => [scanDistance(scan, p.scan), p]).sort((a, b) => a[0] - b[0]).slice(0, 3);
+    let tot = 0, x = 0, y = 0;
+    for (const [d, p] of best) { const w = 1 / (d + 1); tot += w; x += w * p.x; y += w * p.y; }
+    return { x: x / tot, y: y / tot };
+  }
+}
+
+/* ================= hub: readings in, what people need to see out ================= */
+const SEV = { alert: 3, watch: 2, sensor: 1, offline: 1, learning: 0, ok: 0 };
+class Hub {
+  constructor() {
+    this.people = Object.fromEntries(PEOPLE.map((p) => [p.badge, p]));
+    this.badges = new Map(); this.ref = null; this.refHist = []; this.offsets = {}; this.wifi = new WifiMap();
+    this.env = { inside: { avg: 70, spread: 2.5, floor: 2.5 }, outside: { avg: 50, spread: 4, floor: 4 } };
+  }
+  heights() { const h = {}; for (const f of BUILDING.floors) h[f] = (f - 1) * BUILDING.floor_height_m; return h; }
+  badge(id) {
+    if (!this.badges.has(id)) {
+      this.badges.set(id, {
+        id, person: this.people[id] || { name: id, pronoun: "them" }, heart: new HeartModel(), air: new AirModel(),
+        tracker: new FloorTracker(), lastT: null, pHist: [], floor: null, x: null, y: null, outdoor: false, gpsT: -1e9,
+        posFloor: null, peers: {}, ackedBy: null, buzz: null, stage: {}, lastBuzz: {}, alertSent: -1e9,
+      });
+    }
+    return this.badges.get(id);
+  }
+  ingest(pkt, t) {
+    if (pkt.ref) { this.ref = [t, pkt.p]; this.refHist.push(pkt.p); if (this.refHist.length > 15) this.refHist.shift(); return; }
+    const b = this.badge(pkt.id);
+    b.lastT = t;
+    b.heart.update(t, pkt.hr, pkt.q, pkt.act);
+    if (pkt.p) {
+      b.pHist.push(pkt.p); if (b.pHist.length > 15) b.pHist.shift();
+      if (this.ref && t - this.ref[0] < 30) b.floor = b.tracker.update(t, pkt.p, this.ref[1], this.offsets[b.id] || 0, this.heights());
+    }
+    if (pkt.gps) {
+      const [x, y] = fromLatLon(pkt.gps[0], pkt.gps[1]);
+      if (!b.outdoor || b.x === null) { b.x = x; b.y = y; } else { b.x += 0.5 * (x - b.x); b.y += 0.5 * (y - b.y); }
+      b.outdoor = true; b.gpsT = t;
+    } else if (pkt.wifi && t - b.gpsT > 10) {
+      const res = this.wifi.locate(Object.fromEntries(pkt.wifi), b.floor);
+      if (res) {
+        if (b.outdoor || b.x === null || b.posFloor !== b.floor) { b.x = res.x; b.y = res.y; }
+        else { b.x += 0.4 * (res.x - b.x); b.y += 0.4 * (res.y - b.y); }
+        b.posFloor = b.floor; b.outdoor = false;
+      }
+    }
+    const env = b.outdoor ? "outside" : "inside", e = this.env[env];
+    b.air.update(t, pkt.air, env, e.avg, e.spread);
+    for (const [pid, rssi] of pkt.ble || []) { const old = b.peers[pid]; b.peers[pid] = [!old || t - old[1] > 10 ? rssi : old[0] + 0.3 * (rssi - old[0]), t]; }
+    if (b.ackedBy && !b.heart.alerting && !b.air.alerting) b.ackedBy = null;
+    this.autoBuzz(b, t);
+  }
+  learnEnv(t, dt = 1) {
+    // the usual temperature inside and outside, from everyone whose readings look normal
+    for (const [name, e] of Object.entries(this.env)) {
+      const vals = [...this.badges.values()]
+        .filter((b) => (b.outdoor ? "outside" : "inside") === name && b.air.v !== null && b.air.status() === "ok" && t - b.air.envSince > 120)
+        .map((b) => b.air.v).sort((a, b) => a - b);
+      if (!vals.length) continue;
+      const w = 1 - Math.exp(-dt / 900), med = median(vals);
+      e.avg += w * (med - e.avg);
+      const dev = median(vals.map((v) => Math.abs(v - e.avg)).sort((a, b) => a - b));
+      e.spread += w * (Math.max(e.floor, 1.4826 * dev * 1.5) - e.spread);
+    }
+  }
+  autoBuzz(b, t) {
+    // the clip buzzes its wearer when things start going the wrong way
+    const st = (s) => (s === "alert" ? 3 : s === "watch" ? 2 : 0);
+    const hs = st(b.heart.status(t)), as = st(b.air.status());
+    const now = { rest: b.heart.dir === "high" ? hs : 0, cool: b.air.dir === "high" ? as : 0, warm: b.air.dir === "low" ? as : 0 };
+    for (const why of Object.keys(now)) {
+      if (now[why] > (b.stage[why] || 0) && t - (b.lastBuzz[why] || -1e9) > 60) { b.buzz = { t, why }; b.lastBuzz[why] = t; }
+      b.stage[why] = now[why];
+    }
+  }
+  zero() {
+    const avg = (a) => a.reduce((s, v) => s + v, 0) / a.length, refAlt = pressureToAlt(avg(this.refHist));
+    for (const b of this.badges.values()) if (b.pHist.length) { this.offsets[b.id] = pressureToAlt(avg(b.pHist)) - refAlt; b.tracker = new FloorTracker(); b.floor = null; }
+  }
+  snapshot(now) {
+    const out = [];
+    for (const b of this.badges.values()) {
+      const h = b.heart, a = b.air, hs = h.status(now), as = hs === "offline" ? "offline" : a.status();
+      const cands = [
+        [SEV[hs], hs === "alert" ? (h.dir === "high" ? "Heart racing" : "Heart too slow") : hs === "watch" ? (h.dir === "high" ? "Heart rising" : "Heart low") : hs === "sensor" ? "Check clip" : hs === "offline" ? "No signal" : ""],
+        [SEV[as] - 0.01, as === "alert" ? (a.dir === "high" ? "Too hot here" : "Too cold here") : as === "watch" ? (a.dir === "high" ? "Getting hot here" : "Getting cold here") : ""],
+      ].sort((x, y) => y[0] - x[0]);
+      const raw = cands[0][0], sev = raw >= 2.5 ? 3 : raw >= 1.5 ? 2 : raw >= 0.9 ? 1 : 0;
+      const floor = b.outdoor ? null : b.floor ?? b.posFloor;
+      let place = "Nearby";
+      if (b.outdoor) place = "Outside";
+      else if (floor != null) {
+        place = "Floor " + floor;
+        if (b.x !== null) {
+          const zs = BUILDING.zones.filter((z) => z.floor === floor), z = zs.length ? nearest(zs, b.x, b.y) : null;
+          if (z && Math.hypot(z.x - b.x, z.y - b.y) < 25) place += ", " + z.name;
+        }
+      }
+      const peers = {};
+      for (const [pid, [r, pt]] of Object.entries(b.peers)) if (now - pt < 10) peers[pid] = r1(rssiToM(r));
+      const e = this.env[b.outdoor ? "outside" : "inside"];
+      out.push({
+        id: b.id, name: b.person.name, first: b.person.name.split(" ")[0], ini: b.person.you ? "You" : initials(b.person.name),
+        obj: b.person.pronoun, you: !!b.person.you, sev, level: sev === 3 ? "danger" : sev === 2 ? "watch" : sev === 1 ? "gray" : "ok",
+        label: cands[0][1] || "Okay", risk: sev * 1000 + Math.max(h.sUp, h.sDn, a.sUp * 1.3, a.sDn * 1.3),
+        hr: h.v && hs !== "sensor" && hs !== "offline" ? Math.round(h.v) : null, hrUsual: Math.round(h.mu), hrExp: h.expected, hrSpread: h.spread, hrState: [hs, h.dir],
+        air: a.v !== null && as !== "offline" ? Math.round(a.v) : null, airAvg: e.avg, airSpread: e.spread, airState: [as, a.dir],
+        outdoor: b.outdoor, floor, x: b.x, y: b.y, place, peers, acked_by: b.ackedBy, buzz: b.buzz, alertSent: now - b.alertSent < 60,
+      });
+    }
+    out.sort((a, b) => b.risk - a.risk || a.name.localeCompare(b.name));
+    return { t: now, people: out };
+  }
+}
+
+/* ================= simulated clips ================= */
+// Each sends what a real clip sends: heart rate, movement, air temperature, air pressure,
+// a Wi-Fi scan inside or a GPS fix outside, and which other clips it can hear.
+const CLIP = 1.2, WALK = 1.2, CLIMB = 0.35;
+class SimPerson {
+  constructor(id, floor, x, y, base, gain, offset, spot, wobble = 0.45) {
+    Object.assign(this, { id, floor, x, y, base, gain, offset, spot, wobble });
+    this.z = 0; this.path = []; this.act = 0.05; this.hr = base; this.wander = 0; this.amb = null;
+    this.extra = 0; this.extraTarget = 0; this.airExtra = 0; this.airTarget = 0; this.lastScan = -99;
+  }
+  go(floor, x, y) {
+    const P = []; let cf = this.floor, cx = this.x, cy = this.y;
+    const toFloor = (f) => { if (f !== cf) { const s = nearest(BUILDING.stairs, cx, cy); P.push(["walk", cf, s.x, s.y], ["climb", f, s.x, s.y]); cf = f; cx = s.x; cy = s.y; } };
+    const inNow = isInside(cx, cy), inT = isInside(x, y);
+    if (inNow && !inT) { toFloor(1); const d = nearest(BUILDING.doors, x, y); P.push(["walk", 1, d.x, d.y]); }
+    if (!inNow && inT) { const d = nearest(BUILDING.doors, cx, cy); P.push(["walk", 1, d.x, d.y]); cx = d.x; cy = d.y; }
+    if (inT) toFloor(floor);
+    P.push(["walk", inT ? floor : 1, x, y]);
+    this.path = P;
+  }
+}
+class Sim {
+  constructor(hub) {
+    this.hub = hub; this.r = rng(7); this.fh = BUILDING.floor_height_m;
+    this.people = {
+      B1: new SimPerson("B1", 2, 64, 12, 58, 32, +0.55, 0.8),         // Rose: low resting heart rate, sunny window
+      B2: new SimPerson("B2", 1, 45, 26, 91, 26, -0.40, 0.0, 0.9),    // Joe: high, variable resting heart rate
+      B3: new SimPerson("B3", 1, 128, 66, 72, 34, +0.20, 0.0),        // Mae: out in the garden
+      B5: new SimPerson("B5", 1, 172, 28, 68, 30, -0.30, 1.0),        // Dev: out by the parking lot
+      B6: new SimPerson("B6", 3, 25, 40, 64, 30, +0.35, -0.6),        // Ana: floor 3
+      B4: new SimPerson("B4", 1, 70, 15, 66, 30, -0.75, 0.3),         // you
+    };
+    this.aps = [];
+    for (const f of BUILDING.floors) [[15, 12], [45, 10], [75, 12], [15, 38], [45, 40], [75, 38], [45, 25]].forEach(([x, y], i) => this.aps.push([`ap${f}${i}`, f, x, y]));
+  }
+  pressure(t, h) { return (1009 + 1.5 * Math.sin((2 * Math.PI * t) / 7200)) * Math.pow(1 - h / 44330, 5.255); }
+  height(p) { return (p.floor - 1) * this.fh + p.z + CLIP; }
+  placeTemp(t, p) { return isInside(p.x, p.y) ? 70.5 + p.spot : 48 + 3 * Math.sin((2 * Math.PI * t) / 7200) + p.spot; }
+  scan(p) {
+    const out = [];
+    for (const [mac, f, ax, ay] of this.aps) {
+      const rssi = -38 - 27 * Math.log10(Math.max(1, Math.hypot(ax - p.x, ay - p.y))) - 16 * Math.abs(f - p.floor) + this.r.gauss(0, 4);
+      if (rssi > -90 && this.r.random() > 0.1) out.push([mac, Math.round(rssi)]);
+    }
+    return out.sort((a, b) => b[1] - a[1]).slice(0, 15);
+  }
+  ble(p) {
+    const out = [];
+    for (const q of Object.values(this.people)) {
+      if (q === p) continue;
+      const d = Math.hypot(q.x - p.x, q.y - p.y, this.height(q) - this.height(p));
+      const rssi = -59 - 22 * Math.log10(Math.max(d, 0.5)) - 12 * Math.abs(q.floor - p.floor) + this.r.gauss(0, 3);
+      if (rssi > -95) out.push([q.id, Math.round(rssi)]);
+    }
+    return out;
+  }
+  move(p, dt) {
+    if (!p.path.length) { p.act = 0.05 + Math.abs(this.r.gauss(0, 0.03)); return; }
+    const [kind, f, tx, ty] = p.path[0];
+    if (kind === "walk") {
+      const d = Math.hypot(tx - p.x, ty - p.y), step = WALK * dt;
+      if (d <= step) { p.x = tx; p.y = ty; p.path.shift(); } else { p.x += ((tx - p.x) / d) * step; p.y += ((ty - p.y) / d) * step; }
+      p.act = 1 + this.r.gauss(0, 0.1);
+    } else {
+      const dir = f > p.floor ? 1 : -1;
+      p.z += dir * CLIMB * dt; p.act = (dir > 0 ? 1.6 : 1.1) + this.r.gauss(0, 0.12);
+      if (Math.abs(p.z) >= this.fh) { p.floor += dir; p.z = 0; if (p.floor === f) p.path.shift(); }
+    }
+  }
+  heart(p, dt) {
+    p.extra += (1 - Math.exp(-dt / 12)) * (p.extraTarget - p.extra);
+    const target = p.base + p.gain * Math.max(0, p.act - 0.05) + p.extra;
+    p.hr += (1 - Math.exp(-dt / (target > p.hr ? 25 : 65))) * (target - p.hr);
+    p.wander = 0.97 * p.wander + this.r.gauss(0, p.wobble);
+    return p.hr + p.wander + this.r.gauss(0, 1.2);
+  }
+  air(t, p, dt) {
+    p.airExtra += (1 - Math.exp(-dt / 60)) * (p.airTarget - p.airExtra);
+    const target = this.placeTemp(t, p) + p.airExtra + 1.0;           // the clip sits a little warm from the body
+    p.amb = p.amb === null ? target : p.amb + (1 - Math.exp(-dt / 40)) * (target - p.amb);   // the sensor takes time to settle
+    return p.amb + this.r.gauss(0, 0.25);
+  }
+  step(t, dt = 1) {
+    this.hub.ingest({ ref: true, p: this.pressure(t, 0.8) + this.r.gauss(0, 0.02) }, t);
+    for (const p of Object.values(this.people)) {
+      this.move(p, dt);
+      const pkt = {
+        id: p.id, hr: Math.round(this.heart(p, dt)), q: 0.95, act: Math.max(0, p.act), air: r1(this.air(t, p, dt)),
+        p: this.pressure(t, this.height(p)) + p.offset + this.r.gauss(0, 0.02), ble: this.ble(p),
+      };
+      if (!isInside(p.x, p.y)) pkt.gps = toLatLon(p.x + this.r.gauss(0, 3), p.y + this.r.gauss(0, 3));
+      else if (t - p.lastScan >= 5) { pkt.wifi = this.scan(p); p.lastScan = t; }
+      this.hub.ingest(pkt, t);
+    }
+    this.hub.learnEnv(t, dt);
+  }
+  boot(now) {
+    // zero every clip beside the reference clip, map the Wi-Fi, then learn 15 minutes of normal
+    const start = now - 915, saved = Object.fromEntries(Object.entries(this.people).map(([i, p]) => [i, [p.floor, p.x, p.y]]));
+    for (const p of Object.values(this.people)) { p.floor = 1; p.x = 45; p.y = 4; }
+    for (let i = 0; i < 12; i++) this.step(start + i);
+    this.hub.zero();
+    for (const [i, [f, x, y]] of Object.entries(saved)) Object.assign(this.people[i], { floor: f, x, y, amb: null });
+    const probe = new SimPerson("S", 1, 0, 0, 70, 30, 0, 0);
+    for (const f of BUILDING.floors) for (let x = 4; x < 90; x += 7) for (let y = 4; y < 50; y += 7) {
+      Object.assign(probe, { floor: f, x, y });
+      const scans = [0, 1, 2].map(() => Object.fromEntries(this.scan(probe))), avg = {};
+      for (const k of new Set(scans.flatMap((s) => Object.keys(s)))) avg[k] = scans.reduce((s, sc) => s + (sc[k] ?? -100), 0) / 3;
+      this.hub.wifi.add(f, x, y, avg);
+    }
+    for (const p of Object.values(this.people)) p.lastScan = -99;
+    const walks = { 200: ["B2", 1, 30, 12], 360: ["B2", 1, 45, 26], 480: ["B5", 1, 190, 50], 640: ["B5", 1, 172, 28] };
+    for (let t = start + 12, i = 0; t < now; t++, i++) {
+      if (walks[i]) { const [id, f, x, y] = walks[i]; this.people[id].go(f, x, y); }
+      this.step(t);
+    }
+  }
+  action(name, targetId) {
+    const P = this.people;
+    if (name === "rose_heart") { P.B1.path = []; P.B1.extraTarget = 38; }
+    else if (name === "joe_hot") P.B2.airTarget = 30;       // the boiler room
+    else if (name === "mae_cold") P.B3.airTarget = -24;     // wind off the river
+    else if (name === "walk") { const t = P[targetId] || P.B1; if (t !== P.B4) P.B4.go(t.floor, t.x + 1.5, t.y + 1); }
+    else if (name === "reset") {
+      for (const p of Object.values(P)) { p.extraTarget = 0; p.airTarget = 0; p.path = []; }
+      P.B4.go(1, 70, 15);
+    }
+  }
+}
+
+/* ================= the map image ================= */
+function worldSvg() {
+  const R = rng(5), W = (WORLD.x1 - WORLD.x0) * PPM, H = (WORLD.y1 - WORLD.y0) * PPM;
+  const pt = (x, y) => `${WX(x).toFixed(1)},${WY(y).toFixed(1)}`;
+  const rect = (x0, y0, x1, y1, fill, extra = "") => `<rect x="${WX(x0)}" y="${WY(y1)}" width="${(x1 - x0) * PPM}" height="${(y1 - y0) * PPM}" fill="${fill}" ${extra}/>`;
+  const keep = [];
+  let s = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><rect width="${W}" height="${H}" fill="#E8ECE3"/>`;
+  for (const poly of [[[-260, 150], [-70, 175], [-60, 70], [-250, 45]], [[-40, -60], [150, -75], [160, -130], [-30, -140]], [[190, 185], [410, 175], [415, 95], [195, 105]], [[-300, -40], [-120, -30], [-130, -115], [-295, -110]]]) {
+    s += `<polygon points="${poly.map(([x, y]) => pt(x, y)).join(" ")}" fill="#E2E8DB"/>`;
+  }
+  // river along the south
+  const top = [], bot = [], mid = [];
+  for (let x = WORLD.x0 - 20; x <= WORLD.x1 + 20; x += 20) { const y = -170 + 8 * Math.sin(x / 60); top.push(pt(x, y + 15)); bot.unshift(pt(x, y - 15)); mid.push(pt(x, y)); }
+  s += `<polygon points="${top.concat(bot).join(" ")}" fill="#BDD4E3"/><polyline points="${mid.join(" ")}" fill="none" stroke="#D6E5EF" stroke-width="8" stroke-linecap="round"/>`;
+  keep.push([WORLD.x0, -195, WORLD.x1, -145]);
+  // road along the north
+  const road = [];
+  for (let x = WORLD.x0 - 20; x <= WORLD.x1 + 20; x += 20) road.push(pt(x, 100 + 6 * Math.sin(x / 90)));
+  s += `<polyline points="${road.join(" ")}" fill="none" stroke="#D3D8CD" stroke-width="${14 * PPM}" stroke-linecap="round"/><polyline points="${road.join(" ")}" fill="none" stroke="#F7F5EE" stroke-width="${11 * PPM}" stroke-linecap="round"/>`;
+  keep.push([WORLD.x0, 88, WORLD.x1, 112]);
+  // plaza, paths, parking, garden
+  s += rect(-12, -14, 102, 64, "#EEF0EA"); keep.push([-14, -16, 104, 66]);
+  for (const [a, b] of [[[45, 0], [45, -60]], [[45, 50], [45, 100]], [[90, 25], [137, 25]], [[0, 25], [-90, 25]], [[-90, 25], [-110, 100]], [[45, -60], [200, -60]], [[45, -60], [-200, -55]], [[110, 25], [128, 52]]]) {
+    s += `<line x1="${WX(a[0])}" y1="${WY(a[1])}" x2="${WX(b[0])}" y2="${WY(b[1])}" stroke="#F7F5EE" stroke-width="${4 * PPM}" stroke-linecap="round"/>`;
+    keep.push([Math.min(a[0], b[0]) - 3, Math.min(a[1], b[1]) - 3, Math.max(a[0], b[0]) + 3, Math.max(a[1], b[1]) + 3]);
+  }
+  s += rect(137, -11, 205, 69, "#DDE1D8"); keep.push([135, -13, 207, 71]);
+  for (let y = -8; y < 67; y += 3) s += rect(140, y, 166, y + 0.3, "#F7F5EE") + rect(176, y, 202, y + 0.3, "#F7F5EE");
+  s += rect(112, 52, 146, 80, "#D6E3C8"); keep.push([110, 50, 148, 82]);
+  for (let y = 54; y < 80; y += 3) s += rect(114, y, 144, y + 1, "#C3D4B2");
+  // buildings
+  for (const [x0, y0, x1, y1] of [[-140, 20, -80, 70], [-150, -50, -100, -10], [-40, 125, 60, 165], [180, 125, 260, 170], [-210, 190, -130, 240], [250, -100, 330, -40], [300, 20, 390, 80]]) {
+    s += rect(x0, y0, x1, y1, "#D3D7CE", `stroke="#BCC2B7" stroke-width="2"`); keep.push([x0 - 4, y0 - 4, x1 + 4, y1 + 4]);
+  }
+  s += rect(0, 0, 90, 50, "#D3D7CE", `stroke="#BCC2B7" stroke-width="2"`);
+  s += `<text x="${WX(45)}" y="${WY(25) + 7}" text-anchor="middle" font-family="Space Grotesk, Inter, sans-serif" font-weight="600" font-size="20" fill="#8A9088">ILC</text>`;
+  // trees
+  let g1 = "", g2 = "";
+  for (let i = 0; i < 260; i++) {
+    const x = WORLD.x0 + R.random() * (WORLD.x1 - WORLD.x0), y = WORLD.y0 + R.random() * (WORLD.y1 - WORLD.y0);
+    if (keep.some(([a, b, c, d]) => x > a && x < c && y > b && y < d)) continue;
+    const r = (3 + R.random() * 4) * PPM;
+    g1 += `<circle cx="${WX(x).toFixed(1)}" cy="${WY(y).toFixed(1)}" r="${r.toFixed(1)}"/>`;
+    g2 += `<circle cx="${(WX(x) + r * 0.15).toFixed(1)}" cy="${(WY(y) - r * 0.15).toFixed(1)}" r="${(r * 0.5).toFixed(1)}"/>`;
+  }
+  s += `<g fill="#B7C8AB">${g1}</g><g fill="#A6B99A">${g2}</g></svg>`;
+  return s;
+}
+const MAP_SVG = worldSvg();
+const MAP_URL = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(MAP_SVG);
+
+/* ================= the app ================= */
+const LOOK = {
+  danger: { fill: "var(--danger)", ink: "var(--danger-ink)", card: "var(--danger-card)", line: "var(--danger-line)", icon: "M18 6L6 18M6 6l12 12" },
+  watch: { fill: "var(--watch)", ink: "var(--watch-ink)", card: "var(--watch-card)", line: "var(--watch-line)", icon: "M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01" },
+  ok: { fill: "var(--ok)", ink: "var(--ok-ink)", card: "var(--ok-card)", line: "var(--ok-line)", icon: "M20 6L9 17l-5-5" },
+  gray: { fill: "var(--gray)", ink: "var(--gray-ink)", card: "var(--gray-card)", line: "var(--gray-line)", icon: "M12 7v6M12 17h.01" },
+};
+const ICON = {
+  pin: `<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>`,
+  bell: "M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0",
+  check: "M20 6L9 17l-5-5",
+  close: `<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>`,
+  locate: `<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 3L3 10.5l7.2 2.3L12.5 20z"/></svg>`,
+  buzz: `<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="3" width="8" height="18" rx="2"/><path d="M4 8v8M20 8v8"/></svg>`,
+};
+const TILT_X = 55, TURN_Z = -28, ARROW = "M35 4 L62 60 L35 47 L8 60 Z", CHECK = "M14 36 L29 51 L57 20";
+const $ = (id) => document.getElementById(id);
+const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private window */ } } };
+
+let state = null, sel = "", railHidden = false, locating = false, locDom = null, lastAngle = 0;
+let cam = { cx: 0, cy: 0, k: 1 }, drag = null;
+const person = (id) => state && state.people.find((p) => p.id === id);
+const me = () => state && state.people.find((p) => p.you);
+const workers = () => state.people.filter((p) => !p.you);
+const paint = (el, level) => { const l = LOOK[level]; el.style.setProperty("--fill", l.fill); el.style.setProperty("--ink2", l.ink); el.style.setProperty("--card", l.card); el.style.setProperty("--cline", l.line); };
+function setHtml(el, h) { if (el && el.dataset.h !== h) { el.innerHTML = h; el.dataset.h = h; } }
+function sync(box, items, make, update) {
+  const have = new Map([...box.children].map((el) => [el.dataset.key, el]));
+  items.forEach((it, i) => {
+    let el = have.get(it.id);
+    if (!el) { el = make(it); el.dataset.key = it.id; }
+    update(el, it);
+    if (box.children[i] !== el) box.insertBefore(el, box.children[i] || null);
+    have.delete(it.id);
+  });
+  have.forEach((el) => el.remove());
+}
+const ago = (s) => (s < 5 ? "just now" : s < 60 ? `${Math.round(s)}s ago` : `${Math.round(s / 60)}m ago`);
+const iconSvg = (d, extra = "") => `<svg viewBox="0 0 24 24" aria-hidden="true" ${extra}><path d="${d}"/></svg>`;
+
+/* ---------- worker list ---------- */
+function renderRail() {
+  const rail = $("rail");
+  const ws = workers();
+  if (rail.dataset.mode !== (railHidden ? "min" : "full")) {
+    rail.dataset.mode = railHidden ? "min" : "full";
+    rail.classList.toggle("min", railHidden);
+    rail.innerHTML = railHidden
+      ? `<div class="chips"><button class="ctl" data-act="rail" aria-expanded="false" aria-label="Show list" style="width:44px;padding:0"><svg class="i" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button><div id="chips" style="display:contents"></div></div>`
+      : `<div class="rail-head"><div style="display:flex;flex-direction:column;gap:1px"><h2>Workers</h2><span>Sorted by risk</span></div><button class="ctl" data-act="rail" aria-expanded="true">Hide list</button></div>
+         <div class="counts"><div><b><i style="background:var(--danger)"></i><span id="n-d"></span></b><small>In danger</small></div><div><b><i style="background:var(--watch)"></i><span id="n-w"></span></b><small>Questionable</small></div><div><b><i style="background:var(--ok)"></i><span id="n-o"></span></b><small>Okay</small></div></div>
+         <div class="list" id="wlist" role="list" aria-label="Workers, sorted by risk"></div>`;
+  }
+  if (railHidden) {
+    sync($("chips"), ws, (w) => { const b = document.createElement("button"); b.className = "av"; b.dataset.sel = w.id; return b; }, (b, w) => {
+      paint(b, w.level); b.textContent = w.ini; b.classList.toggle("sel", w.id === sel); b.setAttribute("aria-label", `${w.name}, ${w.label}`);
+    });
+    return;
+  }
+  $("n-d").textContent = ws.filter((w) => w.level === "danger").length;
+  $("n-w").textContent = ws.filter((w) => w.level === "watch" || w.level === "gray").length;
+  $("n-o").textContent = ws.filter((w) => w.level === "ok").length;
+  sync($("wlist"), ws, (w) => {
+    const b = document.createElement("button"); b.className = "wcard"; b.dataset.sel = w.id; b.setAttribute("role", "listitem");
+    b.innerHTML = `<span class="av"></span><span class="who"><span class="nm"></span><span class="st"></span></span><span class="vals"></span>`;
+    return b;
+  }, (b, w) => {
+    paint(b, w.level);
+    b.classList.toggle("sel", w.id === sel);
+    b.querySelector(".av").textContent = w.ini;
+    b.querySelector(".nm").textContent = w.name;
+    setHtml(b.querySelector(".st"), `${iconSvg(LOOK[w.level].icon)}<span>${esc(w.label)}</span>`);
+    setHtml(b.querySelector(".vals"), `<b>${w.air ?? "–"}°F</b><span>${w.hr ?? "–"} BPM</span>`);
+    b.setAttribute("aria-label", `${w.name}, ${w.label}, ${w.air}°F, ${w.hr} BPM. Show on the map.`);
+  });
+}
+
+/* ---------- map ---------- */
+function camTransform() { $("world").style.transform = `scale(${cam.k.toFixed(4)}) translate(${(-cam.cx).toFixed(1)}px, ${(-cam.cy).toFixed(1)}px)`; }
+function fitAll() {
+  const v = $("mapv"), pts = state.people.filter((p) => p.x !== null);
+  const xs = pts.map((p) => WX(p.x)), ys = pts.map((p) => WY(p.y));
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  cam = { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2 + 20, k: clamp(Math.min(v.clientWidth / (x1 - x0 + 260), v.clientHeight / (y1 - y0 + 300)), 0.6, 2.4) };
+  camTransform(); renderPins();
+}
+function focusOn(p) {
+  if (!p || p.x === null) return;
+  const k = 2.4, v = $("mapv");
+  cam = { cx: WX(p.x), cy: WY(p.y) + Math.min(130, v.clientHeight * 0.22) / k, k };
+  camTransform(); renderPins();
+}
+function zoomBy(f) { cam.k = clamp(cam.k * f, 0.5, 4); camTransform(); renderPins(); }
+
+function renderPins() {
+  const w = $("world");
+  sync(w, [{ id: "__map" }, ...state.people.filter((p) => p.x !== null)], (p) => {
+    if (p.id === "__map") { const d = document.createElement("div"); d.innerHTML = MAP_SVG; return d.firstElementChild; }
+    const b = document.createElement("button");
+    b.className = "pin" + (p.you ? " you" : "");
+    if (!p.you) b.dataset.sel = p.id; else b.tabIndex = -1;
+    b.innerHTML = `<span class="pulse" hidden></span><span class="ini"></span><span class="fl" hidden></span><span class="tag" hidden></span>`;
+    return b;
+  }, (b, p) => {
+    if (p.id === "__map") return;
+    b.style.left = `${WX(p.x)}px`; b.style.top = `${WY(p.y)}px`;
+    b.style.transform = `translate(-50%, -50%) scale(${(1 / cam.k).toFixed(4)})`;
+    b.style.zIndex = p.you ? 1 : p.id === sel ? 4 : p.level === "danger" ? 3 : 2;
+    b.querySelector(".ini").textContent = p.ini;
+    const fl = b.querySelector(".fl"); fl.hidden = p.outdoor || p.floor == null; fl.textContent = p.floor ?? "";
+    if (p.you) { b.setAttribute("aria-label", "You"); return; }
+    paint(b, p.level);
+    b.classList.toggle("sel", p.id === sel);
+    b.querySelector(".pulse").hidden = p.level !== "danger";
+    const tag = b.querySelector(".tag"); tag.hidden = p.id !== sel; tag.textContent = p.name;
+    b.setAttribute("aria-label", `${p.name}, ${p.label}. Show readings.`);
+  });
+}
+
+function renderBanner() {
+  const top = workers().find((w) => w.level === "danger");
+  $("banner").hidden = !top || locating;
+  if (!top) return;
+  $("bn-nm").textContent = `${top.first} is in danger`;
+  $("bn-v").textContent = `${top.hr ?? "–"} BPM · ${top.air ?? "–"}°F`;
+  $("bn-show").dataset.sel = top.id;
+  alertBtn($("bn-alert"), top);
+}
+function alertBtn(btn, p) {
+  btn.dataset.alert = p.id;
+  const h = `${iconSvg(p.alertSent ? ICON.check : ICON.bell, 'class="i"')}<span>${p.alertSent ? "Alert sent" : "Alert"}</span>`;
+  setHtml(btn, h);
+  btn.classList.toggle("red", !p.alertSent); btn.classList.toggle("sent", p.alertSent);
+  btn.setAttribute("aria-pressed", String(p.alertSent));
+}
+
+/* ---------- readings pop-up ---------- */
+function bands(names, colors, edges) {
+  return names.map((n, i) => ({ n, c: colors[i], f: Math.max(0.5, edges[i + 1] - edges[i]) }));
+}
+function vitalRow(label, nowTxt, sub, value, b, min, max, state, words) {
+  const idx = state[0] === "alert" ? (state[1] === "high" ? 3 : 0) : state[0] === "watch" ? (state[1] === "high" ? 2 : 0) : 1;
+  const lvlColor = ["var(--cold)", "var(--ok)", "var(--watch)", "var(--danger)"][idx];
+  const pct = clamp((value - min) / (max - min), 0, 1) * 100;
+  return `<div class="vrow" role="row">
+    <div class="lbl" role="cell">${label}</div>
+    <div class="now" role="cell">${nowTxt}<small>${sub}</small></div>
+    <div class="rng" role="cell"><div class="bar"><div class="bands">${b.map((x, i) => `<span style="flex:${x.f.toFixed(2)} 1 0;background:${x.c};opacity:${i === idx ? 1 : 0.45}"></span>`).join("")}</div><span class="mark" style="left:${pct.toFixed(1)}%"></span></div>
+      <div class="bnames">${b.map((x, i) => `<span style="flex:${x.f.toFixed(2)} 1 0;font-weight:${i === idx ? 700 : 400};color:${i === idx ? "var(--ink)" : "var(--ink-2)"}">${x.n}</span>`).join("")}</div></div>
+    <div class="lvl" role="cell"><i style="background:${lvlColor}"></i>${words[idx]}</div>
+  </div>`;
+}
+function renderPop() {
+  const pop = $("pop"), p = sel && person(sel);
+  pop.hidden = !p || locating;
+  if (!p || locating) { pop.dataset.for = ""; return; }
+  if (pop.dataset.for !== p.id) {
+    pop.dataset.for = p.id;
+    pop.innerHTML = `<div class="pop-head"><span class="av" id="pp-av"></span><h2 id="pp-nm"></h2><span class="pill" id="pp-pill"></span><span class="where" id="pp-where"></span><span class="grow"></span>
+      <button class="btn dark" data-act="locate">${ICON.locate}<span>Locate</span></button><button class="btn red" id="pp-alert"></button>
+      <button class="x" data-act="close-pop" aria-label="Close readings">${ICON.close}</button></div>
+      <div role="table" aria-label="Readings" id="pp-rows"></div><div class="buzzline" id="pp-buzz"></div>`;
+  }
+  paint(pop, p.level);
+  $("pp-av").textContent = p.ini;
+  $("pp-nm").textContent = p.name;
+  setHtml($("pp-pill"), `${iconSvg(LOOK[p.level].icon)}<span>${esc(p.label)}</span>`);
+  setHtml($("pp-where"), `${ICON.pin}${esc(p.place)}`);
+  alertBtn($("pp-alert"), p);
+  const E = p.hrExp, S = p.hrSpread, A = p.airAvg, T = p.airSpread;
+  const hb = bands(["Too low", "Normal", "Elevated", "Too high"], ["var(--cold)", "var(--ok)", "var(--watch)", "var(--danger)"], [E - 45, E - 3 * S, E + 2.5 * S, E + 2.5 * S + 15, E + 70]);
+  const ab = bands(["Too cold", "Normal", "Warm", "Too hot"], ["var(--cold)", "var(--ok)", "var(--watch)", "var(--danger)"], [A - 40, A - 2.5 * T, A + 2.5 * T, A + 2.5 * T + 10, A + 40]);
+  setHtml($("pp-rows"),
+    (p.hr != null ? vitalRow("Heart rate", `${p.hr} BPM`, `usual ${p.hrUsual}`, p.hr, hb, E - 45, E + 70, p.hrState, ["Too low", "Normal", "Elevated", "Too high"]) : "") +
+    (p.air != null ? vitalRow("Air temp", `${p.air}°F`, `usual here ${Math.round(A)}°`, p.air, ab, A - 40, A + 40, p.airState, ["Too cold", "Normal", "Warm", "Too hot"]) : ""));
+  const bz = p.buzz ? `${ICON.buzz}<span>${{ rest: "Clip told them to rest", cool: "Clip told them to cool off", warm: "Clip told them to warm up" }[p.buzz.why]}, ${ago(state.t - p.buzz.t)}</span>` : "";
+  setHtml($("pp-buzz"), bz); $("pp-buzz").hidden = !bz;
+}
+
+/* ---------- locate: the route diagram ---------- */
+function openLocate() { if (!sel) return; locating = true; locDom = null; $("locate").hidden = false; renderAll(); }
+function closeLocate() { locating = false; locDom = null; $("locate").hidden = true; $("locate").innerHTML = ""; renderAll(); }
+
+function route(p, m) {
+  if (!m || m.x === null || p.x === null) return { plain: true, big: p.place, then: "" };
+  const together = (p.outdoor && m.outdoor) || (!p.outdoor && !m.outdoor && p.floor === m.floor);
+  const peer = m.peers[p.id];
+  if (together && peer !== undefined && peer < 4) return { here: true, big: "Here", then: `${p.first} is ${Math.max(1, Math.round(peer))} m away` };
+  let to = { x: p.x, y: p.y }, then;
+  if (p.outdoor && !m.outdoor) {
+    if (m.floor > 1) { to = nearest(BUILDING.stairs, m.x, m.y); then = "Stairs down, then outside"; }
+    else { to = nearest(BUILDING.doors, p.x, p.y); then = cap(to.name) + ", then outside"; }
+  } else if (!p.outdoor && m.outdoor) {
+    to = nearest(BUILDING.doors, m.x, m.y); then = cap(to.name) + (p.floor > 1 ? `, then floor ${p.floor}` : "");
+  } else if (!p.outdoor && p.floor !== m.floor) {
+    to = nearest(BUILDING.stairs, m.x, m.y); const n = p.floor - m.floor;
+    then = `${cap(to.name)}, then ${Math.abs(n)} floor${Math.abs(n) > 1 ? "s" : ""} ${n > 0 ? "up" : "down"}`;
+  } else then = cap(p.outdoor ? "outside" : p.place.replace(/^Floor \d+,?\s*/, "") || "on your floor");
+  const d = together && peer !== undefined && peer < 10 ? peer : Math.hypot(to.x - m.x, to.y - m.y);
+  return { big: `${Math.max(1, Math.round(d))} m`, then, dx: to.x - m.x, dy: to.y - m.y };
+}
+
+function renderLocate() {
+  const box = $("locate"), p = person(sel);
+  if (!p) return closeLocate();
+  const m = me(), mode = p.outdoor ? "out" : "in";
+  if (!locDom || locDom.mode !== mode || locDom.id !== p.id) {
+    box.innerHTML = `<div class="loc-info">
+        <div class="loc-head"><span class="av" id="lc-av"></span><h2>${esc(p.name)}</h2><button class="x" data-act="close-locate" aria-label="Close route">${ICON.close}</button></div>
+        <div class="dir"><div class="arrow-wrap" id="lc-aw"><svg class="arrow" id="lc-arrow" viewBox="0 0 70 70" aria-hidden="true"><path id="lc-ap" d="${ARROW}" fill="currentColor"/></svg></div>
+          <div><div class="big" id="lc-big"></div><div class="then" id="lc-then"></div></div></div>
+        <div class="where" id="lc-where"></div>
+        <div id="lc-act" style="margin-top:auto"></div>
+      </div><div class="loc-view" id="lc-view"></div>`;
+    const el = $("lc-view");
+    locDom = { mode, id: p.id, scene: mode === "in" ? buildScene(el, p) : buildFlat(el) };
+  }
+  paint($("lc-av"), p.level); $("lc-av").textContent = p.ini;
+  const r = route(p, m);
+  $("lc-aw").hidden = !!r.plain;
+  $("lc-big").textContent = r.big;
+  $("lc-then").textContent = r.then;
+  const svg = $("lc-arrow"), path = $("lc-ap");
+  if (r.here) {
+    svg.classList.add("here"); path.setAttribute("d", CHECK); path.setAttribute("fill", "none"); path.setAttribute("stroke", "currentColor"); path.setAttribute("stroke-width", "8"); svg.style.transform = "none";
+  } else if (r.dx !== undefined) {
+    svg.classList.remove("here"); path.setAttribute("d", ARROW); path.setAttribute("fill", "currentColor"); path.removeAttribute("stroke");
+    const a = mode === "in" ? screenAngle(r.dx, r.dy) : (Math.atan2(r.dx, r.dy) * 180) / Math.PI;
+    lastAngle += ((((a - lastAngle) % 360) + 540) % 360) - 180;
+    svg.style.transform = `rotate(${lastAngle}deg)`;
+  }
+  setHtml($("lc-where"), `${ICON.pin}${esc(p.place)}`);
+  setHtml($("lc-act"), p.sev >= 2
+    ? (p.acked_by ? `<button class="btn green" disabled>${iconSvg(ICON.check, 'class="i"')}On my way</button>` : `<button class="btn dark" data-act="ack">On my way</button>`)
+    : "");
+  if (mode === "in") updateScene(p, m); else updateFlat(p, m);
+}
+
+function screenAngle(dx, dy) {
+  const a = (TURN_Z * Math.PI) / 180, vx = dx, vy = -dy;
+  const x1 = vx * Math.cos(a) - vy * Math.sin(a), y1 = (vx * Math.sin(a) + vy * Math.cos(a)) * Math.cos((TILT_X * Math.PI) / 180);
+  return (Math.atan2(x1, -y1) * 180) / Math.PI;
+}
+function buildScene(el, p) {
+  const W = BUILDING.width_m, D = BUILDING.depth_m, floors = BUILDING.floors;
+  const cw = el.clientWidth, ch = el.clientHeight;
+  const ppm = Math.min((cw * 0.62) / W, (ch * 0.9) / D), fw = W * ppm, fd = D * ppm;
+  const gap = Math.max(32, Math.min(ch * 0.12, 70));
+  const topPct = 50 + Math.min(16, (((floors.length - 1) * gap * 0.82) / ch) * 50);
+  const scene = document.createElement("div"); scene.className = "scene flat"; scene.style.top = `${topPct}%`;
+  const ground = document.createElement("div"); ground.className = "ground";
+  ground.style.cssText = `width:${(WORLD.x1 - WORLD.x0) * ppm}px;height:${(WORLD.y1 - WORLD.y0) * ppm}px;left:${(WORLD.x0 - 45) * ppm}px;top:${(25 - WORLD.y1) * ppm}px`;
+  ground.innerHTML = `<img alt="" src="${MAP_URL}">`;
+  scene.appendChild(ground);
+  const fl = {}, level = {};
+  floors.forEach((n, i) => {
+    const f = document.createElement("div"); f.className = "floor";
+    f.style.cssText = `width:${fw}px;height:${fd}px;left:${-fw / 2}px;top:${-fd / 2}px;transform:translateZ(${i * gap}px)`;
+    scene.appendChild(f); fl[n] = f; level[n] = i;
+  });
+  el.innerHTML = ""; el.appendChild(scene);
+  const overlay = document.createElement("div"); overlay.className = "overlay"; el.appendChild(overlay);
+  requestAnimationFrame(() => requestAnimationFrame(() => scene.classList.remove("flat")));
+  setTimeout(() => overlay.classList.add("shown"), matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 950);
+  const s = { el, fl, level, W, D, fw, fd, gap, cw, ch, topPct, sy: (ch * topPct) / 100, overlay, nums: {} };
+  for (const n of floors) { const lab = document.createElement("div"); lab.className = "floor-num"; lab.textContent = n; overlay.appendChild(lab); s.nums[n] = lab; }
+  placeNums(s);
+  s.you = makeMarker(s.overlay, "You", "you"); s.pin = makeMarker(s.overlay, p.ini, "");
+  return s;
+}
+function placeNums(s) { for (const [n, lab] of Object.entries(s.nums)) { const pt = project(s, 0, 0, +n); lab.style.left = `${pt.left}px`; lab.style.top = `${pt.top}px`; } }
+function project(s, x, y, floor) {
+  const px = -s.fw / 2 + (x / s.W) * s.fw, py = -s.fd / 2 + (1 - y / s.D) * s.fd, pz = floor == null ? 0 : (s.level[floor] || 0) * s.gap;
+  const a = (TURN_Z * Math.PI) / 180, b = (TILT_X * Math.PI) / 180, P = 1200;
+  const x1 = px * Math.cos(a) - py * Math.sin(a), y1 = px * Math.sin(a) + py * Math.cos(a);
+  const y2 = y1 * Math.cos(b) - pz * Math.sin(b), z2 = y1 * Math.sin(b) + pz * Math.cos(b), k = P / (P - z2);
+  return { left: s.cw / 2 + x1 * k, top: s.ch / 2 + (s.sy + y2 - s.ch / 2) * k };
+}
+function makeMarker(parent, label, cls) {
+  const ring = document.createElement("div"); ring.className = "ring " + cls;
+  const head = document.createElement("div"); head.className = "marker " + cls;
+  head.innerHTML = `<div class="head">${esc(label)}</div><div class="stem"></div>`;
+  parent.appendChild(head);
+  return { ring, head };
+}
+function putMarker(s, mk, who, color, ink) {
+  if (who.x === null) { mk.ring.remove(); mk.head.hidden = true; return; }
+  const f = who.outdoor ? null : s.fl[who.floor];
+  if (f) {
+    if (mk.ring.parentNode !== f) f.appendChild(mk.ring);
+    mk.ring.style.left = `${(who.x / s.W) * 100}%`; mk.ring.style.top = `${(1 - who.y / s.D) * 100}%`; mk.ring.style.setProperty("--c", color);
+  } else mk.ring.remove();
+  const pt = project(s, who.x, who.y, who.outdoor ? null : who.floor);
+  mk.head.hidden = false; mk.head.style.left = `${pt.left}px`; mk.head.style.top = `${pt.top}px`;
+  mk.head.style.setProperty("--c", color); if (ink) mk.head.style.setProperty("--c-ink", ink);
+}
+function updateScene(p, m) {
+  const s = locDom.scene, L = LOOK[p.level];
+  if (s.el.clientWidth !== s.cw || s.el.clientHeight !== s.ch) { s.cw = s.el.clientWidth; s.ch = s.el.clientHeight; s.sy = (s.ch * s.topPct) / 100; placeNums(s); }
+  for (const [n, f] of Object.entries(s.fl)) {
+    f.classList.toggle("on", +n === p.floor); f.classList.toggle("mine", !!(m && !m.outdoor && +n === m.floor));
+    f.style.setProperty("--c", L.fill);
+    s.nums[n].classList.toggle("on", +n === p.floor); s.nums[n].style.setProperty("--c", L.fill); s.nums[n].style.setProperty("--c-ink", L.ink);
+  }
+  if (m) putMarker(s, s.you, m, "var(--ink)"); else { s.you.ring.remove(); s.you.head.hidden = true; }
+  putMarker(s, s.pin, p, L.fill, L.ink);
+}
+function buildFlat(el) {
+  el.classList.add("flatmap");
+  el.innerHTML = `<img alt="" id="fm-img" src="${MAP_URL}"><svg class="route" aria-hidden="true"><line id="fm-line" stroke="var(--you)" stroke-width="3" stroke-dasharray="2 8" stroke-linecap="round"/></svg>`;
+  const s = { el, ppm: null };
+  s.you = makeMarker(el, "You", "you"); s.pin = makeMarker(el, "", "");
+  return s;
+}
+function updateFlat(p, m) {
+  const s = locDom.scene, el = s.el, cw = el.clientWidth, ch = el.clientHeight;
+  const pts = [p, m].filter((q) => q && q.x !== null);
+  if (!pts.length) return;
+  const cx = pts.reduce((a, q) => a + q.x, 0) / pts.length, cy = pts.reduce((a, q) => a + q.y, 0) / pts.length;
+  const spanX = Math.max(...pts.map((q) => Math.abs(q.x - cx))) * 2 + 60, spanY = Math.max(...pts.map((q) => Math.abs(q.y - cy))) * 2 + 60;
+  const want = clamp(Math.min(cw / spanX, ch / spanY), 1.2, 5);
+  if (!s.ppm || want < s.ppm * 0.8 || want > s.ppm * 1.4) s.ppm = want;
+  const k = s.ppm, sx = (x) => cw / 2 + (x - cx) * k, sy = (y) => ch / 2 - (y - cy) * k;
+  const img = $("fm-img");
+  img.style.width = `${(WORLD.x1 - WORLD.x0) * k}px`; img.style.height = `${(WORLD.y1 - WORLD.y0) * k}px`;
+  img.style.left = `${sx(WORLD.x0)}px`; img.style.top = `${sy(WORLD.y1)}px`;
+  const place = (mk, q, color, ink) => {
+    if (!q || q.x === null) { mk.head.hidden = true; return; }
+    mk.head.hidden = false; mk.head.style.left = `${sx(q.x)}px`; mk.head.style.top = `${sy(q.y)}px`;
+    mk.head.style.setProperty("--c", color); if (ink) mk.head.style.setProperty("--c-ink", ink);
+  };
+  const L = LOOK[p.level];
+  s.pin.head.querySelector(".head").textContent = p.ini;
+  place(s.pin, p, L.fill, L.ink); place(s.you, m, "var(--ink)");
+  const line = $("fm-line");
+  if (m && m.x !== null) { line.setAttribute("x1", sx(m.x)); line.setAttribute("y1", sy(m.y)); line.setAttribute("x2", sx(p.x)); line.setAttribute("y2", sy(p.y)); }
+}
+
+/* ================= run ================= */
+const hub = new Hub(), sim = new Sim(hub);
+let simT = 1e6, timer = null;
+function renderAll() { renderRail(); renderPins(); renderBanner(); renderPop(); if (locating) renderLocate(); }
+function tick() { simT += 1; sim.step(simT); state = hub.snapshot(simT); renderAll(); }
+function setSpeed(n) {
+  document.documentElement.style.setProperty("--move", `${Math.max(0.05, 0.8 / n)}s`);
+  document.querySelectorAll("[data-speed]").forEach((b) => b.setAttribute("aria-pressed", String(+b.dataset.speed === n)));
+  clearInterval(timer); timer = setInterval(tick, 1000 / n);
+}
+function select(id) {
+  if (locating) closeLocate();
+  sel = sel === id ? "" : id;
+  if (sel) focusOn(person(sel));
+  if (sel && matchMedia("(max-width: 760px)").matches) document.querySelector(".main").scrollTo({ top: 0, behavior: "smooth" });   // the map sits above the list on phones
+  renderAll();
+}
+
+document.addEventListener("click", (e) => {
+  const sp = e.target.closest("[data-speed]"); if (sp) return setSpeed(+sp.dataset.speed);
+  const demo = e.target.closest("[data-demo]");
+  if (demo) { const top = workers().find((w) => w.level === "danger"); sim.action(demo.dataset.demo, sel || (top && top.id)); return; }
+  if (e.target.closest("#demo-btn")) { const p = $("demo-pop"); p.hidden = !p.hidden; $("demo-btn").setAttribute("aria-expanded", String(!p.hidden)); return; }
+  if (!e.target.closest("#demo-pop")) { $("demo-pop").hidden = true; $("demo-btn").setAttribute("aria-expanded", "false"); }
+  const s = e.target.closest("[data-sel]");
+  if (s) { if (s.id === "bn-show") { sel = ""; } return select(s.dataset.sel); }
+  const al = e.target.closest("[data-alert]");
+  if (al) { const b = hub.badges.get(al.dataset.alert); if (b) b.alertSent = b.alertSent > simT - 60 ? -1e9 : simT; state = hub.snapshot(simT); return renderAll(); }
+  const a = e.target.closest("[data-act]"); if (!a) return;
+  const act = a.dataset.act;
+  if (act === "rail") { railHidden = !railHidden; renderRail(); }
+  else if (act === "locate") openLocate();
+  else if (act === "close-locate") closeLocate();
+  else if (act === "close-pop") { sel = ""; renderAll(); }
+  else if (act === "ack") { const b = hub.badges.get(sel); if (b) b.ackedBy = "You"; state = hub.snapshot(simT); renderAll(); }
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  if (!$("demo-pop").hidden) $("demo-pop").hidden = true; else if (locating) closeLocate(); else if (sel) { sel = ""; renderAll(); }
+});
+$("z-in").onclick = () => zoomBy(1.35);
+$("z-out").onclick = () => zoomBy(1 / 1.35);
+$("z-fit").onclick = () => { sel = ""; fitAll(); renderAll(); };
+const mapv = $("mapv");
+mapv.addEventListener("pointerdown", (e) => {
+  if (e.target.closest("button, [data-nodrag]")) return;
+  drag = { px: e.clientX, py: e.clientY, cx: cam.cx, cy: cam.cy };
+  try { mapv.setPointerCapture(e.pointerId); } catch (err) { /* fine without capture */ }
+  mapv.classList.add("drag");
+});
+mapv.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  cam.cx = clamp(drag.cx - (e.clientX - drag.px) / cam.k, 0, WX(WORLD.x1));
+  cam.cy = clamp(drag.cy - (e.clientY - drag.py) / cam.k, 0, WY(WORLD.y0));
+  camTransform();
+});
+const endDrag = () => { if (!drag) return; drag = null; mapv.classList.remove("drag"); };
+mapv.addEventListener("pointerup", endDrag); mapv.addEventListener("pointercancel", endDrag); mapv.addEventListener("pointerleave", endDrag);
+mapv.addEventListener("wheel", (e) => { if (e.target.closest("[data-nodrag]")) return; e.preventDefault(); zoomBy(e.deltaY < 0 ? 1.12 : 1 / 1.12); }, { passive: false });
+let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { if (locating) locDom = null; renderAll(); }, 200); });
+
+(function start() {
+  if (matchMedia("(max-width: 760px)").matches) railHidden = false;
+  sim.boot(simT);
+  state = hub.snapshot(simT);
+  renderAll();
+  fitAll();
+  setSpeed(1);
+})();
+</script>
+
+</body>
+</html>
