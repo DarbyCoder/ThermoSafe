@@ -22,11 +22,29 @@ Keep `campus.jpg` and `campus-hi.jpg` next to `index.html`. The live phone link 
 
 **Turn on GitHub Pages:** go to Settings › Pages, choose "Deploy from a branch," then pick `main` and the root folder.
 
+## Mesh network and Thermo's calls
+
+- **Mesh:** clips relay readings peer to peer to the manager's phone (the blue master node, the only one on Wi-Fi), so the system runs offline on campus. Faint lines on the map join clips in reach of each other; tap a worker to light up their hops back to you. The map button with three dots hides the lines.
+- **Offline:** a clip with no chain of peers to the master (out of range, or a fault) turns gray after 2 seconds, with a banner and a log entry. It keeps its readings and sends them when it's back. Demo buttons: **Dev walks out of range**, **Dev's clip glitches**.
+- **Contacts** (header): everyone's phone and emergency contact, editable and saved in that browser. Put your own number on a worker to receive the demo call.
+- **Calls:** when a clip goes offline, Thermo phones the wearer: the message, then "press 1 if you're on your way back, press 2 if you need help." The notification, the transcript (Contacts › Calls) and the Activity log follow the call. Without the call server, the page plays a practice call on screen.
+
+### Real calls (Twilio)
+
+```
+ngrok http 8000                         # copy the https link
+export TWILIO_ACCOUNT_SID=AC... TWILIO_AUTH_TOKEN=... TWILIO_FROM=+1... PUBLIC_URL=https://xxxx.ngrok-free.app
+python3 thermo_server.py                # then open http://localhost:8000
+```
+
+Never commit these values. `thermo_server.py` needs no installs. It serves the dashboard, places calls, takes Twilio's key presses at `/twilio/*`, and takes clip readings at `/api/ingest` (the badge firmware's JSON with an `"id"`). A clip whose id matches a worker (B1, B5, ...) drives that worker, and goes offline once it's quiet for 4 seconds (`OFFLINE_AFTER`). On a Twilio trial account, calls only reach verified numbers and start with a trial notice.
+
 ## What's in here
 
 | Path | What it is |
 |---|---|
 | `index.html` | The app and its simulator in one file. This is the current design. |
+| `thermo_server.py` | Serves the app, phones workers whose clip goes offline (Twilio), takes real clips' readings. No installs. |
 | `beacon/` | Python server for real clips (no installs, `python3 server.py --sim`), heart-rate and location models, setup page, tests. Its web UI is the earlier design. |
 | `beacon/firmware/` | ESP32 clip code |
 

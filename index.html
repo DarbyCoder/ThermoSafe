@@ -69,6 +69,7 @@ svg.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor;
 
 /* ---------- worker list ---------- */
 .rail { flex: 1 1 360px; max-width: 420px; min-width: 0; background: var(--panel); border-right: 1px solid var(--line); display: flex; flex-direction: column; overflow: hidden; }
+@media (min-width: 761px) { body:not(.phone) .rail { max-height: 100%; } }
 .rail.min { flex: 0 0 76px; }
 .rail-head { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px 10px 20px; }
 .rail-head h2 { margin: 0; font-family: var(--display); font-weight: 600; font-size: 15px; }
@@ -830,6 +831,53 @@ body[data-beat="danger"] .legend > span:nth-child(3) .dot { animation: beat-pop 
 /* the 3D map: the photo tilts back (on .world), buildings are drawn on #bcanvas, pins sit upright in #pins above both */
 .bcanvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
 .pins { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+/* the mesh: faint links between clips in reach of each other, the chosen worker's path to the master brighter, Hussein's pin blue */
+svg.mesh { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; overflow: visible; }
+.mesh path { fill: none; stroke-linecap: round; }
+.mesh .halo { stroke: rgba(10, 14, 12, .3); stroke-width: 3.6; }
+.mesh .all { stroke: rgba(255, 255, 255, .72); stroke-width: 1.6; }
+.mesh .route { stroke: #fff; stroke-width: 3; filter: drop-shadow(0 0 3px rgba(47, 111, 235, .9)); }
+.pin.you.master { background: #2F6FEB; color: #fff; border-color: #fff; }
+.pin .wifi { display: none; }
+.pin.master .wifi { display: grid; place-items: center; position: absolute; top: -9px; right: -9px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .35); }
+.pin.master .wifi svg { width: 13px; height: 13px; fill: none; stroke: #2F6FEB; stroke-width: 2.4; stroke-linecap: round; }
+.pin.master .wifi circle { fill: #2F6FEB; stroke: none; }
+.banner.meshout .dot { background: var(--gray) !important; }
+/* Thermo's call notification (bottom left of the map) and the Contacts window */
+.calltoast { position: absolute; left: 16px; bottom: 16px; z-index: 6; display: flex; align-items: center; gap: 10px; max-width: min(460px, calc(100% - 92px)); padding: 10px 10px 10px 12px; border-radius: 18px; background: var(--panel); box-shadow: 0 10px 30px rgba(21, 22, 26, .25); }
+.calltoast .tav { flex: none; width: 34px; height: 34px; border-radius: 50%; background: var(--brand, #14966E); color: #fff; display: grid; place-items: center; font-family: var(--display); font-weight: 700; }
+.calltoast .ctx { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.calltoast .ctx b { font-family: var(--display); font-size: 15px; }
+.calltoast .ctx span { font-size: 13px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.calltoast .ctx .ok { color: var(--ok); font-weight: 600; } .calltoast .ctx .bad { color: var(--danger); font-weight: 600; }
+.calltoast .ctx .num { font-variant-numeric: tabular-nums; }
+.calltoast .btn { flex: none; height: 34px; padding: 0 12px; font-size: 13px; }
+.calltoast .x { flex: none; }
+@media (prefers-reduced-motion: no-preference) { .calltoast:not([hidden]) { animation: toast-in 220ms cubic-bezier(.2, .7, .2, 1); } @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } } }
+.contacts .about-in { width: min(1040px, 100%); }
+.ct-top { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding-right: 40px; }
+.ct-srv { font-size: 13px; padding: 5px 10px; border-radius: 999px; background: var(--fill, #E9E7DF); color: var(--ink-2); }
+.ct-srv.on { background: var(--ok-card, #E3F4EC); color: var(--ok); font-weight: 600; }
+.ct-wrap { overflow-x: auto; }
+.ct { width: 100%; border-collapse: collapse; font-size: 14px; }
+.ct th { text-align: left; font-weight: 600; font-size: 12px; color: var(--ink-3); padding: 0 8px 8px; }
+.ct td { padding: 6px 8px; border-top: 1px solid var(--line, #E3E1D9); vertical-align: middle; white-space: nowrap; }
+.ct td .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
+.ct input { font: inherit; font-size: 14px; border: 1px solid transparent; background: transparent; border-radius: 8px; padding: 6px 8px; width: 150px; color: var(--ink); }
+.ct input.tel { width: 152px; font-variant-numeric: tabular-nums; } .ct input.rel { width: 90px; color: var(--ink-2); }
+.ct input:hover { border-color: var(--line, #E3E1D9); } .ct input:focus { outline: none; border-color: var(--ink); background: var(--panel); }
+.ct .btn { height: 32px; padding: 0 12px; font-size: 13px; }
+.tag2 { margin-left: 8px; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--fill, #E9E7DF); color: var(--ink-2); vertical-align: middle; }
+.tag2.off { background: var(--gray-card, #ECECEC); color: var(--gray-ink, #555); }
+.calls { display: flex; flex-direction: column; gap: 10px; }
+.calls .empty { color: var(--ink-3); }
+.call { border: 1px solid var(--line, #E3E1D9); border-radius: 14px; padding: 12px 14px; background: var(--panel); }
+.call-h { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 14px; }
+.call-h span { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.call-h .st { font-weight: 600; color: var(--ink); } .call-h .st.ok { color: var(--ok); } .call-h .st.bad { color: var(--danger); }
+.call .tx { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+.call .tx p { margin: 0; font-size: 14px; line-height: 1.45; max-width: none; color: var(--ink); }
+.call .tx p b { margin-right: 6px; } .call .tx p.system { color: var(--ink-3); font-size: 13px; } .call .tx p.worker b { color: var(--ok); }
 .pins .pin { pointer-events: auto; }
 .mapv.td .blab { display: none; }   /* names are drawn on the roofs instead */
 .mapv.td .bld, .mapv.td .bld.ilc, .mapv.td .bld[data-bld]:hover, .mapv.td .bld.picked { fill: transparent; stroke: none; }
@@ -873,6 +921,7 @@ body[data-beat="danger"] .legend > span:nth-child(3) .dot { animation: beat-pop 
       <button class="hbtn" id="clip-btn" hidden aria-pressed="false" aria-label="Worker's view"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>Worker</button>
       <button class="hbtn" id="phone-btn" aria-pressed="false"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M10.5 18.5h3"/></svg><span>Phone</span></button>
       <button class="hbtn ask" id="ask-btn" aria-pressed="false"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4.5h12a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3h-8L6 19.8V16.5a3 3 0 0 1-3-3v-6a3 3 0 0 1 3-3z"/></svg>Thermo</button>
+      <button class="hbtn" id="contacts-btn" aria-pressed="false"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0M16 5.2a3 3 0 0 1 0 5.6M18 13.5a5 5 0 0 1 3 4.5"/></svg><span>Contacts</span></button>
       <button class="hbtn" id="about-btn">About</button>
       <button class="demo-btn" id="demo-btn" aria-expanded="false" aria-controls="demo-pop">Demo</button>
     </div>
@@ -883,6 +932,8 @@ body[data-beat="danger"] .legend > span:nth-child(3) .dot { animation: beat-pop 
       <button class="d" id="d-dev" data-demo="dev_fall">Dev falls in the lot</button>
       <button class="d" id="d-ana" data-demo="ana_dead">Ana's clip dies</button>
       <button class="d" id="d-sun" data-demo="dev_sun">Dev in full sun</button>
+      <button class="d" id="d-mesh" data-demo="mesh_out">Dev walks out of range</button>
+      <button class="d" id="d-fault" data-demo="dev_fault">Dev's clip glitches</button>
       <button class="d" id="d-walk" data-demo="walk">Walk me there</button>
       <button class="d" id="d-reset" data-demo="reset">Reset</button>
     </div>
@@ -892,6 +943,8 @@ body[data-beat="danger"] .legend > span:nth-child(3) .dot { animation: beat-pop 
     <div class="mapv" id="mapv">
       <div class="world" id="world"></div>
       <canvas class="bcanvas" id="bcanvas" aria-hidden="true"></canvas>
+      <div class="calltoast" id="calltoast" role="status" data-nodrag hidden></div>
+      <svg class="mesh" id="mesh" aria-hidden="true"><path class="halo" id="mesh-halo"/><path class="all" id="mesh-all"/><path class="route" id="mesh-route"/></svg>
       <div class="pins" id="pins"></div>
       <div class="topstack" data-nodrag>
         <div class="banner" id="banner" role="status" hidden>
@@ -911,6 +964,7 @@ body[data-beat="danger"] .legend > span:nth-child(3) .dot { animation: beat-pop 
         <button id="z-in" aria-label="Zoom in"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
         <button id="z-out" aria-label="Zoom out"><svg class="i" viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
         <button id="z-3d" aria-label="3D view" aria-pressed="true"><span class="t3">3D</span></button>
+        <button id="z-mesh" aria-label="Mesh network" aria-pressed="true"><svg class="i" viewBox="0 0 24 24"><circle cx="6" cy="7" r="2.2"/><circle cx="18" cy="6" r="2.2"/><circle cx="12" cy="18" r="2.2"/><path d="M8 7.5l7.8-1.2M7.2 9l3.8 7M16.9 8l-3.8 8"/></svg></button>
         <button id="z-night" aria-label="Night shift" aria-pressed="false"><svg class="i" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg></button>
         <button id="z-fit" aria-label="Show everyone"><svg class="i" viewBox="0 0 24 24"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg></button>
       </div>
@@ -939,6 +993,20 @@ body[data-beat="danger"] .legend > span:nth-child(3) .dot { animation: beat-pop 
 
 <main class="clipapp" id="clipapp"><div class="clip" id="clip-p"></div></main>
 
+<div class="about contacts" id="contacts" hidden>
+  <div class="about-in" role="dialog" aria-modal="true" aria-labelledby="ct-h">
+    <button class="x" data-act="close-contacts" aria-label="Close">
+      <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+    <div class="ct-top"><h2 id="ct-h">Contacts</h2><span class="ct-srv" id="ct-srv"></span></div>
+    <div class="ct-wrap"><table class="ct">
+      <thead><tr><th>Worker</th><th>Phone</th><th>Emergency contact</th><th>Their phone</th><th></th></tr></thead>
+      <tbody id="ct-body"></tbody>
+    </table></div>
+    <h3>Calls</h3>
+    <div class="calls" id="ct-calls"></div>
+  </div>
+</div>
 <div class="about" id="about" hidden>
   <div class="about-in" role="dialog" aria-modal="true" aria-labelledby="about-h">
     <button class="x" data-act="close-about" aria-label="Close">
@@ -1168,6 +1236,16 @@ const PEOPLE = [
   { badge: "B3", name: "Mae Chen", pronoun: "her", age: 27 },
   { badge: "B5", name: "Dev Shah", pronoun: "him", age: 45 },
   { badge: "B6", name: "Ana Lopez", pronoun: "her", age: 61 },
+  { badge: "B7", name: "Luis Ortega", pronoun: "him", age: 38 },
+  { badge: "B8", name: "Priya Nair", pronoun: "her", age: 29 },
+  { badge: "B9", name: "Sam Okafor", pronoun: "him", age: 47 },
+  { badge: "B10", name: "Grace Kim", pronoun: "her", age: 55 },
+  { badge: "B11", name: "Tom Walsh", pronoun: "him", age: 63 },
+  { badge: "B12", name: "Fatima Hassan", pronoun: "her", age: 41 },
+  { badge: "B13", name: "Ben Carter", pronoun: "him", age: 24 },
+  { badge: "B14", name: "Lena Novak", pronoun: "her", age: 33 },
+  { badge: "B15", name: "Marcus Bell", pronoun: "him", age: 50 },
+  { badge: "B16", name: "Ivy Tran", pronoun: "her", age: 36 },
   { badge: "B4", name: "Hussein", role: "Supervisor", pronoun: "him", admin: true },
 ];
 
@@ -1439,6 +1517,20 @@ class Hub {
     const avg = (a) => a.reduce((s, v) => s + v, 0) / a.length, refAlt = pressureToAlt(avg(this.refHist));
     for (const b of this.badges.values()) if (b.pHist.length) { this.offsets[b.id] = pressureToAlt(avg(b.pHist)) - refAlt; b.tracker = new FloorTracker(); b.floor = null; }
   }
+  meshUpdate(t, mesh) {
+    // the master's routing table: anyone with no path is noted, and flagged after a short grace period (in snapshot)
+    this.mesh = mesh; const lost = this.meshLost || (this.meshLost = new Map());
+    for (const b of this.badges.values()) {
+      if (b.person.admin) continue;
+      const on = mesh.hops.has(b.id) || mesh.dead.has(b.id);   // a dead clip is "no signal", not a mesh problem
+      if (!on && !lost.has(b.id)) lost.set(b.id, t); else if (on) lost.delete(b.id);
+    }
+  }
+  meshSynced(id, n, t) {
+    const b = this.badges.get(id); if (!b || !b.meshWasOut) return;
+    b.meshWasOut = false;
+    this.logEv(t, `${b.person.name.split(" ")[0]}: back online, ${n} readings sent`, "ok", id);
+  }
   snapshot(now) {
     const out = [];
     for (const b of this.badges.values()) {
@@ -1459,10 +1551,14 @@ class Hub {
         if ((hs === "ok" || hs === "learning") && as === "ok") b.recovery = null;   // the readings agree again
       }
       const first = b.person.name.split(" ")[0];
+      // no chain of peers to the master: grayed out at the last place it was heard from
+      const lostAt = this.meshLost && this.meshLost.get(b.id), meshOut = lostAt != null && now - lostAt >= MESH_GRACE;
+      if (meshOut && sev < 3) { sev = 1; label = "Offline"; }
+      if (meshOut && !b.meshWasOut) { b.meshWasOut = true; this.logEv(now, `${first}: offline, no path to you`, "watch", b.id); }
       if (sev === 3 && b.alertT === null && !b.recovery) { b.alertT = now; this.stats.alerts++; if (b.sos == null) this.logEv(now, `${first}: ${label.toLowerCase()}`, "danger", b.id); }
       else if (sev === 2 && b.prevSev < 2 && !b.recovery) this.logEv(now, `${first}: ${label.toLowerCase()}`, "watch", b.id);
       b.prevSev = sev;
-      if (hs === "offline" && !b.offLogged) { b.offLogged = true; this.logEv(now, `${first}: no signal`, "watch", b.id); } else if (hs !== "offline") b.offLogged = false;
+      if (hs === "offline" && !b.offLogged && !meshOut) { b.offLogged = true; this.logEv(now, `${first}: no signal`, "watch", b.id); } else if (hs !== "offline") b.offLogged = false;
       if (b.helper && !b.arrived) {
         // the admin who's on the way counts as there once their clip is a few metres off, on the same floor
         const hb = this.badges.get(b.helper);
@@ -1490,7 +1586,7 @@ class Hub {
       for (const [pid, [r, pt]] of Object.entries(b.peers)) if (now - pt < 10) peers[pid] = r1(rssiToM(r));
       const e = this.env[b.outdoor ? "outside" : "inside"];
       out.push({
-        id: b.id, name: b.person.name, first: b.person.name.split(" ")[0], ini: initials(b.person.name),
+        id: b.id, name: b.person.name, first: b.person.name.split(" ")[0], ini: initials(b.person.name), meshOut, offline: meshOut || hs === "offline", meshHops: this.mesh ? this.mesh.hops.get(b.id) ?? null : null,
         obj: b.person.pronoun, admin: !!b.person.admin, role: b.person.role || "", sev, level: sev === 3 ? "danger" : sev === 2 ? "watch" : sev === 1 ? "gray" : "ok",
         label, risk: sev * 1000 + (b.recovery ? 0 : Math.max(h.sUp, h.sDn, a.sUp * 1.3, a.sDn * 1.3)),
         hr: h.v && hs !== "sensor" && hs !== "offline" ? Math.round(h.v) : null, hrUsual: Math.round(h.mu), hrExp: h.expected, hrSpread: h.spread, hrState: [hs, h.dir],
@@ -1511,6 +1607,17 @@ class Hub {
 // Each sends what a real clip sends: heart rate, movement, air temperature, air pressure,
 // a Wi-Fi scan inside or a GPS fix outside, and which other clips it can hear.
 const CLIP = 1.2, WALK = 1.2, CLIMB = 0.35;
+/* ---------- the mesh: clips talk peer to peer; Hussein's phone is the master node and the only one on Wi-Fi ---------- */
+// Readings hop clip to clip until they reach the master, so the system runs with no Wi-Fi out on campus.
+// A clip with no chain of peers to the master keeps its readings until it has one again.
+const MESH_MASTER = "B4", MESH_R = 80, MESH_GRACE = 2;   // metres one clip reaches another in the open; seconds before "out of mesh"
+function meshDist(a, b) {
+  // radio distance: floors and the building's walls cost range
+  const ia = isInside(a.x, a.y), ib = isInside(b.x, b.y), d = Math.hypot(a.x - b.x, a.y - b.y);
+  if (ia && ib) return d + 15 * Math.abs(a.floor - b.floor);
+  if (ia !== ib) return d + 10 + 15 * ((ia ? a.floor : b.floor) - 1);
+  return d;
+}
 class SimPerson {
   constructor(id, floor, x, y, base, gain, offset, spot, wobble = 0.45) {
     Object.assign(this, { id, floor, x, y, base, gain, offset, spot, wobble });
@@ -1531,8 +1638,18 @@ class Sim {
       B5: new SimPerson("B5", 1, 300, 20, 68, 30, -0.30, 1.0),        // Dev: in the lot off Thatcher Road
       B6: new SimPerson("B6", 3, 25, 40, 64, 30, +0.35, -0.6),        // Ana: floor 3
       B4: new SimPerson("B4", 1, 70, 15, 66, 30, -0.75, 0.3),         // Hussein, supervisor
+      B7: new SimPerson("B7", 1, 10, 20, 70, 30, +0.10, 0.2),         // Luis: ILC floor 1, west end
+      B8: new SimPerson("B8", 4, 60, 30, 63, 32, -0.20, 0.5),         // Priya: ILC floor 4
+      B9: new SimPerson("B9", 1, -45, 5, 74, 28, +0.40, -0.4),        // Sam: lawn west of the ILC
+      B10: new SimPerson("B10", 1, -90, -45, 69, 30, -0.55, 0.1),     // Grace: by the Student Union
+      B11: new SimPerson("B11", 1, 45, 80, 76, 26, +0.25, -0.2),      // Tom: lawn north of the ILC
+      B12: new SimPerson("B12", 1, 68, -40, 67, 31, -0.10, 0.6),      // Fatima: north shore of Campus Pond
+      B13: new SimPerson("B13", 1, 135, -115, 62, 34, +0.65, 0.3),    // Ben: east of Campus Pond
+      B14: new SimPerson("B14", 1, 115, 30, 71, 30, -0.35, -0.1),     // Lena: path toward Morrill
+      B15: new SimPerson("B15", 1, 185, 40, 73, 28, +0.05, 0.4),      // Marcus: between Morrill I and Skinner
+      B16: new SimPerson("B16", 1, 250, 10, 66, 31, -0.65, 0.2),      // Ivy: on the way to the Thatcher lot
     };
-    for (const [id, bat] of Object.entries({ B1: 88, B2: 64, B3: 71, B5: 93, B6: 19, B4: 80 })) this.people[id].bat = bat;
+    for (const [id, bat] of Object.entries({ B1: 88, B2: 64, B3: 71, B5: 93, B6: 19, B4: 80, B7: 77, B8: 91, B9: 58, B10: 84, B11: 46, B12: 69, B13: 95, B14: 73, B15: 62, B16: 81 })) this.people[id].bat = bat;
     this.aps = [];
     for (const f of BUILDING.floors) [[15, 12], [45, 10], [75, 12], [15, 38], [45, 40], [75, 38], [45, 25]].forEach(([x, y], i) => this.aps.push([`ap${f}${i}`, f, x, y]));
   }
@@ -1563,7 +1680,7 @@ class Sim {
     const [kind, f, tx, ty] = p.path[0];
     if (kind === "walk") {
       // a steady pace: the rest of each step carries on past corners instead of pausing at them
-      let step = WALK * dt;
+      let step = WALK * dt * (p.pace || 1);
       while (step > 1e-6 && p.path.length && p.path[0][0] === "walk") {
         const wx = p.path[0][2], wy = p.path[0][3], d = Math.hypot(wx - p.x, wy - p.y);
         if (d <= step) { p.x = wx; p.y = wy; p.path.shift(); step -= d; } else { p.x += ((wx - p.x) / d) * step; p.y += ((wy - p.y) / d) * step; step = 0; }
@@ -1589,8 +1706,27 @@ class Sim {
     if (p.fast && Math.abs(p.extra) < 0.5 && Math.abs(p.airExtra) < 0.3 && Math.abs(p.amb - target) < 0.5) p.fast = false;
     return p.amb + this.r.gauss(0, 0.25);
   }
+  meshStep() {
+    // which clips hear each other directly, and the shortest chain from each one to the master
+    const P = Object.values(this.people).filter((p) => !p.dead && !p.fault), keep = this.meshKeep || (this.meshKeep = new Set());   // a faulty radio drops out
+    const links = [], adj = new Map(P.map((p) => [p.id, []]));
+    for (let i = 0; i < P.length; i++) for (let j = i + 1; j < P.length; j++) {
+      const a = P[i], b = P[j], key = a.id + "|" + b.id, d = meshDist(a, b);
+      if (d < MESH_R || (keep.has(key) && d < MESH_R + 4)) { links.push([a.id, b.id]); adj.get(a.id).push(b.id); adj.get(b.id).push(a.id); keep.add(key); }
+      else keep.delete(key);
+    }
+    const hops = new Map([[MESH_MASTER, 0]]), via = new Map(), q = [MESH_MASTER];
+    while (q.length) { const c = q.shift(); for (const o of adj.get(c) || []) if (!hops.has(o)) { hops.set(o, hops.get(c) + 1); via.set(o, c); q.push(o); } }
+    return { links, hops, via, dead: new Set(Object.values(this.people).filter((p) => p.dead).map((p) => p.id)) };
+  }
   step(t, dt = 1) {
+    this.t = t;
+    for (const [id, until] of Object.entries(this.faults || {})) if (t >= until) { this.people[id].fault = false; delete this.faults[id]; }   // the clip restarts
+    const md = this.meshDemo;   // the "out of range" demo: walk out, wait, walk back
+    if (md && !md.home && t >= md.back) { const p = this.people[md.id]; p.go(md.f, md.x, md.y); md.home = true; }
+    else if (md && md.home && !this.people[md.id].path.length) { this.people[md.id].pace = 1; this.meshDemo = null; }
     this.hub.ingest({ ref: true, p: this.pressure(t, 0.8) + this.r.gauss(0, 0.02) }, t);
+    const mesh = this.meshStep();
     for (const p of Object.values(this.people)) {
       this.move(p, dt);
       p.bat = Math.max(0, (p.bat ?? 90) - dt * 0.0008);   // about 3% an hour
@@ -1608,8 +1744,12 @@ class Sim {
       pkt.rh = Math.round(isInside(p.x, p.y) ? (p.airTarget > 10 ? 58 : 34) : 62);
       if (!isInside(p.x, p.y)) pkt.wind = Math.max(0, r1(7 + 3 * Math.sin(t / 900) + (p.airTarget < -10 ? 12 : 0) + this.r.gauss(0, 1)));
       else if (t - p.lastScan >= (p.act > 0.5 ? 2 : 5)) { pkt.wifi = this.scan(p); p.lastScan = t; }   // scan more often while moving
-      this.hub.ingest(pkt, t);
+      if (mesh.hops.has(p.id)) {   // a chain of peers reaches the master: the reading arrives (with any it kept while cut off)
+        this.hub.ingest(pkt, t);
+        if (p.held) { this.hub.meshSynced(p.id, p.held, t); p.held = 0; }
+      } else p.held = (p.held || 0) + 1;
     }
+    this.hub.meshUpdate(t, mesh);
     this.hub.learnEnv(t, dt);
   }
   boot(now) {
@@ -1654,8 +1794,22 @@ class Sim {
     else if (name === "ana_dead") { P.B6.dead = true; P.B6.bat = 0; }   // battery runs out on floor 3
     else if (name === "dev_fall") { P.B5.path = []; P.B5.down = true; P.B5.g = 4.2; P.B5.extraTarget = 14; P.B5.snap = true; }   // slips on ice in the lot
     else if (name === "walk") { const who = P[adminId] || P.B4, t = P[targetId] || P.B1; if (t !== who) { who.go(t.floor, t.x + 1.5, t.y + 1); who.goal = t.id; } }
+    else if (name === "dev_fault") {
+      // Dev's clip glitches: its radio drops out for a while, then it restarts
+      P.B5.fault = true; this.faults = { ...(this.faults || {}), B5: (this.t || 0) + 16 };
+    }
+    else if (name === "mesh_out") {
+      // Dev walks east past the lot, out of reach of every other clip, then comes back
+      const p = P.B5;
+      if (!this.meshDemo) this.meshDemo = { id: "B5", f: p.floor, x: p.x, y: p.y };
+      Object.assign(this.meshDemo, { back: (this.t || 0) + 12, home: false });
+      p.down = false; p.pace = 12; p.go(1, 338, 40);
+    }
     else if (name === "reset") {
       // everything back to normal at once
+      if (this.meshDemo) { const m = this.meshDemo, p = P[m.id]; Object.assign(p, { floor: m.f, x: m.x, y: m.y }); this.meshDemo = null; }
+      for (const p of Object.values(P)) { p.pace = 1; p.held = 0; if (!p.live) p.fault = false; }
+      this.faults = {};
       for (const p of Object.values(P)) { p.extraTarget = 0; p.airTarget = 0; p.extra = 0; p.airExtra = 0; p.hr = p.base; p.amb = null; p.path = []; p.down = false; p.dead = false; p.snap = false; p.fast = false; p.sun = null; }
       for (const b of this.hub.badges.values()) b.sun.hot = 0;
       if (P.B6.bat < 19) P.B6.bat = 19;
@@ -2115,14 +2269,15 @@ function renderPins() {
     const b = document.createElement("button");
     b.className = "pin" + (p.admin ? " you" : "");
     if (!p.admin) b.dataset.sel = p.id; else b.tabIndex = -1;
-    b.innerHTML = `<span class="pulse" hidden></span><span class="ini"></span><span class="fl" hidden></span><span class="tag" hidden></span>`;
+    b.innerHTML = `<span class="pulse" hidden></span><span class="ini"></span><span class="fl" hidden></span><span class="tag" hidden></span>` +
+      (p.admin ? `<span class="wifi" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M2 8.5a15 15 0 0 1 20 0M5.5 12a10 10 0 0 1 13 0M9 15.5a5 5 0 0 1 6 0"/><circle cx="12" cy="19" r="1.4"/></svg></span>` : "");
     return b;
   }, (b, p) => {
     glideEnsure(p); paintPin(b);
     b.style.zIndex = p.admin ? (p.id === adminId ? 1 : 0) : p.id === sel ? 4 : p.level === "danger" ? 3 : 2;
     b.querySelector(".ini").textContent = p.admin && p.id === adminId ? "You" : p.ini;
     const fp = p.admin ? respNow() : p, fl = b.querySelector(".fl"); fl.hidden = fp.outdoor || fp.floor == null; fl.textContent = fp.floor ?? "";
-    if (p.admin) { b.setAttribute("aria-label", p.id === adminId ? "You" : `${p.role} ${p.name}`); return; }
+    if (p.admin) { b.classList.toggle("master", meshView && p.id === adminId); b.setAttribute("aria-label", p.id === adminId ? (meshView ? "You, the mesh's master node on Wi-Fi" : "You") : `${p.role} ${p.name}`); return; }
     paint(b, p.level);
     b.classList.toggle("sel", p.id === sel);
     b.querySelector(".pulse").hidden = p.level !== "danger";
@@ -2184,8 +2339,15 @@ const hm = (min) => `${Math.floor(min / 60)}:${String(min % 60).padStart(2, "0")
 const BAT_ICON = `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="17" height="10" rx="2"/><path d="M22 11v2"/></svg>`;
 const WALK_ICON = `<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="13" cy="4" r="2"/><path d="M10 21l2-6 3 3v3M8 12l3-4 4 3 3 1M11 8l-1 5"/></svg>`;
 function renderBanner() {
-  const top = workers().find((w) => w.level === "danger" && !w.stage);
-  $("banner").hidden = !top || locating || (sel === top.id && isPhone());   // on a phone the open card already has these buttons
+  const top = workers().find((w) => w.level === "danger" && !w.stage), lost = !top && workers().find((w) => w.meshOut), who = top || lost;
+  $("banner").hidden = !who || locating || (sel === who.id && isPhone());   // on a phone the open card already has these buttons
+  $("banner").classList.toggle("meshout", !!lost);
+  if (lost) {   // the master can't hear this clip through any chain of peers
+    $("bn-nm").textContent = `${lost.first} is offline`;
+    setHtml($("bn-v"), `No path to you · ${mmss(lost.seenAgo)}`);
+    $("bn-show").dataset.sel = lost.id; $("bn-otw").hidden = true; $("bn-check").hidden = true;
+    return;
+  }
   if (!top) return;
   $("bn-nm").textContent = `${top.first} is in danger`;
   setHtml($("bn-v"), `${lvs(top.id, "hr")} BPM · ${lvs(top.id, "air")}°F` + (top.alertT != null && !top.acked_by ? ` · ${mmss(state.t - top.alertT)} since alert` : ""));
@@ -2786,7 +2948,32 @@ function mapFrame() {
 function paintPins() {
   mapFrame(); GL.wk = cam.k;
   for (const el of $("pins").children) paintPin(el);
+  paintMesh();
   drawBuildings();
+}
+let meshView = store.get("beacon.mesh") !== "0";
+function setMesh(on) { meshView = on; store.set("beacon.mesh", on ? "1" : "0"); $("z-mesh").setAttribute("aria-pressed", String(on)); renderAll(); }
+function paintMesh() {
+  // every frame, from where the pins are drawn: a line for each pair of clips in direct reach, all with a path to the master
+  const all = $("mesh-all"), route = $("mesh-route"), M = hub.mesh;
+  let d = "", r = "";
+  if (meshView && M && !clipMode) {
+    const pt = new Map(), at = (id) => {
+      if (pt.has(id)) return pt.get(id);
+      const g = GL.items.get(id); let v = null;
+      if (g) { const q = GL.M.transformPoint(new DOMPoint(WX(g.x), WY(g.y), map3d && g.h ? g.h * PPM : 0, 1)); if (q.w > 0) v = [GL.ox + q.x / q.w, GL.oy + q.y / q.w]; }
+      pt.set(id, v); return v;
+    };
+    const P = (v) => `${v[0].toFixed(1)} ${v[1].toFixed(1)}`;
+    for (const [a, b] of M.links) { if (!M.hops.has(a) || !M.hops.has(b)) continue; const A = at(a), B = at(b); if (A && B) d += `M${P(A)}L${P(B)}`; }
+    if (sel && M.hops.has(sel)) {   // the chosen worker's hops back to you
+      const chain = [at(sel)]; let c = sel;
+      while (M.via.has(c)) { c = M.via.get(c); chain.push(at(c)); }
+      if (chain.every(Boolean)) r = "M" + chain.map(P).join("L");
+    }
+  }
+  if (all._d !== d) { all._d = d; all.setAttribute("d", d); $("mesh-halo").setAttribute("d", d); }
+  if (route._d !== r) { route._d = r; route.setAttribute("d", r); }
 }
 
 /* ================= run ================= */
@@ -2859,6 +3046,7 @@ function tick() {
     if (ff && (simT >= ff.cap || ff.done())) { ff = null; setRate(1); break; }
   }
   state = hub.snapshot(simT);
+  checkOffline();
   // help has arrived: the alert clears by itself and they're back to normal about three seconds later
   let cleared = autoRest();
   for (const b of hub.badges.values()) if (b.arrived && b.helper && !b.recovery && !(sim.people[b.helper] && sim.people[b.helper].path.length)) { resolve(b.id, true); cleared = true; }
@@ -2956,6 +3144,10 @@ function runDemo(name) {
     fx = fx.filter((f) => f.id !== pick);
     fx.push({ id: pick, kind: { rose_heart: "heart", joe_hot: "hot", mae_cold: "cold", dev_fall: "fall", ana_dead: "dead", dev_sun: "sun" }[name], t0: simT });
     sel = pick; focusOn(person(pick));
+  } else if (name === "mesh_out") {
+    if (locating) closeLocate();
+    if (!meshView) setMesh(true);
+    sel = "B5"; fitPts([person("B5"), person("B16"), person("B14"), me()]);   // Dev, his chain of peers and you
   } else if (name === "walk") {
     if (locating && sel !== walkTo) closeLocate();
     sel = walkTo; focusOn(person(walkTo));
@@ -3099,6 +3291,160 @@ async function connectRoom() {
 }
 setInterval(() => { if (remoteBoard && clipMode && Date.now() - remoteBoard.at > 15000) { remoteBoard = null; } }, 3000);
 
+/* ---------- contacts and calls: when a clip goes offline, Thermo phones its wearer ---------- */
+// Numbers are kept in this browser (edit them in Contacts). Calls go through thermo_server.py and Twilio when the page is
+// served by it; anywhere else (GitHub Pages, the artifact) Thermo plays a practice call so the flow can still be shown.
+const CONTACT_DEFAULTS = {
+  B1: ["(413) 555-0101", "Arjun Patel", "Husband", "(413) 555-0151"], B2: ["(413) 555-0102", "Lucia Rivera", "Wife", "(413) 555-0152"],
+  B3: ["(413) 555-0103", "Wei Chen", "Father", "(413) 555-0153"], B5: ["(413) 555-0105", "Maya Shah", "Sister", "(413) 555-0155"],
+  B6: ["(413) 555-0106", "Carlos Lopez", "Son", "(413) 555-0156"], B7: ["(413) 555-0107", "Rosa Ortega", "Wife", "(413) 555-0157"],
+  B8: ["(413) 555-0108", "Anil Nair", "Brother", "(413) 555-0158"], B9: ["(413) 555-0109", "Ada Okafor", "Wife", "(413) 555-0159"],
+  B10: ["(413) 555-0110", "Daniel Kim", "Husband", "(413) 555-0160"], B11: ["(413) 555-0111", "Nora Walsh", "Daughter", "(413) 555-0161"],
+  B12: ["(413) 555-0112", "Omar Hassan", "Husband", "(413) 555-0162"], B13: ["(413) 555-0113", "Kate Carter", "Mother", "(413) 555-0163"],
+  B14: ["(413) 555-0114", "Pavel Novak", "Partner", "(413) 555-0164"], B15: ["(413) 555-0115", "Tanya Bell", "Wife", "(413) 555-0165"],
+  B16: ["(413) 555-0116", "Linh Tran", "Mother", "(413) 555-0166"], B4: ["(413) 555-0100", "", "", ""],
+};
+const CALL_MESSAGE = "Hello, this is an automated call made because your ThermoSafe is disconnected from the network. Please circle back to the site manager to get it repaired and restarted. Stay safe!";
+const CALL_MENU = "If you are making your way back to the site manager, press 1. If you need help where you are, press 2.";
+let contactEdits = {}; try { contactEdits = JSON.parse(store.get("beacon.contacts") || "{}") || {}; } catch (e) { contactEdits = {}; }
+function contactOf(id) {
+  const d = CONTACT_DEFAULTS[id] || ["", "", "", ""], e = contactEdits[id] || {};
+  return { phone: e.phone ?? d[0], ename: e.ename ?? d[1], rel: e.rel ?? d[2], ephone: e.ephone ?? d[3] };
+}
+function setContact(id, key, val) { contactEdits[id] = { ...(contactEdits[id] || {}), [key]: val }; store.set("beacon.contacts", JSON.stringify(contactEdits)); }
+function fmtPhone(n) { const d = String(n || "").replace(/\D/g, ""), t = d.length === 11 && d[0] === "1" ? d.slice(1) : d; return t.length === 10 ? `(${t.slice(0, 3)}) ${t.slice(3, 6)}-${t.slice(6)}` : n || ""; }
+
+// the call server (thermo_server.py): found by asking it, same origin unless localStorage beacon.server says otherwise
+const srv = { ok: false, twilio: false, public: false, base: (store.get("beacon.server") || "").replace(/\/$/, "") };
+async function srvCheck() {
+  if (!/^https?:/.test(location.protocol) && !srv.base) return;
+  try { const r = await fetch(srv.base + "/api/health", { cache: "no-store" }); const j = await r.json(); Object.assign(srv, { ok: !!j.ok, twilio: !!j.twilio, public: !!j.public }); }
+  catch (e) { srv.ok = false; }
+  renderContactsTop();
+}
+async function srvDevices() {
+  // real clips: one whose id matches a worker drives that worker; when it stops posting, its radio counts as down
+  if (!srv.ok) return;
+  try {
+    const r = await fetch(srv.base + "/api/devices", { cache: "no-store" }), d = await r.json();
+    for (const [id, v] of Object.entries(d)) { const p = sim.people[id]; if (!p || id === adminId) continue; p.live = true; p.fault = !v.online; }
+  } catch (e) { /* server went away: leave the clips as they are */ }
+}
+
+const CALLS = [], callFor = new Map();
+function checkOffline() {
+  // a worker whose clip has dropped off the network gets one call per time it drops
+  if (story) return;
+  for (const w of workers()) {
+    if (w.offline && !callFor.has(w.id)) startCall(w.id, true);
+    else if (!w.offline && callFor.has(w.id) && callFor.get(w.id).auto) callFor.delete(w.id);
+  }
+}
+function callLine(rec, who, text) { rec.lines.push({ who, text }); }
+function startCall(id, auto) {
+  const w = person(id); if (!w) return;
+  const c = contactOf(id), twilio = srv.ok && srv.twilio;
+  const rec = { id: "c" + CALLS.length, worker: id, first: w.first, name: w.name, to: c.phone, t: simT, auto, mode: twilio ? "twilio" : "practice", status: "dialing", digits: null, lines: [], said: {} };
+  CALLS.push(rec); if (auto) callFor.set(id, rec);
+  hub.logEv(simT, `Thermo is calling ${w.first} · ${fmtPhone(c.phone) || "no number"}`, "info", id);
+  if (!c.phone) { rec.status = "failed"; callLine(rec, "system", "No phone number saved"); return callUpdate(rec); }
+  callUpdate(rec);
+  if (twilio) {
+    fetch(srv.base + "/api/call", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ to: c.phone, name: w.name, worker: id }) })
+      .then((r) => r.json()).then((j) => { if (j.ok) { rec.sid = j.id; pollCalls(); } else { rec.status = "failed"; callLine(rec, "system", j.error || "The server couldn't place the call"); callUpdate(rec); } })
+      .catch(() => { rec.status = "failed"; callLine(rec, "system", "Couldn't reach the call server"); callUpdate(rec); });
+  } else practiceCall(rec);
+}
+function practiceCall(rec) {
+  // no phone line here: the same call, played out on screen
+  const steps = [
+    [1500, () => { rec.status = "ringing"; callLine(rec, "system", `Calling ${fmtPhone(rec.to)}`); }],
+    [4000, () => { rec.status = "in-progress"; callLine(rec, "system", "Answered"); callLine(rec, "thermo", CALL_MESSAGE); }],
+    [9000, () => callLine(rec, "thermo", CALL_MENU)],
+    [12500, () => { rec.digits = "1"; callLine(rec, "worker", "Pressed 1"); callLine(rec, "thermo", "Thank you. Your site manager knows you are on your way back. Stay safe!"); }],
+    [15500, () => { rec.status = "completed"; callLine(rec, "system", "Call ended (11s)"); }],
+  ];
+  for (const [ms, fn] of steps) setTimeout(() => { fn(); callUpdate(rec); }, ms);
+}
+let callPoll = null;
+function pollCalls() {
+  if (callPoll) return;
+  callPoll = setInterval(async () => {
+    const live = CALLS.filter((r) => r.sid && !["completed", "no-answer", "busy", "failed", "canceled"].includes(r.status));
+    if (!live.length) { clearInterval(callPoll); callPoll = null; return; }
+    try {
+      const all = await (await fetch(srv.base + "/api/calls", { cache: "no-store" })).json();
+      for (const r of live) { const s = all.find((x) => x.id === r.sid); if (s) { r.status = s.status; r.digits = s.digits; r.lines = s.lines.map((l) => ({ who: l.who, text: l.text })); callUpdate(r); } }
+    } catch (e) { /* try again next round */ }
+  }, 1500);
+}
+function callUpdate(rec) {
+  // log each step once, keep the notification and the Contacts window current
+  const once = (k, text, lv) => { if (rec.said[k]) return; rec.said[k] = 1; hub.logEv(simT, text, lv, rec.worker); };
+  const c = contactOf(rec.worker);
+  if (rec.status === "in-progress") once("ans", `${rec.first} answered Thermo's call`, "info");
+  if (rec.digits === "1") once("d1", `${rec.first} is heading back to you (pressed 1)`, "ok");
+  if (rec.digits === "2") once("d2", `${rec.first} needs help where they are (pressed 2)`, "danger");
+  if (["no-answer", "busy", "failed", "canceled"].includes(rec.status)) once("miss", `No answer from ${rec.first}${c.ename ? ` · emergency contact ${c.ename}, ${fmtPhone(c.ephone)}` : ""}`, "watch");
+  renderToast(rec); if (!$("contacts").hidden) renderCalls(); refresh();
+}
+function callWord(rec) {
+  const c = contactOf(rec.worker);
+  if (rec.digits === "1") return "Heading back to you";
+  if (rec.digits === "2") return "Needs help where they are";
+  return { dialing: "Calling…", placed: "Call placed", queued: "Calling…", initiated: "Calling…", ringing: "Ringing…", "in-progress": "On the call", completed: "Call ended",
+    "no-answer": `No answer · ${c.ename || "emergency contact"} ${fmtPhone(c.ephone)}`, busy: "Line busy", failed: "Call didn't go through", canceled: "Call canceled" }[rec.status] || rec.status;
+}
+let toastT = null;
+function renderToast(rec) {
+  const el = $("calltoast"), done = rec.digits || ["completed", "no-answer", "busy", "failed", "canceled"].includes(rec.status);
+  const w = person(rec.worker), c = contactOf(rec.worker);
+  setHtml(el, `<span class="tav" aria-hidden="true">T</span><div class="ctx"><b>${esc(rec.first)} ${w && w.offline ? "is offline" : "· call"}</b>` +
+    `<span class="${rec.digits === "1" ? "ok" : rec.digits === "2" || rec.status === "no-answer" ? "bad" : ""}">${esc(callWord(rec))}</span>` +
+    `<span class="num">${esc(fmtPhone(rec.to))}${rec.mode === "practice" ? " · practice" : ""}</span></div>` +
+    (rec.status === "no-answer" && c.ephone ? `<a class="btn light" href="tel:${esc(c.ephone.replace(/[^\d+]/g, ""))}">Call ${esc(c.ename.split(" ")[0] || "contact")}</a>` : "") +
+    `<button class="btn light" data-act="open-calls">Transcript</button><button class="x" data-act="close-toast" aria-label="Dismiss"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg></button>`);
+  el.hidden = false; clearTimeout(toastT);
+  if (done) toastT = setTimeout(() => { el.hidden = true; }, 14000);
+}
+
+function renderContactsTop() {
+  const el = $("ct-srv"); if (!el) return;
+  el.textContent = srv.ok ? (srv.twilio ? (srv.public ? "Calls: Twilio, with key presses" : "Calls: Twilio (no key presses: set PUBLIC_URL)") : "Server on · Twilio not set up: practice calls") : "Practice calls (open from thermo_server.py to really call)";
+  el.classList.toggle("on", srv.ok && srv.twilio);
+}
+function renderContacts() {
+  renderContactsTop();
+  const rows = [...workers(), ...state.people.filter((q) => q.admin)];
+  setHtml($("ct-body"), rows.map((w) => {
+    const c = contactOf(w.id), f = (k, v, ph, cls) => `<input class="${cls || ""}" data-cid="${esc(w.id)}" data-k="${k}" value="${esc(v)}" placeholder="${ph}" aria-label="${esc(w.first)}: ${ph}">`;
+    return `<tr><td><span class="dot" style="background:${LOOK[w.admin ? "ok" : w.level].fill}"></span><b>${esc(w.name)}</b>${w.admin ? `<span class="tag2">Manager</span>` : w.offline ? `<span class="tag2 off">Offline</span>` : ""}</td>` +
+      `<td>${f("phone", c.phone, "Phone", "tel")}</td><td>${w.admin ? "" : f("ename", c.ename, "Name") + f("rel", c.rel, "Relation", "rel")}</td><td>${w.admin ? "" : f("ephone", c.ephone, "Phone", "tel")}</td>` +
+      `<td>${w.admin ? "" : `<button class="btn light" data-call="${esc(w.id)}">Call</button>`}</td></tr>`;
+  }).join(""));
+  renderCalls();
+}
+function renderCalls() {
+  const L = CALLS.slice().reverse();
+  setHtml($("ct-calls"), L.length ? L.map((r) => `<div class="call"><div class="call-h"><b>${esc(r.name)}</b><span>${esc(fmtPhone(r.to))}</span><span>${clock(r.t)}</span>` +
+    `<span class="st ${r.digits === "1" ? "ok" : r.digits === "2" || r.status === "no-answer" || r.status === "failed" ? "bad" : ""}">${esc(callWord(r))}</span>${r.mode === "practice" ? `<span class="tag2">Practice</span>` : ""}</div>` +
+    `<div class="tx">${r.lines.map((l) => `<p class="${l.who}">${l.who === "thermo" ? "<b>Thermo</b>" : l.who === "worker" ? `<b>${esc(r.first)}</b>` : ""}${esc(l.text)}</p>`).join("") || "<p class=\"system\">Dialing…</p>"}</div></div>`).join("")
+    : `<p class="empty">When a clip goes offline, Thermo calls its wearer. Calls show here.</p>`);
+}
+function setContacts(on) { $("contacts").hidden = !on; $("contacts-btn").setAttribute("aria-pressed", String(on)); if (on) renderContacts(); }
+document.addEventListener("change", (e) => { const i = e.target.closest("#ct-body input"); if (i) { setContact(i.dataset.cid, i.dataset.k, i.value.trim()); } });
+document.addEventListener("click", (e) => {
+  if (e.target.closest("#contacts-btn")) return setContacts($("contacts").hidden);
+  const call = e.target.closest("[data-call]"); if (call) { startCall(call.dataset.call, false); renderCalls(); return; }
+  if (e.target.id === "contacts") return setContacts(false);
+  const a = e.target.closest("[data-act]");
+  if (a && a.dataset.act === "close-contacts") setContacts(false);
+  if (a && a.dataset.act === "close-toast") $("calltoast").hidden = true;
+  if (a && a.dataset.act === "open-calls") { setContacts(true); $("ct-calls").scrollIntoView({ block: "start" }); }
+});
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("contacts").hidden) { e.stopImmediatePropagation(); setContacts(false); } }, true);
+srvCheck(); setInterval(srvCheck, 10000); setInterval(srvDevices, 1000);
+
 /* ---------- Ask Beacon: Gemini answers questions about the live crew data ---------- */
 // The key is pasted in the page and kept only in this browser. Calls go straight to Google's Gemini API,
 // which works from GitHub Pages or a local file (a claude.ai artifact blocks outside calls).
@@ -3116,7 +3462,10 @@ function crewData() {
       heart_bpm: w.hr, heart_normal_bpm: Math.round(w.hrExp), fixed_alarm_bpm: 180 - w.age,
       air_f: w.air, feels_like_f: w.feels ? w.feels.f : null, usual_air_f: Math.round(w.airAvg),
       uv_index: w.uvi, uv_level: w.uvi != null ? uvCat(w.uvi) : null, minutes_in_strong_sun: w.sunMin, minutes_outside: w.outMin,
+      phone: contactOf(w.id).phone || null, emergency_contact: (() => { const c = contactOf(w.id); return c.ename ? `${c.ename} (${c.rel}), ${c.ephone}` : null; })(),
+      clip_offline: !!w.offline, last_call: (() => { const r = CALLS.filter((x) => x.worker === w.id).pop(); return r ? callWord(r) : null; })(),
       clip_battery_pct: w.bat, help_on_the_way: w.acked_by ? onWayText(w) : null, asked_for_help: !!w.sos,
+      mesh: w.meshOut ? "out of mesh: no chain of clips reaches the manager" : w.meshHops != null ? `${w.meshHops} hop${w.meshHops === 1 ? "" : "s"} to the manager's phone` : null,
       nearest_responder: (() => { const n = nearestHelper(w); return n ? `${n.a.name}, ${Math.round(n.d)} m` : null; })(),
     })),
     responders: state.people.filter((q) => q.admin).map((a) => ({ name: a.name, role: a.role, place: a.place })),
@@ -3230,7 +3579,7 @@ async function playStory() {
     setNight(false);   // early morning: the light map
     await hold(400);
     $("mapv").classList.remove("resetting");
-    caption(1, "<b>6 AM.</b> Five people working alone. Each clip knows <b>their own</b> normal.");
+    caption(1, "<b>6 AM.</b> Fifteen people working alone. Each clip knows <b>their own</b> normal.");
     await hold(4500);
     caption(2, "<b>Rose</b>'s heart races. She hasn't moved.");
     runDemo("rose_heart");
@@ -3340,6 +3689,8 @@ $("z-night").onclick = () => setNight(!night);
 $("z-out").onclick = () => { hideBuilding(); zoomBy(1 / 1.35); };
 $("z-fit").onclick = () => { sel = ""; fitAll(); renderAll(); };
 $("z-3d").onclick = () => setMap3d(!map3d);
+$("z-mesh").onclick = () => setMesh(!meshView);
+$("z-mesh").setAttribute("aria-pressed", String(meshView));
 const mapv = $("mapv");
 let dragMoved = 0, picked = null;
 function showBuilding(poly, e) {
