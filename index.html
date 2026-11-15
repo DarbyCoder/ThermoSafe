@@ -1941,7 +1941,7 @@ function celebrate(el) {
   if (!el || REDUCE.matches) return;
   const old = el.querySelector(".okmark"); if (old) old.remove();
   const m = document.createElement("span"); m.className = "okmark";
-  m.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11"/><path d="M7 12.5l3.2 3.2L17 9"/></svg>`;
+  m.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 12.5l3.2 3.2L17 9"/></svg>`;
   el.appendChild(m); setTimeout(() => m.remove(), 1200);
 }
 function sync(box, items, make, update) {
@@ -2230,22 +2230,16 @@ function rowSkel(id, k, label, unit) {
     <div class="lvl" role="cell"><i></i><span></span></div>
   </div>`;
 }
-function patchRow(box, sub, b, min, max, dest, words) {
-  // the lit band is the one the reading is heading for (where the marker will stop), so a jump from Normal
-  // straight to Too high lights Too high at once instead of flashing Elevated on the way
-  let acc = min, idx = b.length - 1;
-  for (let i = 0; i < b.length; i++) { acc += b[i].f; if (dest < acc) { idx = i; break; } }
+function patchRow(box, sub, b, min, max, words) {
+  // which band is lit is decided every frame in paintLiveDom(), from where the gliding marker is
   const sm = box.querySelector("small"); if (sm.textContent !== sub) sm.textContent = sub;
   const bs = box.querySelector(".bands").children, ns = box.querySelector(".bnames").children;
   b.forEach((x, i) => {
     const fl = `${x.f.toFixed(2)} 1 0`;
     if (bs[i]._f !== fl) { bs[i]._f = fl; bs[i].style.flex = fl; bs[i].style.background = x.c; ns[i].style.flex = fl; ns[i].textContent = x.n; }
-    bs[i].classList.toggle("on", i === idx); ns[i].classList.toggle("on", i === idx);
   });
   const mt = box.querySelector(".mtrack"); mt.dataset.min = min; mt.dataset.max = max;
-  const lc = box.querySelector(".lvl");
-  lc.firstElementChild.style.background = ["var(--cold)", "var(--ok)", "var(--watch)", "var(--danger)"][idx];
-  if (lc.lastElementChild.textContent !== words[idx]) lc.lastElementChild.textContent = words[idx];
+  mt._edges = b.map((x) => x.f); mt._words = words;
 }
 function renderPop() {
   const pop = $("pop"), p = sel && person(sel);
@@ -2268,17 +2262,17 @@ function renderPop() {
   const E = p.hrExp, S = p.hrSpread, A = p.airAvg, T = p.airSpread;
   const hb = bands(["Too low", "Normal", "Elevated", "Too high"], ["var(--cold)", "var(--ok)", "var(--watch)", "var(--danger)"], [E - 45, E - 3 * S, E + 2.5 * S, E + 2.5 * S + 15, E + 70]);
   const ab = bands(["Too cold", "Normal", "Warm", "Too hot"], ["var(--cold)", "var(--ok)", "var(--watch)", "var(--danger)"], [A - 40, A - 2.5 * T, A + 2.5 * T, A + 2.5 * T + 10, A + 40]);
-  // the rows keep their elements; only values change. Where each reading is heading comes from the simulated clip's target.
-  const rows = $("pp-rows"), sig = `${p.id}|${p.hr != null}|${p.air != null}`, sp = sim.people[p.id];
+  // the rows keep their elements; only values change
+  const rows = $("pp-rows"), sig = `${p.id}|${p.hr != null}|${p.air != null}`;
   if (rows.dataset.sig !== sig) {
     rows.dataset.sig = sig;
     rows.innerHTML = (p.hr != null ? `<div id="pp-hr" style="display:contents">${rowSkel(p.id, "hr", "Heart rate", " BPM")}</div>` : "") +
       `<div id="pp-sun" style="display:contents"></div>` +
       (p.air != null ? `<div id="pp-air" style="display:contents">${rowSkel(p.id, "air", "Air temp", "°F")}</div>` : "");
   }
-  if (p.hr != null) patchRow($("pp-hr"), `usual ${p.hrUsual}`, hb, E - 45, E + 70, sp ? sp.base + sp.gain * Math.max(0, (sp.act || 0) - 0.05) + sp.extraTarget : p.hr, ["Too low", "Normal", "Elevated", "Too high"]);
+  if (p.hr != null) patchRow($("pp-hr"), `usual ${p.hrUsual}`, hb, E - 45, E + 70, ["Too low", "Normal", "Elevated", "Too high"]);
   setHtml($("pp-sun"), p.uvi != null && (p.outdoor || p.sunMin > 0) ? sunRow(p) : "");
-  if (p.air != null) patchRow($("pp-air"), p.feels ? `feels ${p.feels.f}°` : `usual here ${Math.round(A)}°`, ab, A - 40, A + 40, sp ? sim.placeTemp(simT, sp) + sp.airTarget + 1 : p.air, ["Too cold", "Normal", "Warm", "Too hot"]);
+  if (p.air != null) patchRow($("pp-air"), p.feels ? `feels ${p.feels.f}°` : `usual here ${Math.round(A)}°`, ab, A - 40, A + 40, ["Too cold", "Normal", "Warm", "Too hot"]);
   paintLiveDom();
   const bz = p.buzz ? `${ICON.buzz}<span>Buzzed: ${{ rest: "rest", cool: "cool off", warm: "warm up", shade: "find shade" }[p.buzz.why]} · ${ago(state.t - p.buzz.t)}</span>` : "";
   setHtml($("pp-buzz"), bz); $("pp-buzz").hidden = !bz;
@@ -2319,6 +2313,16 @@ function paintLiveDom() {
     const [id, k] = el.dataset.mk.split(":"), L = LIVE.get(id); if (!L || L[k] == null || el.dataset.min == null) continue;
     const pct = clamp((L[k] - +el.dataset.min) / (+el.dataset.max - +el.dataset.min), 0, 1) * 100;
     el.style.transform = `translateX(${pct.toFixed(2)}%)`;
+    // light the band the marker is over right now: gliding from Normal to Too high, it lights Elevated on the way through
+    if (!el._edges) continue;
+    let acc = +el.dataset.min, idx = el._edges.length - 1;
+    for (let i = 0; i < el._edges.length; i++) { acc += el._edges[i]; if (L[k] < acc) { idx = i; break; } }
+    if (el._idx === idx) continue;
+    el._idx = idx;
+    const row = el.closest(".vrow"), bs = row.querySelector(".bands").children, ns = row.querySelector(".bnames").children, lc = row.querySelector(".lvl");
+    for (let i = 0; i < bs.length; i++) { bs[i].classList.toggle("on", i === idx); ns[i].classList.toggle("on", i === idx); }
+    lc.firstElementChild.style.background = ["var(--cold)", "var(--ok)", "var(--watch)", "var(--danger)"][idx];
+    lc.lastElementChild.textContent = el._words[idx];
   }
 }
 const DISP = new Map();   // the scale each chart is showing right now; it eases toward what the data needs
