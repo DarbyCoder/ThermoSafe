@@ -1,0 +1,2497 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ThermoSafe API",
+    "description": "Prototype heat and cumulative exposure telemetry. Dashboard polling interval: 1 second.",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/tigerdata/status": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Tigerdata Status",
+        "operationId": "tigerdata_status_v1_tigerdata_status_get",
+        "parameters": [
+          {
+            "name": "x-dashboard-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "X-Dashboard-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TigerDataStatus"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/telemetry": {
+      "post": {
+        "tags": [
+          "devices"
+        ],
+        "summary": "Telemetry",
+        "operationId": "telemetry_v1_telemetry_post",
+        "parameters": [
+          {
+            "name": "x-device-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "X-Device-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Telemetry"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Receipt"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/config": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Config",
+        "operationId": "config_v1_config_get",
+        "parameters": [
+          {
+            "name": "x-dashboard-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "X-Dashboard-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/weather": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Site Weather",
+        "operationId": "site_weather_v1_weather_get",
+        "parameters": [
+          {
+            "name": "x-dashboard-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "X-Dashboard-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/devices": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Devices",
+        "operationId": "devices_v1_devices_get",
+        "parameters": [
+          {
+            "name": "x-dashboard-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "X-Dashboard-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceList"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/demo/scenarios/{scenario}": {
+      "post": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Demo Scenario",
+        "operationId": "demo_scenario_v1_demo_scenarios__scenario__post",
+        "parameters": [
+          {
+            "name": "scenario",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "normal",
+                "caution",
+                "warning",
+                "critical",
+                "unknown"
+              ],
+              "type": "string",
+              "title": "Scenario"
+            }
+          },
+          {
+            "name": "x-dashboard-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "X-Dashboard-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemoScenarioResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/devices/{device_id}/alert-test/{state}": {
+      "post": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Set Device Alert Test",
+        "operationId": "set_device_alert_test_v1_devices__device_id__alert_test__state__post",
+        "parameters": [
+          {
+            "name": "device_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Device Id"
+            }
+          },
+          {
+            "name": "state",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "normal",
+                "caution",
+                "warning",
+                "critical",
+                "unknown"
+              ],
+              "type": "string",
+              "title": "State"
+            }
+          },
+          {
+            "name": "x-dashboard-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "X-Dashboard-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/devices/{device_id}/alert-test": {
+      "delete": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Clear Device Alert Test",
+        "operationId": "clear_device_alert_test_v1_devices__device_id__alert_test_delete",
+        "parameters": [
+          {
+            "name": "device_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Device Id"
+            }
+          },
+          {
+            "name": "x-dashboard-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "X-Dashboard-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/device/{device_id}/alert-test": {
+      "get": {
+        "tags": [
+          "devices"
+        ],
+        "summary": "Device Alert Test",
+        "operationId": "device_alert_test_v1_device__device_id__alert_test_get",
+        "parameters": [
+          {
+            "name": "device_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Device Id"
+            }
+          },
+          {
+            "name": "x-device-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "X-Device-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/snapshot": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Snapshot",
+        "operationId": "snapshot_v1_snapshot_get",
+        "parameters": [
+          {
+            "name": "x-dashboard-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "X-Dashboard-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Snapshot"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/devices/{device_id}": {
+      "patch": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Update Device",
+        "operationId": "update_device_v1_devices__device_id__patch",
+        "parameters": [
+          {
+            "name": "device_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Device Id"
+            }
+          },
+          {
+            "name": "x-dashboard-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "X-Dashboard-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/devices/{device_id}/history": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "History",
+        "operationId": "history_v1_devices__device_id__history_get",
+        "parameters": [
+          {
+            "name": "device_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Device Id"
+            }
+          },
+          {
+            "name": "after_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "After Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 200,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "x-dashboard-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "X-Dashboard-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/devices/{device_id}/prediction": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Prediction",
+        "operationId": "prediction_v1_devices__device_id__prediction_get",
+        "parameters": [
+          {
+            "name": "device_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Device Id"
+            }
+          },
+          {
+            "name": "hours",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 24,
+              "minimum": 1,
+              "default": 12,
+              "title": "Hours"
+            }
+          },
+          {
+            "name": "x-dashboard-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "X-Dashboard-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/alerts": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Alerts",
+        "operationId": "alerts_v1_alerts_get",
+        "parameters": [
+          {
+            "name": "active_only",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": true,
+              "title": "Active Only"
+            }
+          },
+          {
+            "name": "after_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "After Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 200,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "x-dashboard-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "X-Dashboard-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/alerts/{alert_id}/ack": {
+      "post": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Acknowledge",
+        "operationId": "acknowledge_v1_alerts__alert_id__ack_post",
+        "parameters": [
+          {
+            "name": "alert_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Alert Id"
+            }
+          },
+          {
+            "name": "x-dashboard-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "X-Dashboard-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlertAcknowledgment"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Alert"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Alert": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "device_id": {
+            "type": "string",
+            "title": "Device Id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "heat",
+              "environment_sensor",
+              "offline"
+            ],
+            "title": "Kind"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "warning",
+              "critical"
+            ],
+            "title": "Severity"
+          },
+          "opened_at": {
+            "type": "string",
+            "title": "Opened At"
+          },
+          "updated_at": {
+            "type": "string",
+            "title": "Updated At"
+          },
+          "resolved_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved At"
+          },
+          "acknowledged_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acknowledged At"
+          },
+          "acknowledged_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acknowledged By"
+          },
+          "active": {
+            "type": "boolean",
+            "title": "Active"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "device_id",
+          "kind",
+          "severity",
+          "opened_at",
+          "updated_at",
+          "resolved_at",
+          "acknowledged_at",
+          "acknowledged_by",
+          "active"
+        ],
+        "title": "Alert"
+      },
+      "AlertAcknowledgment": {
+        "properties": {
+          "acknowledged_by": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Acknowledged By"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "acknowledged_by"
+        ],
+        "title": "AlertAcknowledgment"
+      },
+      "AlertPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Alert"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "next_after_id": {
+            "type": "integer",
+            "title": "Next After Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "next_after_id"
+        ],
+        "title": "AlertPage"
+      },
+      "Assessment": {
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "unknown",
+              "normal",
+              "caution",
+              "warning",
+              "critical"
+            ],
+            "title": "State"
+          },
+          "heat_index_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Heat Index C",
+            "description": "NOAA/NWS apparent temperature in Celsius when calculable."
+          },
+          "site_uv_index": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Site Uv Index",
+            "description": "Current site-level UV index forecast, not a wearable measurement."
+          },
+          "uv_index_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uv Index Score",
+            "description": "Demo UV component score, saturated at UV index 11."
+          },
+          "heat_index_category": {
+            "type": "string",
+            "enum": [
+              "unavailable",
+              "lower",
+              "caution",
+              "extreme_caution",
+              "danger",
+              "extreme_danger"
+            ],
+            "title": "Heat Index Category",
+            "default": "unavailable"
+          },
+          "indicator_f": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Indicator F"
+          },
+          "bright_light_exposure_score": {
+            "type": "number",
+            "title": "Bright Light Exposure Score",
+            "default": 0
+          },
+          "heat_duration_risk_score": {
+            "type": "number",
+            "title": "Heat Duration Risk Score",
+            "default": 0
+          },
+          "exposure_risk_score": {
+            "type": "number",
+            "title": "Exposure Risk Score",
+            "default": 0
+          },
+          "combined_risk_score": {
+            "type": "number",
+            "title": "Combined Risk Score",
+            "default": 0
+          },
+          "demo_score_components": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Demo Score Components"
+          },
+          "score_contributions": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Score Contributions"
+          },
+          "triggered_by": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Triggered By"
+          },
+          "factor_details": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Factor Details"
+          },
+          "explanation": {
+            "type": "string",
+            "title": "Explanation",
+            "default": ""
+          },
+          "recommended_action": {
+            "type": "string",
+            "title": "Recommended Action",
+            "default": ""
+          },
+          "activity_level": {
+            "type": "string",
+            "enum": [
+              "unknown",
+              "light",
+              "moderate",
+              "heavy"
+            ],
+            "title": "Activity Level",
+            "default": "unknown"
+          },
+          "acclimatization_status": {
+            "type": "string",
+            "enum": [
+              "unknown",
+              "acclimatized",
+              "not_acclimatized"
+            ],
+            "title": "Acclimatization Status",
+            "default": "unknown"
+          },
+          "model_version": {
+            "type": "string",
+            "title": "Model Version"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "state",
+          "heat_index_c",
+          "indicator_f",
+          "model_version",
+          "reason"
+        ],
+        "title": "Assessment"
+      },
+      "DemoScenarioResult": {
+        "properties": {
+          "scenario": {
+            "type": "string",
+            "enum": [
+              "normal",
+              "caution",
+              "warning",
+              "critical",
+              "unknown"
+            ],
+            "title": "Scenario"
+          },
+          "device_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,64}$",
+            "title": "Device Id"
+          },
+          "source": {
+            "type": "string",
+            "const": "simulator",
+            "title": "Source"
+          },
+          "sample": {
+            "$ref": "#/components/schemas/Telemetry"
+          },
+          "telemetry_id": {
+            "type": "integer",
+            "title": "Telemetry Id"
+          },
+          "received_at": {
+            "type": "string",
+            "title": "Received At"
+          },
+          "assessment": {
+            "$ref": "#/components/schemas/Assessment"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "scenario",
+          "device_id",
+          "source",
+          "sample",
+          "telemetry_id",
+          "received_at",
+          "assessment"
+        ],
+        "title": "DemoScenarioResult"
+      },
+      "Device": {
+        "properties": {
+          "device_id": {
+            "type": "string",
+            "title": "Device Id"
+          },
+          "worker_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Worker Name"
+          },
+          "site": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Site"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "hardware",
+              "simulator"
+            ],
+            "title": "Source"
+          },
+          "connection_state": {
+            "type": "string",
+            "enum": [
+              "online",
+              "offline"
+            ],
+            "title": "Connection State"
+          },
+          "risk_state": {
+            "type": "string",
+            "enum": [
+              "unknown",
+              "normal",
+              "caution",
+              "warning",
+              "critical"
+            ],
+            "title": "Risk State"
+          },
+          "environment_sensor_ok": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Environment Sensor Ok"
+          },
+          "last_seen_at": {
+            "type": "string",
+            "title": "Last Seen At"
+          },
+          "age_seconds": {
+            "type": "number",
+            "title": "Age Seconds"
+          },
+          "latest": {
+            "$ref": "#/components/schemas/StoredReading"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "device_id",
+          "worker_name",
+          "site",
+          "source",
+          "connection_state",
+          "risk_state",
+          "environment_sensor_ok",
+          "last_seen_at",
+          "age_seconds",
+          "latest"
+        ],
+        "title": "Device"
+      },
+      "DeviceList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Device"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "server_time": {
+            "type": "string",
+            "title": "Server Time"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "server_time"
+        ],
+        "title": "DeviceList"
+      },
+      "DeviceUpdate": {
+        "properties": {
+          "worker_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Worker Name"
+          },
+          "site": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Site"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "DeviceUpdate"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HistoryPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/StoredReading"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "next_after_id": {
+            "type": "integer",
+            "title": "Next After Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "next_after_id"
+        ],
+        "title": "HistoryPage"
+      },
+      "Receipt": {
+        "properties": {
+          "telemetry_id": {
+            "type": "integer",
+            "title": "Telemetry Id"
+          },
+          "received_at": {
+            "type": "string",
+            "title": "Received At"
+          },
+          "duplicate": {
+            "type": "boolean",
+            "title": "Duplicate"
+          },
+          "assessment": {
+            "$ref": "#/components/schemas/Assessment"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "telemetry_id",
+          "received_at",
+          "duplicate",
+          "assessment"
+        ],
+        "title": "Receipt"
+      },
+      "Snapshot": {
+        "properties": {
+          "devices": {
+            "items": {
+              "$ref": "#/components/schemas/Device"
+            },
+            "type": "array",
+            "title": "Devices"
+          },
+          "alerts": {
+            "items": {
+              "$ref": "#/components/schemas/Alert"
+            },
+            "type": "array",
+            "title": "Alerts"
+          },
+          "alerts_truncated": {
+            "type": "boolean",
+            "title": "Alerts Truncated"
+          },
+          "server_time": {
+            "type": "string",
+            "title": "Server Time"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "devices",
+          "alerts",
+          "alerts_truncated",
+          "server_time"
+        ],
+        "title": "Snapshot"
+      },
+      "StoredReading": {
+        "properties": {
+          "schema_version": {
+            "type": "integer",
+            "const": 1,
+            "title": "Schema Version",
+            "default": 1
+          },
+          "device_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,64}$",
+            "title": "Device Id"
+          },
+          "boot_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,64}$",
+            "title": "Boot Id"
+          },
+          "sequence": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Sequence"
+          },
+          "uptime_ms": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Uptime Ms"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "hardware",
+              "simulator"
+            ],
+            "title": "Source",
+            "default": "hardware"
+          },
+          "firmware_version": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Firmware Version"
+          },
+          "measurement_mode": {
+            "type": "string",
+            "enum": [
+              "sensor",
+              "simulated_demo"
+            ],
+            "title": "Measurement Mode",
+            "default": "sensor"
+          },
+          "demo_scenario_simulated": {
+            "type": "boolean",
+            "title": "Demo Scenario Simulated",
+            "default": false
+          },
+          "demo_scenario": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "green",
+                  "yellow",
+                  "red"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Demo Scenario"
+          },
+          "temperature_c": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 85.0,
+                "minimum": -40.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temperature C"
+          },
+          "humidity_pct": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 100.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Humidity Pct"
+          },
+          "environment_sensor_ok": {
+            "type": "boolean",
+            "title": "Environment Sensor Ok"
+          },
+          "heat_index_c": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 100.0,
+                "minimum": -40.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Heat Index C"
+          },
+          "heat_index_category": {
+            "type": "string",
+            "enum": [
+              "unavailable",
+              "lower",
+              "caution",
+              "extreme_caution",
+              "danger",
+              "extreme_danger"
+            ],
+            "title": "Heat Index Category",
+            "default": "unavailable"
+          },
+          "site_uv_index": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 30.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Site Uv Index"
+          },
+          "site_uv_index_source": {
+            "type": "string",
+            "enum": [
+              "weather",
+              "simulated_demo",
+              "unavailable"
+            ],
+            "title": "Site Uv Index Source",
+            "default": "unavailable"
+          },
+          "risk_score_demo": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 100.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Risk Score Demo"
+          },
+          "alert_level": {
+            "type": "string",
+            "enum": [
+              "unknown",
+              "normal",
+              "caution",
+              "warning",
+              "critical"
+            ],
+            "title": "Alert Level",
+            "default": "unknown"
+          },
+          "alert_mode": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "green",
+              "yellow",
+              "red"
+            ],
+            "title": "Alert Mode",
+            "default": "auto"
+          },
+          "alert_explanation": {
+            "type": "string",
+            "maxLength": 600,
+            "title": "Alert Explanation",
+            "default": ""
+          },
+          "recommended_action": {
+            "type": "string",
+            "maxLength": 600,
+            "title": "Recommended Action",
+            "default": ""
+          },
+          "pulse_raw": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 4095.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pulse Raw"
+          },
+          "pulse_bpm": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 220.0,
+                "minimum": 30.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pulse Bpm"
+          },
+          "pulse_quality": {
+            "type": "string",
+            "enum": [
+              "disabled",
+              "unvalidated",
+              "insufficient_signal",
+              "experimental",
+              "simulated"
+            ],
+            "title": "Pulse Quality",
+            "default": "disabled"
+          },
+          "light_sensor_ok": {
+            "type": "boolean",
+            "title": "Light Sensor Ok",
+            "default": false
+          },
+          "light_raw": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 4095.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Light Raw"
+          },
+          "light_intensity_pct": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 100.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Light Intensity Pct",
+            "description": "Relative photoresistor brightness percentage; not lux, UV, or solar radiation."
+          },
+          "bright_light_threshold_pct": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMaximum": 100.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bright Light Threshold Pct",
+            "description": "Calibrated relative-brightness threshold used to time estimated bright-light exposure."
+          },
+          "bright_light_active": {
+            "type": "boolean",
+            "title": "Bright Light Active",
+            "default": false
+          },
+          "bright_exposure_seconds": {
+            "type": "integer",
+            "maximum": 315360000.0,
+            "minimum": 0.0,
+            "title": "Bright Exposure Seconds",
+            "description": "Cumulative estimated bright-light exposure duration for this shift.",
+            "default": 0
+          },
+          "bright_continuous_seconds": {
+            "type": "integer",
+            "maximum": 315360000.0,
+            "minimum": 0.0,
+            "title": "Bright Continuous Seconds",
+            "default": 0
+          },
+          "heat_exposure_seconds": {
+            "type": "integer",
+            "maximum": 315360000.0,
+            "minimum": 0.0,
+            "title": "Heat Exposure Seconds",
+            "default": 0
+          },
+          "heat_continuous_seconds": {
+            "type": "integer",
+            "maximum": 315360000.0,
+            "minimum": 0.0,
+            "title": "Heat Continuous Seconds",
+            "default": 0
+          },
+          "activity_level": {
+            "type": "string",
+            "enum": [
+              "unknown",
+              "light",
+              "moderate",
+              "heavy"
+            ],
+            "title": "Activity Level",
+            "default": "unknown"
+          },
+          "acclimatization_status": {
+            "type": "string",
+            "enum": [
+              "unknown",
+              "acclimatized",
+              "not_acclimatized"
+            ],
+            "title": "Acclimatization Status",
+            "default": "unknown"
+          },
+          "wifi_rssi_dbm": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 0.0,
+                "minimum": -127.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wifi Rssi Dbm"
+          },
+          "latitude_deg": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 90.0,
+                "minimum": -90.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latitude Deg"
+          },
+          "longitude_deg": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 180.0,
+                "minimum": -180.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Longitude Deg"
+          },
+          "location_source": {
+            "type": "string",
+            "enum": [
+              "unavailable",
+              "gps",
+              "wifi_estimate",
+              "simulated"
+            ],
+            "title": "Location Source",
+            "default": "unavailable"
+          },
+          "mesh_role": {
+            "type": "string",
+            "enum": [
+              "disabled",
+              "worker",
+              "gateway"
+            ],
+            "title": "Mesh Role",
+            "default": "disabled"
+          },
+          "mesh_connected": {
+            "type": "boolean",
+            "title": "Mesh Connected",
+            "default": false
+          },
+          "mesh_node_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 4294967295.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mesh Node Id"
+          },
+          "mesh_node_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "maxItems": 32,
+            "title": "Mesh Node Ids"
+          },
+          "mesh_topology": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mesh Topology"
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "received_at": {
+            "type": "string",
+            "title": "Received At"
+          },
+          "assessment": {
+            "$ref": "#/components/schemas/Assessment"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "device_id",
+          "boot_id",
+          "sequence",
+          "uptime_ms",
+          "firmware_version",
+          "environment_sensor_ok",
+          "id",
+          "received_at",
+          "assessment"
+        ],
+        "title": "StoredReading"
+      },
+      "Telemetry": {
+        "properties": {
+          "schema_version": {
+            "type": "integer",
+            "const": 1,
+            "title": "Schema Version",
+            "default": 1
+          },
+          "device_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,64}$",
+            "title": "Device Id"
+          },
+          "boot_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,64}$",
+            "title": "Boot Id"
+          },
+          "sequence": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Sequence"
+          },
+          "uptime_ms": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Uptime Ms"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "hardware",
+              "simulator"
+            ],
+            "title": "Source",
+            "default": "hardware"
+          },
+          "firmware_version": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Firmware Version"
+          },
+          "measurement_mode": {
+            "type": "string",
+            "enum": [
+              "sensor",
+              "simulated_demo"
+            ],
+            "title": "Measurement Mode",
+            "default": "sensor"
+          },
+          "demo_scenario_simulated": {
+            "type": "boolean",
+            "title": "Demo Scenario Simulated",
+            "default": false
+          },
+          "demo_scenario": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "green",
+                  "yellow",
+                  "red"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Demo Scenario"
+          },
+          "temperature_c": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 85.0,
+                "minimum": -40.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temperature C"
+          },
+          "humidity_pct": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 100.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Humidity Pct"
+          },
+          "environment_sensor_ok": {
+            "type": "boolean",
+            "title": "Environment Sensor Ok"
+          },
+          "heat_index_c": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 100.0,
+                "minimum": -40.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Heat Index C"
+          },
+          "heat_index_category": {
+            "type": "string",
+            "enum": [
+              "unavailable",
+              "lower",
+              "caution",
+              "extreme_caution",
+              "danger",
+              "extreme_danger"
+            ],
+            "title": "Heat Index Category",
+            "default": "unavailable"
+          },
+          "site_uv_index": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 30.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Site Uv Index"
+          },
+          "site_uv_index_source": {
+            "type": "string",
+            "enum": [
+              "weather",
+              "simulated_demo",
+              "unavailable"
+            ],
+            "title": "Site Uv Index Source",
+            "default": "unavailable"
+          },
+          "risk_score_demo": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 100.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Risk Score Demo"
+          },
+          "alert_level": {
+            "type": "string",
+            "enum": [
+              "unknown",
+              "normal",
+              "caution",
+              "warning",
+              "critical"
+            ],
+            "title": "Alert Level",
+            "default": "unknown"
+          },
+          "alert_mode": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "green",
+              "yellow",
+              "red"
+            ],
+            "title": "Alert Mode",
+            "default": "auto"
+          },
+          "alert_explanation": {
+            "type": "string",
+            "maxLength": 600,
+            "title": "Alert Explanation",
+            "default": ""
+          },
+          "recommended_action": {
+            "type": "string",
+            "maxLength": 600,
+            "title": "Recommended Action",
+            "default": ""
+          },
+          "pulse_raw": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 4095.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pulse Raw"
+          },
+          "pulse_bpm": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 220.0,
+                "minimum": 30.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pulse Bpm"
+          },
+          "pulse_quality": {
+            "type": "string",
+            "enum": [
+              "disabled",
+              "unvalidated",
+              "insufficient_signal",
+              "experimental",
+              "simulated"
+            ],
+            "title": "Pulse Quality",
+            "default": "disabled"
+          },
+          "light_sensor_ok": {
+            "type": "boolean",
+            "title": "Light Sensor Ok",
+            "default": false
+          },
+          "light_raw": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 4095.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Light Raw"
+          },
+          "light_intensity_pct": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 100.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Light Intensity Pct",
+            "description": "Relative photoresistor brightness percentage; not lux, UV, or solar radiation."
+          },
+          "bright_light_threshold_pct": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMaximum": 100.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bright Light Threshold Pct",
+            "description": "Calibrated relative-brightness threshold used to time estimated bright-light exposure."
+          },
+          "bright_light_active": {
+            "type": "boolean",
+            "title": "Bright Light Active",
+            "default": false
+          },
+          "bright_exposure_seconds": {
+            "type": "integer",
+            "maximum": 315360000.0,
+            "minimum": 0.0,
+            "title": "Bright Exposure Seconds",
+            "description": "Cumulative estimated bright-light exposure duration for this shift.",
+            "default": 0
+          },
+          "bright_continuous_seconds": {
+            "type": "integer",
+            "maximum": 315360000.0,
+            "minimum": 0.0,
+            "title": "Bright Continuous Seconds",
+            "default": 0
+          },
+          "heat_exposure_seconds": {
+            "type": "integer",
+            "maximum": 315360000.0,
+            "minimum": 0.0,
+            "title": "Heat Exposure Seconds",
+            "default": 0
+          },
+          "heat_continuous_seconds": {
+            "type": "integer",
+            "maximum": 315360000.0,
+            "minimum": 0.0,
+            "title": "Heat Continuous Seconds",
+            "default": 0
+          },
+          "activity_level": {
+            "type": "string",
+            "enum": [
+              "unknown",
+              "light",
+              "moderate",
+              "heavy"
+            ],
+            "title": "Activity Level",
+            "default": "unknown"
+          },
+          "acclimatization_status": {
+            "type": "string",
+            "enum": [
+              "unknown",
+              "acclimatized",
+              "not_acclimatized"
+            ],
+            "title": "Acclimatization Status",
+            "default": "unknown"
+          },
+          "wifi_rssi_dbm": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 0.0,
+                "minimum": -127.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wifi Rssi Dbm"
+          },
+          "latitude_deg": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 90.0,
+                "minimum": -90.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latitude Deg"
+          },
+          "longitude_deg": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 180.0,
+                "minimum": -180.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Longitude Deg"
+          },
+          "location_source": {
+            "type": "string",
+            "enum": [
+              "unavailable",
+              "gps",
+              "wifi_estimate",
+              "simulated"
+            ],
+            "title": "Location Source",
+            "default": "unavailable"
+          },
+          "mesh_role": {
+            "type": "string",
+            "enum": [
+              "disabled",
+              "worker",
+              "gateway"
+            ],
+            "title": "Mesh Role",
+            "default": "disabled"
+          },
+          "mesh_connected": {
+            "type": "boolean",
+            "title": "Mesh Connected",
+            "default": false
+          },
+          "mesh_node_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 4294967295.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mesh Node Id"
+          },
+          "mesh_node_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "maxItems": 32,
+            "title": "Mesh Node Ids"
+          },
+          "mesh_topology": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mesh Topology"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "device_id",
+          "boot_id",
+          "sequence",
+          "uptime_ms",
+          "firmware_version",
+          "environment_sensor_ok"
+        ],
+        "title": "Telemetry"
+      },
+      "TigerDataStatus": {
+        "properties": {
+          "configured": {
+            "type": "boolean",
+            "title": "Configured"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "not_configured",
+              "connecting",
+              "retrying",
+              "connected"
+            ],
+            "title": "State"
+          },
+          "last_success_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Success At"
+          },
+          "last_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error"
+          },
+          "pending_count": {
+            "type": "integer",
+            "title": "Pending Count"
+          },
+          "failed_pending_count": {
+            "type": "integer",
+            "title": "Failed Pending Count"
+          },
+          "last_synced_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Synced At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "configured",
+          "state",
+          "last_success_at",
+          "last_error",
+          "pending_count",
+          "failed_pending_count",
+          "last_synced_at"
+        ],
+        "title": "TigerDataStatus"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

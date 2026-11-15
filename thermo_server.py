@@ -326,7 +326,20 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         u = urlparse(self.path)
         if u.path == "/api/health":
-            return self.json({"ok": True, "twilio": twilio_ready(), "public": bool(cfg()["PUBLIC_URL"]), "gemini": bool(os.environ.get("GEMINI_API_KEY", "").strip()), "offline_after": OFFLINE_AFTER, "demo_phones": demo_phones()})
+            return self.json({"ok": True, "twilio": twilio_ready(), "public": bool(cfg()["PUBLIC_URL"]), "gemini": bool(os.environ.get("GEMINI_API_KEY", "").strip()), "thermosafe_api": bool(os.environ.get("THERMOSAFE_DASHBOARD_KEY", "").strip()), "offline_after": OFFLINE_AFTER, "demo_phones": demo_phones()})
+        if u.path == "/api/thermosafe/snapshot":
+            api = os.environ.get("THERMOSAFE_API_URL", "http://127.0.0.1:8000").rstrip("/")
+            key = os.environ.get("THERMOSAFE_DASHBOARD_KEY", "").strip()
+            if not key:
+                return self.json({"ok": False, "error": "THERMOSAFE_DASHBOARD_KEY is not configured for the dashboard bridge."}, 503)
+            req = Request(api + "/v1/snapshot", headers={"X-Dashboard-Key": key, "Accept": "application/json"})
+            try:
+                with urlopen(req, timeout=4) as response:
+                    return self.send(response.status, response.read(), "application/json")
+            except HTTPError as e:
+                return self.json({"ok": False, "error": "ThermoSafe API returned HTTP %s." % e.code}, 502)
+            except (URLError, OSError) as e:
+                return self.json({"ok": False, "error": "ThermoSafe API is unavailable: %s" % e}, 502)
         if u.path == "/api/devices":
             return self.json(device_list(time.time()))
         if u.path == "/api/calls":
@@ -447,7 +460,7 @@ def lan_ip():
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--port", type=int, default=8000)
+    ap.add_argument("--port", type=int, default=8001)
     ap.add_argument("--host", default="0.0.0.0")
     a = ap.parse_args()
     srv = ThreadingHTTPServer((a.host, a.port), Handler)
@@ -456,6 +469,7 @@ def main():
     print("\nThermoSafe is running")
     print("  Settings:     %s" % (".env loaded" if ENV_FILE else "no .env file (copy .env.example to .env)"))
     print("  Dashboard:    http://localhost:%d" % a.port)
+    print("  ThermoSafe API bridge: %s" % ("configured" if os.environ.get("THERMOSAFE_DASHBOARD_KEY", "").strip() else "not configured; set THERMOSAFE_DASHBOARD_KEY in .env"))
     print("  Clips post:   http://%s:%d/api/ingest" % (lan_ip(), a.port))
     print("  Phone calls:  %s" % ("Twilio ready, from %s" % c["TWILIO_FROM"] if twilio_ready() else "practice calls only (Twilio settings not found)"))
     for wid, num in sorted(demo_phones().items()):

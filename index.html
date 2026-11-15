@@ -927,10 +927,10 @@ svg.mesh { position: absolute; inset: 0; width: 100%; height: 100%; pointer-even
     </div>
     <div class="demo-pop" id="demo-pop" hidden>
       <button class="d" id="d-rose" data-demo="rose_heart">Rose's heart races</button>
-      <button class="d" id="d-joe" data-demo="joe_hot">Joe's room gets hot</button>
+      <button class="d" id="d-joe" data-demo="joe_hot">Joe overheats outside</button>
       <button class="d" id="d-mae" data-demo="mae_cold">Mae gets cold outside</button>
       <button class="d" id="d-dev" data-demo="dev_fall">Dev falls in the lot</button>
-      <button class="d" id="d-ana" data-demo="ana_dead">Ana's clip dies</button>
+      <button class="d" id="d-ana" data-demo="ana_dead">Ana's outdoor clip dies</button>
       <button class="d" id="d-sun" data-demo="dev_sun">Dev in full sun</button>
       <button class="d" id="d-mesh" data-demo="mesh_out">Dev walks out of range</button>
       <button class="d" id="d-fault" data-demo="dev_fault">Dev's clip glitches</button>
@@ -1092,6 +1092,31 @@ const isInside = (x, y) => x >= 0 && x <= BUILDING.width_m && y >= 0 && y <= BUI
 /* ================= walking routes outdoors: around every building and the pond ================= */
 // Campus Pond, traced from the satellite photo (same metres as the buildings)
 const POND = [-12,-42,28,-42,38,-56,37,-80,32,-100,23,-125,21,-145,27,-155,24,-165,19,-180,16,-200,17,-235,17,-262,10,-282,-12,-282,-20,-262,-20,-200,-21,-185,-30,-160,-31,-135,-26,-110,-20,-85,-17,-60];
+// Demo positions stay on open outdoor ground. B6 is deliberately close to Mae (B3).
+const OUTDOOR_ANCHORS = {
+  B1: [100, 50], B2: [-10, 25], B3: [75, -30], B5: [110, 25], B6: [86, -37],
+  B7: [80, 80], B8: [18, 70], B9: [-180, -220], B10: [-130, -300], B11: [40, 200],
+  B12: [100, -62], B13: [200, -150], B14: [210, 60], B15: [270, 40], B16: [350, -20],
+};
+function insidePoly(poly, x, y) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 2; i < poly.length; j = i, i += 2) {
+    if ((poly[i + 1] > y) !== (poly[j + 1] > y) && x < ((poly[j] - poly[i]) * (y - poly[i + 1])) / (poly[j + 1] - poly[i + 1]) + poly[i]) inside = !inside;
+  }
+  return inside;
+}
+function outdoorSpot(id) {
+  const [x0, y0] = OUTDOOR_ANCHORS[id] || OUTDOOR_ANCHORS.B1;
+  const clear = (x, y) => !isInside(x, y) && !insidePoly(POND, x, y) && !CAMPUS.some((b) => insidePoly(b[2], x, y));
+  if (clear(x0, y0)) return [x0, y0];
+  for (let radius = 5; radius <= 90; radius += 5) {
+    for (let angle = 0; angle < 360; angle += 15) {
+      const rad = angle * Math.PI / 180, x = x0 + radius * Math.cos(rad), y = y0 + radius * Math.sin(rad);
+      if (clear(x, y)) return [x, y];
+    }
+  }
+  return [x0, y0];
+}
 const NAV = { c: 3, cols: 0, rows: 0, blk: null, g: null, from: null, stamp: null, gen: 0, cache: new Map() };
 function navBuild() {
   const c = NAV.c, cols = (NAV.cols = Math.ceil((WORLD.x1 - WORLD.x0) / c)), rows = (NAV.rows = Math.ceil((WORLD.y1 - WORLD.y0) / c));
@@ -1246,7 +1271,7 @@ const PEOPLE = [
   { badge: "B14", name: "Lena Novak", pronoun: "her", age: 33 },
   { badge: "B15", name: "Marcus Bell", pronoun: "him", age: 50 },
   { badge: "B16", name: "Ivy Tran", pronoun: "her", age: 36 },
-  { badge: "B4", name: "Hussein", role: "Supervisor", pronoun: "him", admin: true },
+  { badge: "B4", name: "Site Manager", role: "Master node", pronoun: "them", admin: true },
 ];
 
 /* ================= helpers ================= */
@@ -1636,10 +1661,10 @@ class Sim {
       B2: new SimPerson("B2", 1, 45, 26, 91, 26, -0.40, 0.0, 0.9),    // Joe: high, variable resting heart rate
       B3: new SimPerson("B3", 1, 80, -100, 72, 34, +0.20, 0.0),       // Mae: on the lawn by Campus Pond
       B5: new SimPerson("B5", 1, 300, 20, 68, 30, -0.30, 1.0),        // Dev: in the lot off Thatcher Road
-      B6: new SimPerson("B6", 3, 25, 40, 64, 30, +0.35, -0.6),        // Ana: floor 3
+      B6: new SimPerson("B6", 1, 91, -111, 64, 30, +0.35, -0.6),     // Ana: outside beside Mae at Campus Pond
       B4: new SimPerson("B4", 1, 70, 15, 66, 30, -0.75, 0.3),         // Hussein, supervisor
-      B7: new SimPerson("B7", 1, 10, 20, 70, 30, +0.10, 0.2),         // Luis: ILC floor 1, west end
-      B8: new SimPerson("B8", 4, 60, 30, 63, 32, -0.20, 0.5),         // Priya: ILC floor 4
+      B7: new SimPerson("B7", 1, 110, 80, 70, 30, +0.10, 0.2),       // Luis: outdoor route east of the ILC
+      B8: new SimPerson("B8", 1, 135, -205, 63, 32, -0.20, 0.5),     // Priya: outdoor route by Campus Pond
       B9: new SimPerson("B9", 1, -45, 5, 74, 28, +0.40, -0.4),        // Sam: lawn west of the ILC
       B10: new SimPerson("B10", 1, -90, -45, 69, 30, -0.55, 0.1),     // Grace: by the Student Union
       B11: new SimPerson("B11", 1, 45, 80, 76, 26, +0.25, -0.2),      // Tom: lawn north of the ILC
@@ -1728,6 +1753,13 @@ class Sim {
     this.hub.ingest({ ref: true, p: this.pressure(t, 0.8) + this.r.gauss(0, 0.02) }, t);
     const mesh = this.meshStep();
     for (const p of Object.values(this.people)) {
+      const tour = p.outdoorPatrol;
+      if (tour && !p.path.length && !p.down && !p.dead && !p.fault) {
+        const [x, y] = tour[p.outdoorPatrolIndex++ % tour.length];
+        p.go(1, x, y);
+      }
+    }
+    for (const p of Object.values(this.people)) {
       this.move(p, dt);
       p.bat = Math.max(0, (p.bat ?? 90) - dt * 0.0008);   // about 3% an hour
       if (p.dead) continue;                                // a dead clip sends nothing
@@ -1788,10 +1820,10 @@ class Sim {
     const P = this.people;
     // demo effects land within about three seconds (snap), with no fast-forward
     if (name === "rose_heart") { P.B1.path = []; P.B1.extraTarget = 38; P.B1.snap = true; }
-    else if (name === "joe_hot") { P.B2.airTarget = 30; P.B2.snap = true; }       // the boiler room
+    else if (name === "joe_hot") { P.B2.airTarget = 30; P.B2.snap = true; }       // heat demo outdoors
     else if (name === "mae_cold") { P.B3.airTarget = -24; P.B3.snap = true; }     // wind off Campus Pond
     else if (name === "dev_sun") { P.B5.sun = 92; const b = this.hub.badges.get("B5"); if (b) b.sun.hot = Math.max(b.sun.hot, 18 * 60); }   // clouds clear over the lot
-    else if (name === "ana_dead") { P.B6.dead = true; P.B6.bat = 0; }   // battery runs out on floor 3
+    else if (name === "ana_dead") { P.B6.dead = true; P.B6.bat = 0; }   // battery runs out outdoors near Mae
     else if (name === "dev_fall") { P.B5.path = []; P.B5.down = true; P.B5.g = 4.2; P.B5.extraTarget = 14; P.B5.snap = true; }   // slips on ice in the lot
     else if (name === "walk") { const who = P[adminId] || P.B4, t = P[targetId] || P.B1; if (t !== who) { who.go(t.floor, t.x + 1.5, t.y + 1); who.goal = t.id; } }
     else if (name === "dev_fault") {
@@ -2169,8 +2201,8 @@ function renderRail() {
     b.dataset.lv = w.level;
     b.classList.toggle("sel", w.id === sel);
     setIni(b.querySelector(".av"), w.ini);
-    setHtml(b.querySelector(".nm"), esc(w.name) + (liveWear.has(w.id) ? `<span class="livetag">LIVE</span>` : "") + (w.outdoor && w.outMin > 0 ? `<span class="sunchip u${w.uvi >= 8 ? 3 : w.uvi >= 6 ? 2 : w.uvi >= 3 ? 1 : 0}" title="Time outside · UV ${w.uvi}">${SUN_ICON}${hm(w.outMin)}</span>` : "") + (w.bat != null && w.bat < 25 ? `<span class="bat${w.bat < 10 ? " dead" : ""}" title="Clip battery">${BAT_ICON}${w.bat}%</span>` : ""));
-    setHtml(b.querySelector(".vals"), `<b>${lvs(w.id, "air")}°F</b><span>${lvs(w.id, "hr")} BPM</span>`);
+    setHtml(b.querySelector(".nm"), esc(w.name) + `<span class="livetag">${w.liveDeviceId ? (w.offline ? "OFFLINE" : "LIVE") : "SIM"}</span>` + (w.outdoor && w.outMin > 0 ? `<span class="sunchip u${w.uvi >= 8 ? 3 : w.uvi >= 6 ? 2 : w.uvi >= 3 ? 1 : 0}" title="Time outside · UV ${w.uvi}">${SUN_ICON}${hm(w.outMin)}</span>` : "") + (w.bat != null && w.bat < 25 ? `<span class="bat${w.bat < 10 ? " dead" : ""}" title="Clip battery">${BAT_ICON}${w.bat}%</span>` : ""));
+    setHtml(b.querySelector(".vals"), `<b>${lvs(w.id, "air")}°F</b><span>${lvs(w.id, "hr")} BPM</span>${w.liveDeviceId ? `<span>${w.humidityPct == null ? "RH –" : `RH ${Math.round(w.humidityPct)}%`} · ${w.lightPct == null ? "Light –" : `Light ${Math.round(w.lightPct)}%`}</span>` : ""}`);
     if (b._wasLv && b._wasLv !== "ok" && w.level === "ok") celebrate(b.querySelector(".av"));   // back to Okay
     b._wasLv = w.level;
     setHtml(b.querySelector(".st"), `${iconSvg(LOOK[w.level].icon)}<span>${esc(w.label)}</span>`);
@@ -2277,7 +2309,7 @@ function renderPins() {
     b.style.zIndex = p.admin ? (p.id === adminId ? 1 : 0) : p.id === sel ? 4 : p.level === "danger" ? 3 : 2;
     b.querySelector(".ini").textContent = p.admin && p.id === adminId ? "You" : p.ini;
     const fp = p.admin ? respNow() : p, fl = b.querySelector(".fl"); fl.hidden = fp.outdoor || fp.floor == null; fl.textContent = fp.floor ?? "";
-    if (p.admin) { b.classList.toggle("master", meshView && p.id === adminId); b.setAttribute("aria-label", p.id === adminId ? (meshView ? "You, the mesh's master node on Wi-Fi" : "You") : `${p.role} ${p.name}`); return; }
+    if (p.admin) { b.classList.add("master"); b.setAttribute("aria-label", "ThermoSafe master node and site manager"); return; }
     paint(b, p.level);
     b.classList.toggle("sel", p.id === sel);
     b.querySelector(".pulse").hidden = p.level !== "danger";
@@ -2417,9 +2449,9 @@ function renderPop() {
   }
   paint(pop, p.level);
   $("pp-av").textContent = p.ini;
-  $("pp-nm").textContent = p.name;
+  $("pp-nm").textContent = p.name + (p.liveDeviceId ? ` · ESP32 ${p.offline ? "OFFLINE" : "LIVE"} ${p.liveDeviceId}` : " · SIMULATED");
   setHtml($("pp-pill"), `${iconSvg(LOOK[p.level].icon)}<span>${esc(p.label)}</span>`);
-  setHtml($("pp-where"), `${ICON.pin}${p.label === "No signal" ? `Last seen ${ago(p.seenAgo)} · ` : ""}${esc(p.place)}`);
+  setHtml($("pp-where"), `${ICON.pin}${p.label === "No signal" ? `Last seen ${ago(p.seenAgo)} · ` : ""}${esc(p.place)}${p.liveDeviceId ? ` · ${p.locationSource === "simulated" ? "map position simulated" : p.locationSource === "gps" ? "GPS" : p.locationSource === "wifi_estimate" ? "Wi-Fi estimate" : "location unavailable"}` : ""}`);
 
   const E = p.hrExp, S = p.hrSpread, A = p.airAvg, T = p.airSpread;
   const hb = bands(["Too low", "Normal", "Elevated", "Too high"], ["var(--cold)", "var(--ok)", "var(--watch)", "var(--danger)"], [E - 45, E - 3 * S, E + 2.5 * S, E + 2.5 * S + 15, E + 70]);
@@ -2971,6 +3003,15 @@ function paintMesh() {
       while (M.via.has(c)) { c = M.via.get(c); chain.push(at(c)); }
       if (chain.every(Boolean)) r = "M" + chain.map(P).join("L");
     }
+    // Live ESP32 workers are visibly connected back to the blue gateway pin.
+    if (thermoSnapshot && Array.isArray(thermoSnapshot.devices)) {
+      const live = thermoSnapshot.devices.filter((x) => x.source === "hardware" && x.latest && x.latest.mesh_role !== "gateway").sort((a, b) => a.device_id.localeCompare(b.device_id));
+      live.slice(0, 2).forEach((device, i) => {
+        if (device.connection_state !== "online" || !device.latest.mesh_connected) return;
+        const A = at(adminId), B = at(i === 0 ? "B1" : "B2");
+        if (A && B) d += `M${P(A)}L${P(B)}`;
+      });
+    }
   }
   if (all._d !== d) { all._d = d; all.setAttribute("d", d); $("mesh-halo").setAttribute("d", d); }
   if (route._d !== r) { route._d = r; route.setAttribute("d", r); }
@@ -2978,6 +3019,24 @@ function paintMesh() {
 
 /* ================= run ================= */
 const hub = new Hub(), sim = new Sim(hub);
+function seedOutdoorSimulation() {
+  for (const id of Object.keys(OUTDOOR_ANCHORS)) {
+    const p = sim.people[id], [x, y] = outdoorSpot(id);
+    Object.assign(p, { floor: 1, x, y, z: 0, path: [], goal: null });
+    const b = hub.badge(id);
+    Object.assign(b, { x, y, outdoor: true, floor: null, posFloor: null, gpsT: simT });
+  }
+  const patrols = {
+    B3: [[70, -35], [75, -18], [90, -38]], B5: [[100, 10], [120, 25], [125, 45]],
+    B6: [[82, -45], [90, -33], [75, -25]], B7: [[72, 70], [88, 85], [95, 60]],
+    B8: [[12, 70], [18, 88], [35, 75]],
+  };
+  for (const [id, route] of Object.entries(patrols)) {
+    const p = sim.people[id]; p.outdoorPatrol = route; p.outdoorPatrolIndex = 0;
+    const [x, y] = route[p.outdoorPatrolIndex++]; p.go(1, x, y);
+  }
+  Object.assign(sim.people[adminId], { floor: 1, x: 45, y: 25, z: 0, path: [], goal: null });
+}
 let simT = 1e6, timer = null, lastTickAt = performance.now();
 function schedule() {
   // the next update falls one interval after the last one, even when the speed changes in between
@@ -3045,12 +3104,12 @@ function tick() {
     simT += 1; applyFx(); sim.step(simT);
     if (ff && (simT >= ff.cap || ff.done())) { ff = null; setRate(1); break; }
   }
-  state = hub.snapshot(simT);
+  state = hub.snapshot(simT); applyThermoSnapshot(state);
   checkOffline();
   // help has arrived: the alert clears by itself and they're back to normal about three seconds later
   let cleared = autoRest();
   for (const b of hub.badges.values()) if (b.arrived && b.helper && !b.recovery && !(sim.people[b.helper] && sim.people[b.helper].path.length)) { resolve(b.id, true); cleared = true; }
-  if (cleared) state = hub.snapshot(simT);
+  if (cleared) { state = hub.snapshot(simT); applyThermoSnapshot(state); }
   glideTick();
   renderAll();
   if (fastFrom !== null) { const s = simT - fastFrom; $("ff-clock").textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; }
@@ -3090,7 +3149,7 @@ function fastWalk(id, done) {
   ff = { cap: simT + 1800, done };
   rampRate(Math.max(1, Math.round(walkSecs(id) / (story ? 8 : 3))));
 }
-function refresh() { state = hub.snapshot(simT); renderAll(); }
+function refresh() { state = hub.snapshot(simT); applyThermoSnapshot(state); renderAll(); }
 function releaseOthers(id, helperId) {
   // heading somewhere new: any other worker you were on your way to is waiting for help again
   const who = person(helperId), to = hub.badges.get(id);
@@ -3309,36 +3368,133 @@ const CALL_MENU = "If you are making your way back to the site manager, press 1.
 let contactEdits = {}; try { contactEdits = JSON.parse(store.get("beacon.contacts") || "{}") || {}; } catch (e) { contactEdits = {}; }
 function contactOf(id) {
   const d = CONTACT_DEFAULTS[id] || ["", "", "", ""], e = contactEdits[id] || {};
-  return { phone: e.phone ?? (srv.demo && srv.demo[id]) ?? d[0], ename: e.ename ?? d[1], rel: e.rel ?? d[2], ephone: e.ephone ?? d[3] };   // a DEMO_CALL_ number from the server's .env beats the made-up one
+  const isHardware = !!(person(id) && person(id).liveDeviceId);
+  return { phone: e.phone ?? (srv.demo && srv.demo[id]) ?? (isHardware ? "" : d[0]), ename: e.ename ?? d[1], rel: e.rel ?? d[2], ephone: e.ephone ?? d[3] };
 }
 function setContact(id, key, val) { contactEdits[id] = { ...(contactEdits[id] || {}), [key]: val }; store.set("beacon.contacts", JSON.stringify(contactEdits)); }
 function fmtPhone(n) { const d = String(n || "").replace(/\D/g, ""), t = d.length === 11 && d[0] === "1" ? d.slice(1) : d; return t.length === 10 ? `(${t.slice(0, 3)}) ${t.slice(3, 6)}-${t.slice(6)}` : n || ""; }
 
 // the call server (thermo_server.py): found by asking it, same origin unless localStorage beacon.server says otherwise
-const srv = { ok: false, twilio: false, public: false, gemini: false, demo: {}, base: (store.get("beacon.server") || "").replace(/\/$/, "") };
+const srv = { ok: false, twilio: false, public: false, gemini: false, api: false, demo: {}, base: (store.get("beacon.server") || "").replace(/\/$/, "") };
+let thermoSnapshot = null, thermoConnectionStates = new Map(), thermoHasSnapshot = false;
+const DISPLAY_WORKERS = new Set(["B1", "B2", "B3", "B5", "B6", "B7", "B8"]);
 async function srvCheck() {
   if (!/^https?:/.test(location.protocol) && !srv.base) return;
-  try { const r = await fetch(srv.base + "/api/health", { cache: "no-store" }); const j = await r.json(); Object.assign(srv, { ok: !!j.ok, twilio: !!j.twilio, public: !!j.public, gemini: !!j.gemini, demo: j.demo_phones || {} }); }
+  try { const r = await fetch(srv.base + "/api/health", { cache: "no-store" }); const j = await r.json(); Object.assign(srv, { ok: !!j.ok, twilio: !!j.twilio, public: !!j.public, gemini: !!j.gemini, api: !!j.thermosafe_api, demo: j.demo_phones || {} }); }
   catch (e) { srv.ok = false; }
   renderContactsTop();
 }
 async function srvDevices() {
-  // real clips: one whose id matches a worker drives that worker; when it stops posting, its radio counts as down
-  if (!srv.ok) return;
+  // The bridge keeps the dashboard key on the server and reads the authenticated ESP32 snapshot.
+  if (!srv.ok || !srv.api) return;
   try {
-    const r = await fetch(srv.base + "/api/devices", { cache: "no-store" }), d = await r.json();
-    for (const [id, v] of Object.entries(d)) { const p = sim.people[id]; if (!p || id === adminId) continue; p.live = true; p.fault = !v.online; }
-  } catch (e) { /* server went away: leave the clips as they are */ }
+    const r = await fetch(srv.base + "/api/thermosafe/snapshot", { cache: "no-store" });
+    if (!r.ok) throw new Error("ESP32 snapshot unavailable");
+    thermoSnapshot = await r.json();
+    for (const d of thermoSnapshot.devices || []) {
+      const previous = thermoConnectionStates.get(d.device_id);
+      d.justDisconnected = thermoHasSnapshot && previous === "online" && d.connection_state === "offline";
+      thermoConnectionStates.set(d.device_id, d.connection_state);
+    }
+    thermoHasSnapshot = true;
+    srv.apiOnline = true;
+    if (state) { applyThermoSnapshot(state); checkOffline(); renderAll(); }
+    renderContactsTop();
+  } catch (e) { srv.apiOnline = false; renderContactsTop(); }
+}
+
+function applyThermoSnapshot(view) {
+  if (!view) return;
+  const all = thermoSnapshot && Array.isArray(thermoSnapshot.devices) ? thermoSnapshot.devices : [];
+  const hardware = all.filter((d) => d.source === "hardware");
+  const gateway = hardware.find((d) => d.latest && d.latest.mesh_role === "gateway");
+  const workersLive = hardware.filter((d) => !d.latest || d.latest.mesh_role !== "gateway")
+    .sort((a, b) => a.device_id.localeCompare(b.device_id));
+  const slots = ["B1", "B2"];
+  const risk = { normal: [0, "ok", "Okay"], caution: [2, "watch", "Caution"], warning: [3, "danger", "Warning"], critical: [3, "danger", "Critical"], unknown: [1, "gray", "Unknown"] };
+  for (const [i, id] of slots.entries()) {
+    const p = view.people.find((x) => x.id === id);
+    if (!p) continue;
+    const d = workersLive[i], sample = d && d.latest;
+    p.liveDeviceId = d ? d.device_id : null;
+    if (!d || !sample) {
+      p.humidityPct = null; p.lightPct = null;
+      if (d) {
+        p.name = d.worker_name || d.device_id; p.first = p.name.split(/\s+/)[0]; p.ini = initials(p.name);
+        p.offline = d.connection_state !== "online"; p.meshOut = false; p.seenAgo = d.age_seconds || 0;
+        p.justDisconnected = !!d.justDisconnected;
+        p.sev = p.offline ? 1 : 0; p.level = p.offline ? "gray" : "ok"; p.label = p.offline ? "No signal" : "Awaiting data";
+        [p.x, p.y] = outdoorSpot(id); p.outdoor = true; p.floor = null;
+        p.locationSource = "simulated"; p.place = p.offline ? "Last reported · Outside · simulated grass marker" : "Outside · awaiting device data";
+      }
+      continue;
+    }
+    p.name = d.worker_name || d.device_id; p.first = p.name.split(/\s+/)[0]; p.ini = initials(p.name);
+    p.offline = d.connection_state !== "online"; p.meshOut = false; p.seenAgo = d.age_seconds || 0;
+    p.justDisconnected = !!d.justDisconnected;
+    const demoState = sample.demo_scenario_simulated
+      ? ({ green: "normal", yellow: "caution", red: "critical" }[sample.demo_scenario] || d.risk_state)
+      : d.risk_state;
+    const severity = risk[p.offline ? "unknown" : demoState] || risk.unknown;
+    p.sev = severity[0]; p.level = severity[1]; p.label = p.offline ? "No signal" : severity[2];
+    p.air = sample.temperature_c == null ? null : sample.temperature_c * 9 / 5 + 32;
+    p.hr = sample.pulse_bpm == null ? null : sample.pulse_bpm;
+    p.hrUsual = 70; p.hrExp = 70; p.hrSpread = 8; p.hrState = [p.hr == null ? "sensor" : "ok", "high"];
+    p.humidityPct = sample.humidity_pct;
+    const hasHumidity = sample.humidity_pct != null && Number.isFinite(Number(sample.humidity_pct));
+    p.rh = hasHumidity ? Number(sample.humidity_pct) : 40;
+    p.wind = 0;
+    p.feels = p.air == null || !hasHumidity ? null : feelsLike(p.air, p.rh, p.wind);
+    p.lightPct = sample.light_intensity_pct;
+    p.uvi = null; p.sunMin = Math.round((sample.bright_exposure_seconds || 0) / 60);
+    p.liveRiskExplanation = sample.assessment && sample.assessment.explanation;
+    p.liveDeviceAge = d.age_seconds; p.pulseQuality = sample.pulse_quality;
+    p.locationSource = sample.location_source;
+    if ((sample.location_source === "gps" || sample.location_source === "wifi_estimate") && sample.latitude_deg != null && sample.longitude_deg != null) {
+      const [x, y] = fromLatLon(sample.latitude_deg, sample.longitude_deg);
+      p.x = x; p.y = y; p.outdoor = !isInside(x, y); p.floor = p.outdoor ? null : 1;
+      p.place = p.outdoor ? "Outside · device location" : "Device location";
+    } else {
+      [p.x, p.y] = outdoorSpot(id); p.outdoor = true; p.floor = null;
+      p.locationSource = "simulated"; p.place = "Outside · simulated grass marker";
+    }
+    const airEnvironment = hub.env[p.outdoor ? "outside" : "inside"];
+    p.airAvg = airEnvironment.avg;
+    p.airSpread = airEnvironment.spread;
+    if (p.offline) p.place = `Last reported · ${p.place}`;
+    LIVE.set(id, { air: p.air, hr: p.hr });
+  }
+  // Simulator markers represent an always-connected demo feed; mesh gaps in the
+  // old story model must not make fake workers look offline beside live devices.
+  for (const p of view.people) {
+    if (p.admin || p.liveDeviceId) continue;
+    if (p.offline || p.meshOut || p.label === "No signal" || p.label === "Offline") {
+      p.offline = false; p.meshOut = false; p.meshHops = 1; p.seenAgo = 0;
+      p.sev = 0; p.level = "ok"; p.label = "Okay";
+    }
+  }
+  // The blue master pin is the Wi-Fi gateway at the configured site; fall back to the map's site center.
+  const master = view.people.find((x) => x.id === adminId);
+  const masterSample = gateway && gateway.latest;
+  let masterX = 45, masterY = 25;
+  if (masterSample && masterSample.latitude_deg != null && masterSample.longitude_deg != null) {
+    [masterX, masterY] = fromLatLon(masterSample.latitude_deg, masterSample.longitude_deg);
+  }
+  Object.assign(sim.people[adminId], { x: masterX, y: masterY, floor: 1, path: [] });
+  if (master) Object.assign(master, { name: "Site Manager", first: "Site", role: "Master node", x: masterX, y: masterY, floor: 1, outdoor: false, place: "ThermoSafe master node", liveDeviceId: gateway ? gateway.device_id : null, offline: !!gateway && gateway.connection_state !== "online", justDisconnected: !!(gateway && gateway.justDisconnected), seenAgo: gateway ? gateway.age_seconds : 0 });
+  view.people = view.people.filter((p) => p.admin || DISPLAY_WORKERS.has(p.id));
 }
 
 const CALLS = [], callFor = new Map();
 function checkOffline() {
-  // a worker whose clip has dropped off the network gets one call per time it drops
-  if (story) return;
+  // Automatic calls are sent only for a live-to-offline transition observed by this dashboard.
   for (const w of workers()) {
-    if (w.offline && !callFor.has(w.id)) startCall(w.id, true);
+    if (w.offline && w.justDisconnected && w.liveDeviceId && contactOf(w.id).phone && !callFor.has(w.id)) startCall(w.id, true);
     else if (!w.offline && callFor.has(w.id) && callFor.get(w.id).auto) callFor.delete(w.id);
   }
+  const gateway = person(adminId);
+  if (gateway && gateway.offline && gateway.justDisconnected && gateway.liveDeviceId && contactOf(adminId).phone && !callFor.has(adminId)) startCall(adminId, true);
+  else if (gateway && !gateway.offline && callFor.has(adminId) && callFor.get(adminId).auto) callFor.delete(adminId);
 }
 function callLine(rec, who, text) { rec.lines.push({ who, text }); }
 function startCall(id, auto) {
@@ -3350,7 +3506,7 @@ function startCall(id, auto) {
   if (!c.phone) { rec.status = "failed"; callLine(rec, "system", "No phone number saved"); return callUpdate(rec); }
   callUpdate(rec);
   if (twilio) {
-    fetch(srv.base + "/api/call", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ to: c.phone, name: w.name, worker: id,
+    fetch(srv.base + "/api/call", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ to: c.phone, name: w.name, worker: w.liveDeviceId || id,
       context: { first: w.first, place: w.place, offline_s: w.seenAgo ?? null, reason: w.meshOut ? "no chain of clips reaches the site manager" : w.offline ? "the clip stopped sending" : "manual test call" } }) })
       .then((r) => r.json()).then((j) => { if (j.ok) { rec.sid = j.id; pollCalls(); } else { rec.status = "failed"; callLine(rec, "system", j.error || "The server couldn't place the call"); callUpdate(rec); } })
       .catch(() => { rec.status = "failed"; callLine(rec, "system", "Couldn't reach the call server"); callUpdate(rec); });
@@ -3411,7 +3567,8 @@ function renderToast(rec) {
 
 function renderContactsTop() {
   const el = $("ct-srv"); if (!el) return;
-  el.textContent = srv.ok ? (srv.twilio ? (srv.public ? "Calls: Twilio, with key presses" : "Calls: Twilio (no key presses: set PUBLIC_URL)") + (srv.gemini ? " · Gemini writes each call" : "") : "Server on · Twilio not set up: practice calls") : "Practice calls (open from thermo_server.py to really call)";
+  const callText = srv.ok ? (srv.twilio ? (srv.public ? "Calls: Twilio, with key presses" : "Calls: Twilio (no key presses: set PUBLIC_URL)") + (srv.gemini ? " · Gemini writes each call" : "") : "Server on · Twilio not set up: practice calls") : "Practice calls (open from thermo_server.py to really call)";
+  el.textContent = `${callText} · ESP feed ${srv.apiOnline ? "online" : srv.api ? "waiting" : "not configured"}`;
   el.classList.toggle("on", srv.ok && srv.twilio);
 }
 function renderContacts() {
@@ -3419,7 +3576,7 @@ function renderContacts() {
   const rows = [...workers(), ...state.people.filter((q) => q.admin)];
   setHtml($("ct-body"), rows.map((w) => {
     const c = contactOf(w.id), f = (k, v, ph, cls) => `<input class="${cls || ""}" data-cid="${esc(w.id)}" data-k="${k}" value="${esc(v)}" placeholder="${ph}" aria-label="${esc(w.first)}: ${ph}">`;
-    return `<tr><td><span class="dot" style="background:${LOOK[w.admin ? "ok" : w.level].fill}"></span><b>${esc(w.name)}</b>${w.admin ? `<span class="tag2">Manager</span>` : w.offline ? `<span class="tag2 off">Offline</span>` : ""}</td>` +
+    return `<tr><td><span class="dot" style="background:${LOOK[w.admin ? "ok" : w.level].fill}"></span><b>${esc(w.name)}</b>${w.admin ? `<span class="tag2${w.offline ? " off" : ""}">${w.offline ? "Gateway offline" : "Master"}</span>` : w.offline ? `<span class="tag2 off">Offline</span>` : ""}</td>` +
       `<td>${f("phone", c.phone, "Phone", "tel")}</td><td>${w.admin ? "" : f("ename", c.ename, "Name") + f("rel", c.rel, "Relation", "rel")}</td><td>${w.admin ? "" : f("ephone", c.ephone, "Phone", "tel")}</td>` +
       `<td>${w.admin ? "" : `<button class="btn light" data-call="${esc(w.id)}">Call</button>`}</td></tr>`;
   }).join(""));
@@ -3580,7 +3737,7 @@ async function playStory() {
     setNight(false);   // early morning: the light map
     await hold(400);
     $("mapv").classList.remove("resetting");
-    caption(1, "<b>6 AM.</b> Fifteen people working alone. Each clip knows <b>their own</b> normal.");
+    caption(1, "<b>6 AM.</b> Seven outdoor workers check in. Each clip knows <b>their own</b> normal.");
     await hold(4500);
     caption(2, "<b>Rose</b>'s heart races. She hasn't moved.");
     runDemo("rose_heart");
@@ -3741,10 +3898,11 @@ let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTime
   $("mapv").classList.toggle("td", map3d); $("z-3d").setAttribute("aria-pressed", String(map3d));
   window.addEventListener("hashchange", () => { clipMode = location.hash === "#clip"; document.body.classList.toggle("clipmode", clipMode); pushClipPresence(); refresh(); });
   sim.boot(simT);
+  seedOutdoorSimulation();
   { const d = hub.badges.get("B5"); if (d) d.sun.outT = 100 * 60; const m = hub.badges.get("B3"); if (m) m.sun.outT = 35 * 60; }
   hub.log = []; hub.stats = { alerts: 0, help: [] };
   connectRoom();
-  state = hub.snapshot(simT);
+  state = hub.snapshot(simT); applyThermoSnapshot(state);
   glideTick();
   renderAll();
   fitAll();
