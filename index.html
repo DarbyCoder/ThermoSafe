@@ -237,9 +237,13 @@ svg.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor;
 .lvl { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; }
 .lvl i { width: 12px; height: 12px; border-radius: 50%; flex: none; }
 .device-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 7px; padding-top: 8px; border-top: 1px solid var(--line-2); }
+.device-grid[hidden] { display: none; }
+.device-grid:not([hidden]) { grid-template-columns: repeat(4, minmax(0, 1fr)); max-height: 30vh; overflow: auto; }
 .device-metric { min-width: 0; padding: 8px 10px; border-radius: 10px; background: var(--bg); }
 .device-metric span { display: block; color: var(--ink-3); font-size: 11px; line-height: 1.25; }
 .device-metric b { display: block; margin-top: 3px; font-family: var(--display); font-size: 16px; line-height: 1.2; overflow-wrap: anywhere; }
+.device-toggle { align-self: flex-start; border: 0; border-radius: 999px; padding: 5px 10px; color: var(--ink-2); background: var(--bg); font: 600 12px var(--font); cursor: pointer; }
+.risk-brief { color: var(--ink-2); font-size: 13px; padding: 1px 0; }
 .buzzline { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); padding-top: 4px; }
 
 /* locate: the route diagram pulls up over the map */
@@ -441,7 +445,7 @@ body.clipmode .clip { flex: 1; max-width: 480px; width: 100%; margin: 0 auto; }
 .askrow button { width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; background: var(--you); color: var(--white); display: grid; place-items: center; }
 .askrow button:hover { filter: brightness(1.1); }
 @media (prefers-reduced-motion: reduce) { .dots i { animation: none; opacity: .7; } }
-.livetag { margin-left: 6px; font-size: 10px; font-weight: 700; letter-spacing: .04em; padding: 1px 6px; border-radius: 999px; background: var(--you); color: var(--white); vertical-align: 2px; }
+.livetag { margin-left: 6px; display: inline-block; white-space: nowrap; font-size: 9px; font-weight: 700; letter-spacing: .03em; padding: 1px 6px; border-radius: 999px; background: var(--you); color: var(--white); vertical-align: 2px; }
 .livechip { font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: 999px; background: var(--you); color: var(--white); }
 @media (max-width: 760px) {
   .clipdock { position: fixed; inset: auto 0 0 0; width: auto; max-height: 85%; border-radius: 24px 24px 0 0; z-index: 55; padding-bottom: max(10px, env(safe-area-inset-bottom, 0px)); }
@@ -2582,7 +2586,7 @@ function renderPop() {
     pop.innerHTML = `<div class="pop-head"><span class="av" id="pp-av"></span><h2 id="pp-nm"></h2><span class="pill" id="pp-pill"></span><span class="where" id="pp-where"></span><span class="grow"></span>
       <button class="btn dark" data-act="locate">${ICON.locate}<span>Locate</span></button>
       </div><button class="x pop-x" data-act="close-pop" aria-label="Close readings">${ICON.close}</button>
-      <div role="table" aria-label="Worker sensor readings" id="pp-rows"></div><div id="pp-device" class="device-grid" aria-label="Device details"></div><div class="buzzline" id="pp-buzz"></div><div class="why" id="pp-why"><div id="pp-plot"></div><div id="pp-side"></div></div>`;
+      <div role="table" aria-label="Worker sensor readings" id="pp-rows"></div><div id="pp-risk-brief" class="risk-brief"></div><button type="button" id="pp-device-toggle" class="device-toggle" data-act="device-details" aria-expanded="false">Show sensor details +</button><div id="pp-device" class="device-grid" aria-label="Device details" hidden></div><div class="buzzline" id="pp-buzz"></div><div class="why" id="pp-why"><div id="pp-plot"></div><div id="pp-side"></div></div>`;
     DISP.clear();
   }
   paint(pop, p.level);
@@ -2597,11 +2601,14 @@ function renderPop() {
   const breakAge = p.lastBreakAt == null ? null : Math.max(0, (simT - p.lastBreakAt) / 60);
   const continuous = Number(p.brightContinuousSeconds) || 0;
   const breakGuidance = continuous >= SUN_ALERT ? "Break overdue · move to shade" : continuous >= SUN_WATCH * 0.8 ? "Approaching suggested shade break" : "Suggested shade break by 25 min continuous bright light";
+  setHtml($("pp-risk-brief"), `<b>Overall risk ${p.overallRiskScore == null ? "—" : `${p.overallRiskScore}/100`}</b> · ${esc(p.overallRiskBand || "Unknown")} · ${esc(breakGuidance)}`);
+  $("pp-device-toggle").textContent = $("pp-device").hidden ? "Show sensor details +" : "Hide sensor details −";
+  $("pp-device-toggle").setAttribute("aria-expanded", String(!$("pp-device").hidden));
   setHtml($("pp-device"), [
     metric("Overall risk", p.overallRiskScore == null ? "Unavailable" : `${p.overallRiskScore}/100`, `${p.overallRiskBand || "Unknown"} · combined assessment`),
     metric("Device", p.liveDeviceId || (p.hardwareSlot ? "ESP32" : `SIM-${p.id}`), source),
     metric("Heart signal", p.hr == null ? "Unavailable" : `${Math.round(p.hr)} BPM`, p.pulseQuality ? `Signal quality · ${p.pulseQuality}` : "Simulated sensor reading"),
-    metric("Temperature", fmt(p.air, "°F"), p.feels ? `Feels like ${p.feels.f}°F` : (p.environmentSensorOk === false ? "Environment sensor unavailable" : "Air sensor")),
+    metric("Temperature", fmt(p.air, "°F"), p.feels ? `Feels like ${Math.round(p.feels.f)}°F` : (p.environmentSensorOk === false ? "Environment sensor unavailable" : "Air sensor")),
     metric("Humidity", fmt(p.humidityPct ?? p.rh, "%"), p.environmentSensorOk === false ? "Sensor unavailable" : "Relative humidity"),
     metric("Photoresistor", fmt(p.lightPct, "%"), p.lightRaw != null ? `Raw ${p.lightRaw} ADC` : p.lightSensorOk === false ? "Sensor unavailable" : p.hardwareSlot ? "Relative brightness" : "Brightness · simulated sensor"),
     metric("Battery", fmt(p.bat, "%"), p.bat == null ? "Not reported" : "Clip battery"),
@@ -2627,7 +2634,7 @@ function renderPop() {
   }
   if (p.hr != null) patchRow($("pp-hr"), `usual ${p.hrUsual}`, hb, E - 45, E + 70, ["Too low", "Normal", "Elevated", "Too high"]);
   setHtml($("pp-sun"), p.uvi != null && (p.outdoor || p.sunMin > 0) ? sunRow(p) : "");
-  if (p.air != null) patchRow($("pp-air"), p.feels ? `feels ${p.feels.f}°` : `usual here ${Math.round(A)}°`, ab, A - 40, A + 40, ["Too cold", "Normal", "Warm", "Too hot"]);
+  if (p.air != null) patchRow($("pp-air"), p.feels ? `feels ${Math.round(p.feels.f)}°` : `usual here ${Math.round(A)}°`, ab, A - 40, A + 40, ["Too cold", "Normal", "Warm", "Too hot"]);
   paintLiveDom();
   const bz = p.buzz ? `${ICON.buzz}<span>Buzzed: ${{ rest: "rest", cool: "cool off", warm: "warm up", shade: "find shade" }[p.buzz.why]} · ${ago(state.t - p.buzz.t)}</span>` : "";
   setHtml($("pp-buzz"), bz); $("pp-buzz").hidden = !bz;
@@ -4014,7 +4021,8 @@ document.addEventListener("click", (e) => {
   if (al) { const b = hub.badges.get(al.dataset.alert); if (b) b.alertSent = b.alertSent > simT - 60 ? -1e9 : simT; state = hub.snapshot(simT); return renderAll(); }
   const a = e.target.closest("[data-act]"); if (!a) return;
   const act = a.dataset.act;
-  if (act === "rail") { railHidden = !railHidden; renderRail(); }
+  if (act === "device-details") { const grid = $("pp-device"); grid.hidden = !grid.hidden; renderPop(); }
+  else if (act === "rail") { railHidden = !railHidden; renderRail(); }
   else if (act === "locate") openLocate();
   else if (act === "close-locate") closeLocate();
   else if (act === "close-pop") { sel = ""; replay = null; renderAll(); }

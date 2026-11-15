@@ -296,6 +296,51 @@ def device_list(now):
         return {k: {"age": round(now - v["seen"], 1), "online": now - v["seen"] < OFFLINE_AFTER} for k, v in devices.items()}
 
 
+def serial_mesh_snapshot():
+    """Use the live USB mesh viewer when it is running; preserve backend fallback."""
+    mesh_url = os.environ.get(
+        "THERMOSAFE_MESH_TOPOLOGY_URL", "http://127.0.0.1:8765/topology.json"
+    )
+    req = Request(mesh_url, headers={"Accept": "application/json"})
+    try:
+        with urlopen(req, timeout=1.5) as response:
+            topology = json.loads(response.read().decode("utf-8"))
+    except (HTTPError, URLError, OSError, ValueError, TimeoutError):
+        return None
+    if topology.get("source") not in ("painlessmesh-serial", "esp-now-serial"):
+        return None
+
+    devices = []
+    for item in topology.get("items", []):
+        latest = dict(item.get("latest") or {})
+        if not latest:
+            continue
+        state = item.get("connection_state", "offline")
+        alert = latest.get("alert_level", "unknown")
+        assessment = dict(latest.get("assessment") or {})
+        score = latest.get("risk_score_demo")
+        assessment.update({
+            "combined_risk_score": score,
+            "score": score,
+            "state": alert,
+            "site_uv_index": latest.get("site_uv_index"),
+            "explanation": latest.get("alert_explanation"),
+            "recommended_action": latest.get("recommended_action"),
+        })
+        latest["assessment"] = assessment
+        device_id = item.get("backend_device_id") or latest.get("device_id") or item.get("device_id")
+        devices.append({
+            "device_id": device_id,
+            "worker_name": item.get("worker_name"),
+            "source": "hardware",
+            "connection_state": state,
+            "risk_state": alert,
+            "age_seconds": item.get("age_seconds", 0 if state == "online" else 21),
+            "latest": latest,
+        })
+    return {"devices": devices, "source": topology.get("source"), "live_mesh": True}
+
+
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
 
@@ -328,6 +373,9 @@ class Handler(BaseHTTPRequestHandler):
         if u.path == "/api/health":
             return self.json({"ok": True, "twilio": twilio_ready(), "public": bool(cfg()["PUBLIC_URL"]), "gemini": bool(os.environ.get("GEMINI_API_KEY", "").strip()), "thermosafe_api": bool(os.environ.get("THERMOSAFE_DASHBOARD_KEY", "").strip()), "offline_after": OFFLINE_AFTER, "demo_phones": demo_phones()})
         if u.path == "/api/thermosafe/snapshot":
+            mesh = serial_mesh_snapshot()
+            if mesh is not None:
+                return self.json(mesh)
             api = os.environ.get("THERMOSAFE_API_URL", "http://127.0.0.1:8000").rstrip("/")
             key = os.environ.get("THERMOSAFE_DASHBOARD_KEY", "").strip()
             if not key:
