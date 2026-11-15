@@ -1878,6 +1878,12 @@ class Sim {
       if (this.meshDemo) { const m = this.meshDemo, p = P[m.id]; Object.assign(p, { floor: m.f, x: m.x, y: m.y }); this.meshDemo = null; }
       for (const p of Object.values(P)) { p.pace = 1; p.held = 0; if (!p.live) p.fault = false; }
       this.demoHoldUntil = {};
+      const now = this.t || 0;
+      this.fakeRisk = {
+        B3: { mode: "green", kind: "heat", until: now + 50, air: 0, hr: 0 },
+        B5: { mode: "green", kind: "cold", until: now + 78, air: 0, hr: 0 },
+        B6: { mode: "green", kind: "heat", until: now + 104, air: 0, hr: 0 },
+      };
       this.faults = {};
       for (const p of Object.values(P)) { p.extraTarget = 0; p.airTarget = 0; p.extra = 0; p.airExtra = 0; p.hr = p.base; p.amb = null; p.path = []; p.down = false; p.dead = false; p.snap = false; p.fast = false; p.sun = null; }
       for (const b of this.hub.badges.values()) b.sun.hot = 0;
