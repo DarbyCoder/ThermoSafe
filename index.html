@@ -2153,7 +2153,10 @@ const adminId = "B4";   // the one supervisor: Hussein
 let cam = { cx: 0, cy: 0, k: 1 }, drag = null;
 const person = (id) => state && state.people.find((p) => p.id === id);
 const me = () => person(adminId);
-const workers = () => state.people.filter((p) => !p.admin);
+const WORKER_RISK_RANK = { danger: 3, watch: 2, gray: 1, ok: 0 };
+const workers = () => state.people.filter((p) => !p.admin).sort((a, b) =>
+  (WORKER_RISK_RANK[b.level] ?? 0) - (WORKER_RISK_RANK[a.level] ?? 0) ||
+  (b.risk ?? 0) - (a.risk ?? 0) || a.name.localeCompare(b.name));
 const paint = (el, level) => { const l = LOOK[level]; el.style.setProperty("--fill", l.fill); el.style.setProperty("--ink2", l.ink); el.style.setProperty("--card", l.card); el.style.setProperty("--cline", l.line); };
 function setHtml(el, h) { if (el && el.dataset.h !== h) { el.innerHTML = h; el.dataset.h = h; } }
 const REDUCE = matchMedia("(prefers-reduced-motion: reduce)");
@@ -3475,6 +3478,7 @@ function applyThermoSnapshot(view) {
         p.offline = d.connection_state !== "online"; p.meshOut = false; p.seenAgo = d.age_seconds || 0;
         p.justDisconnected = !!d.justDisconnected;
         p.sev = p.offline ? 1 : 0; p.level = p.offline ? "gray" : "ok"; p.label = p.offline ? "No signal" : "Awaiting data";
+        p.risk = p.sev * 1000;
         [p.x, p.y] = outdoorSpot(id); p.outdoor = true; p.floor = null;
         p.locationSource = "simulated"; p.place = p.offline ? "Last reported · Outside · simulated grass marker" : "Outside · awaiting device data";
       }
@@ -3488,6 +3492,7 @@ function applyThermoSnapshot(view) {
       : d.risk_state;
     const severity = risk[p.offline ? "unknown" : demoState] || risk.unknown;
     p.sev = severity[0]; p.level = severity[1]; p.label = p.offline ? "No signal" : severity[2];
+    p.risk = severity[0] * 1000 + (Number(sample.assessment && sample.assessment.score) || 0);
     p.air = sample.temperature_c == null ? null : sample.temperature_c * 9 / 5 + 32;
     p.hr = sample.pulse_bpm == null ? null : sample.pulse_bpm;
     p.hrUsual = 70; p.hrExp = 70; p.hrSpread = 8; p.hrState = [p.hr == null ? "sensor" : "ok", "high"];
