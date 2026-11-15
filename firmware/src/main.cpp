@@ -448,11 +448,13 @@ void updateAlerts(thermosafe::HeatState state, uint32_t now, uint32_t stateStart
             break;
         case thermosafe::HeatState::Warning:
             setColor(255, 80, 0);
-            sound = phase%10000 < 600 && (phase%10000)%300 < 150;
+            // Caution and warning are both yellow-family states on the clip.
+            // Keep a single, clearly separated reminder every five seconds.
+            sound = phase % 5000 < 180;
             break;
         case thermosafe::HeatState::Caution:
             setColor(255, 180, 0);
-            sound = phase % 10000 < 140;
+            sound = phase % 5000 < 140;
             break;
         case thermosafe::HeatState::Normal: setColor(0, 255, 0); break;
         default:
@@ -1023,7 +1025,6 @@ void loop() {
     static uint32_t lastDiagnostic = 0, lastLightRead = 0, lastExposureSave = 0, lastWifiDiagnostic = 0;
     static uint32_t stateStartedAt = 0, sequence = 0;
     static int previousMeshDemoMode = -1;
-    static uint32_t yellowDemoBeepUntil = 0;
     static float temperature = NAN, humidity = NAN;
     static float displayedBpm = NAN, bpmForTelemetry = NAN;
     static float lightPercent = NAN;
@@ -1187,7 +1188,6 @@ void loop() {
             testMode = false;
             Serial.println("[LED TEST] Site Manager selected Auto; cleared stale serial test state.");
         }
-        yellowDemoBeepUntil = meshDemo == 2 ? now + 140 : 0;
         previousMeshDemoMode = meshDemo;
     }
     if (HAS_LOCAL_WORKER_SENSORS && meshDemo > 0) {
@@ -1197,7 +1197,7 @@ void loop() {
             displayState = thermosafe::HeatState::Normal;
         } else if (meshDemo == 2) {
             setColor(255, 180, 0);
-            setBuzzer(int32_t(yellowDemoBeepUntil - now) > 0);
+            setBuzzer((now - meshDemoStartedAt.load()) % 5000 < 140);
             displayState = thermosafe::HeatState::Caution;
         } else {
             setColor(255, 0, 0);

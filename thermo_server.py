@@ -340,6 +340,19 @@ class Handler(BaseHTTPRequestHandler):
                 return self.json({"ok": False, "error": "ThermoSafe API returned HTTP %s." % e.code}, 502)
             except (URLError, OSError) as e:
                 return self.json({"ok": False, "error": "ThermoSafe API is unavailable: %s" % e}, 502)
+        if u.path == "/api/thermosafe/weather":
+            api = os.environ.get("THERMOSAFE_API_URL", "http://127.0.0.1:8000").rstrip("/")
+            key = os.environ.get("THERMOSAFE_DASHBOARD_KEY", "").strip()
+            if not key:
+                return self.json({"ok": False, "error": "THERMOSAFE_DASHBOARD_KEY is not configured for the dashboard bridge."}, 503)
+            req = Request(api + "/v1/weather", headers={"X-Dashboard-Key": key, "Accept": "application/json"})
+            try:
+                with urlopen(req, timeout=6) as response:
+                    return self.send(response.status, response.read(), "application/json")
+            except HTTPError as e:
+                return self.json({"ok": False, "error": "ThermoSafe API returned HTTP %s." % e.code}, 502)
+            except (URLError, OSError) as e:
+                return self.json({"ok": False, "error": "ThermoSafe weather is unavailable: %s" % e}, 502)
         if u.path == "/api/devices":
             return self.json(device_list(time.time()))
         if u.path == "/api/calls":
