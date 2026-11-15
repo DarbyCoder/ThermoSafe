@@ -411,7 +411,7 @@ body.clipmode .clip { flex: 1; max-width: 480px; width: 100%; margin: 0 auto; }
 .chat { display: flex; flex-direction: column; min-height: 0; max-height: inherit; height: min(560px, calc(100vh - 110px)); }
 .chat-top { flex: none; display: flex; align-items: center; gap: 10px; padding: 12px 10px 12px 14px; border-bottom: 1px solid var(--line-2); }
 .chat-top b { font-family: var(--display); font-size: 16px; }
-.tav { width: 30px; height: 30px; border-radius: 50%; flex: none; display: grid; place-items: center; font-family: var(--display); font-weight: 700; font-size: 14px; color: var(--white); background: linear-gradient(135deg, #2563EB, #7C3AED); }
+.tav { width: 30px; height: 30px; border-radius: 50%; flex: none; font-size: 0; color: transparent; background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' gradientUnits='userSpaceOnUse' x1='22' x2='78' y1='0' y2='0'><stop offset='0' stop-color='%2314966E'/><stop offset='.3' stop-color='%2314966E'/><stop offset='.4' stop-color='%23E0A21E'/><stop offset='.5' stop-color='%23E2472E'/><stop offset='.6' stop-color='%23E0A21E'/><stop offset='.72' stop-color='%2314966E'/><stop offset='1' stop-color='%2314966E'/></linearGradient></defs><circle cx='50' cy='50' r='50' fill='%2315161A'/><path d='M22 52H38L43 44L48 58L54 32L60 66L65 52H78' fill='none' stroke='url(%23g)' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/></svg>") center / cover no-repeat; }
 .keyrow { flex: none; display: flex; gap: 6px; padding: 10px 14px; background: var(--bg); border-bottom: 1px solid var(--line-2); }
 .keyrow input { flex: 1; min-width: 0; height: 38px; border: 1px solid var(--line); border-radius: 10px; padding: 0 12px; font: inherit; background: var(--panel); color: var(--ink); }
 .keyrow .btn { height: 38px; padding: 0 14px; }
@@ -843,7 +843,7 @@ body[data-beat="danger"] .legend > span:nth-child(3) .dot { animation: beat-pop 
       <span class="livechip" id="livechip" hidden></span>
       <button class="hbtn" id="clip-btn" aria-pressed="false" aria-label="Worker's view"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>Worker</button>
       <button class="hbtn" id="phone-btn" aria-pressed="false"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M10.5 18.5h3"/></svg><span>Phone</span></button>
-      <button class="hbtn ask" id="ask-btn" aria-pressed="false"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg>Thermo</button>
+      <button class="hbtn ask" id="ask-btn" aria-pressed="false"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4.5h12a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3h-8L6 19.8V16.5a3 3 0 0 1-3-3v-6a3 3 0 0 1 3-3z"/></svg>Thermo</button>
       <button class="hbtn" id="about-btn">About</button>
       <button class="demo-btn" id="demo-btn" aria-expanded="false" aria-controls="demo-pop">Demo</button>
     </div>
@@ -885,7 +885,7 @@ body[data-beat="danger"] .legend > span:nth-child(3) .dot { animation: beat-pop 
       <div class="bcard" id="bcard" data-nodrag hidden></div>
       <aside class="clipdock askdock" id="askdock" data-nodrag hidden aria-label="Thermo">
         <div class="chat">
-          <div class="chat-top"><span class="tav" aria-hidden="true">T</span><b>Thermo</b><span class="grow"></span><button class="x" data-act="ask-key" aria-label="Key" style="width:32px;height:32px"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M15 8l2 2"/></svg></button><button class="x" data-act="close-ask" aria-label="Close" style="width:32px;height:32px"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
+          <div class="chat-top"><span class="tav" aria-hidden="true"></span><b>Thermo</b><span class="grow"></span><button class="x" data-act="ask-key" aria-label="Key" style="width:32px;height:32px"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M15 8l2 2"/></svg></button><button class="x" data-act="close-ask" aria-label="Close" style="width:32px;height:32px"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
           <form class="keyrow" id="ask-keyrow" hidden><input id="ask-key" type="password" placeholder="Paste key" autocomplete="off" aria-label="Key"><button class="btn dark" type="submit">Save</button></form>
           <div class="thread" id="ask-thread" aria-live="polite"></div>
           <div class="chips2" id="ask-chips">
@@ -2754,11 +2754,11 @@ async function askGemini(q) {
   if (!text) throw new Error("Gemini sent an empty answer.");
   return text;
 }
-const bubble = (text, me, err) => `<div class="msg${me ? " me" : ""}${err ? " err" : ""}">${me ? "" : `<span class="tav" aria-hidden="true">T</span>`}<div class="bub">${esc(text)}</div></div>`;
+const bubble = (text, me, err) => `<div class="msg${me ? " me" : ""}${err ? " err" : ""}">${me ? "" : `<span class="tav" aria-hidden="true"></span>`}<div class="bub">${esc(text)}</div></div>`;
 function renderThread(pending) {
   const t = $("ask-thread");
   t.innerHTML = bubble("Ask me about your crew.", false) + askLog.slice(-8).map((m) => bubble(m.q, true) + bubble(m.a, false, m.err)).join("") +
-    (pending ? bubble(pending, true) + `<div class="msg"><span class="tav" aria-hidden="true">T</span><div class="bub"><span class="dots" aria-label="Thinking"><i></i><i></i><i></i></span></div></div>` : "");
+    (pending ? bubble(pending, true) + `<div class="msg"><span class="tav" aria-hidden="true"></span><div class="bub"><span class="dots" aria-label="Thinking"><i></i><i></i><i></i></span></div></div>` : "");
   t.scrollTop = t.scrollHeight;
 }
 async function ask(q) {
