@@ -1,13 +1,13 @@
-<!doctype html>
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Beacon</title>
+<title>ThermoSafe</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Urbanist:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 body { margin: 0; }
 /* Layout: Nick's laptop layout. Risk list on the left, explorable map on the right. Tap a worker for readings; Locate pulls up the route diagram. */
@@ -106,6 +106,7 @@ svg.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor;
 .mapv.drag { cursor: grabbing; }
 .world { position: absolute; left: 50%; top: 50%; transform-origin: 0 0; transition: transform 450ms cubic-bezier(.2, .7, .2, 1); }
 .mapv.drag .world, .mapv.drag .pin { transition: none !important; }
+.mapv.moving:not(.drag) .world { pointer-events: none; }
 .world > .sat { position: absolute; left: 0; top: 0; }
 .world > .trail, .world > .trail svg { position: absolute; left: 0; top: 0; pointer-events: none; display: block; max-width: none; }
 .log li.tap { cursor: pointer; border-radius: 6px; margin-left: -6px; padding-left: 6px; }
@@ -117,7 +118,7 @@ svg.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor;
 .bld[data-bld] { cursor: pointer; }
 .bld[data-bld]:hover, .bld.picked { fill: rgba(255, 255, 255, 0.22); stroke: #fff; stroke-width: 2; }
 .bld.ilc { fill: rgba(37, 99, 235, 0.18); stroke: #fff; stroke-width: 2; }
-.blab { font-family: var(--font); font-weight: 600; font-size: var(--lab, 12px); fill: #fff; text-anchor: middle; dominant-baseline: middle; paint-order: stroke; stroke: rgba(10, 14, 12, 0.8); stroke-width: 3px; stroke-linejoin: round; pointer-events: none; }
+.blab { transition: font-size 450ms cubic-bezier(.2, .7, .2, 1); font-family: var(--font); font-weight: 600; font-size: var(--lab, 12px); fill: #fff; text-anchor: middle; dominant-baseline: middle; paint-order: stroke; stroke: rgba(10, 14, 12, 0.8); stroke-width: 3px; stroke-linejoin: round; pointer-events: none; }
 .blab.ilc { font-weight: 700; }
 .mapv.far .blab:not(.ilc) { display: none; }
 .attrib { position: absolute; right: 76px; bottom: 6px; z-index: 4; font-size: 10px; color: #fff; text-shadow: 0 0 3px #000; pointer-events: auto; max-width: calc(100% - 96px); text-align: right; }
@@ -147,6 +148,12 @@ svg.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor;
 .zoom button:hover { background: var(--hover); }
 .zoom button[aria-pressed="true"] { background: var(--ink); color: var(--white); border-color: var(--ink); }
 .sat img { transition: filter .8s ease; }
+/* story: slow, even camera moves, and the map dims while the crew resets */
+.mapv.story .world, .mapv.story .pin, .mapv.story .blab { transition-duration: 1.4s, var(--move), var(--move); transition-timing-function: cubic-bezier(.4, 0, .2, 1), linear, linear; }
+.mapv.story .world, .mapv.story .blab { transition-duration: 1.4s; transition-timing-function: cubic-bezier(.4, 0, .2, 1); }
+.world { transition-property: transform, opacity; }
+.mapv.resetting .world { opacity: .35; }
+.ctext { transition: opacity .25s ease; }
 .mapv.night .sat img { filter: brightness(.38) saturate(.5) contrast(1.15); }
 .mapv.night .bld { stroke: rgba(255, 214, 140, .45); }
 .mapv.night .bld.ilc { fill: rgba(255, 196, 90, .22); stroke: rgba(255, 214, 140, .95); }
@@ -176,7 +183,7 @@ svg.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor;
 .banner .btn.go { background: var(--white); border: 0; }
 .btn.check { width: 44px; padding: 0; background: var(--ok); color: var(--ok-ink); animation: pop-in .3s cubic-bezier(.2, .7, .2, 1); }
 .btn.check svg { width: 22px; height: 22px; stroke-width: 3.2; }
-@keyframes pop-in { from { transform: scale(.4); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes pop-in { from { transform: scale(.9); opacity: 0; } to { transform: none; opacity: 1; } }
 .near { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; white-space: nowrap; }
 .banner .near { color: #D5D9D2; }
 .pop .near { color: var(--ink-2); }
@@ -392,13 +399,50 @@ body.clipmode .clip { flex: 1; max-width: 480px; width: 100%; margin: 0 auto; }
 .share .qr svg { width: 100%; height: 100%; display: block; }
 .share p { margin: 0; font-size: 12px; color: var(--ink-2); line-height: 1.4; }
 .share code { font-size: 11px; word-break: break-all; color: var(--ink); }
+.sunchip { margin-left: 6px; display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 700; vertical-align: 1px; font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.sunchip svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.2; }
+.sunchip.u1 { color: #8A6D00; } .sunchip.u2 { color: #C25E00; } .sunchip.u3 { color: var(--danger); }
 .bat { margin-left: 6px; display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 700; color: #A66A00; vertical-align: 1px; }
 .bat svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.2; }
 .bat.dead { color: var(--danger); }
+.hbtn.ask { color: var(--you); border-color: #BFD0FA; }
+.hbtn.ask[aria-pressed="true"] { background: var(--you); color: var(--white); border-color: var(--you); }
+.askdock { background: var(--panel); padding: 0; border-radius: 20px; width: 340px; display: flex; flex-direction: column; overflow: hidden; }
+.chat { display: flex; flex-direction: column; min-height: 0; max-height: inherit; height: min(560px, calc(100vh - 110px)); }
+.chat-top { flex: none; display: flex; align-items: center; gap: 10px; padding: 12px 10px 12px 14px; border-bottom: 1px solid var(--line-2); }
+.chat-top b { font-family: var(--display); font-size: 16px; }
+.tav { width: 30px; height: 30px; border-radius: 50%; flex: none; display: grid; place-items: center; font-family: var(--display); font-weight: 700; font-size: 14px; color: var(--white); background: linear-gradient(135deg, #2563EB, #7C3AED); }
+.keyrow { flex: none; display: flex; gap: 6px; padding: 10px 14px; background: var(--bg); border-bottom: 1px solid var(--line-2); }
+.keyrow input { flex: 1; min-width: 0; height: 38px; border: 1px solid var(--line); border-radius: 10px; padding: 0 12px; font: inherit; background: var(--panel); color: var(--ink); }
+.keyrow .btn { height: 38px; padding: 0 14px; }
+.thread { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 14px; }
+.msg { display: flex; gap: 8px; align-items: flex-end; max-width: 92%; }
+.msg.me { align-self: flex-end; flex-direction: row-reverse; }
+.msg .tav { width: 24px; height: 24px; font-size: 11px; }
+.bub { padding: 9px 12px; border-radius: 16px; font-size: 14px; line-height: 1.4; white-space: pre-wrap; overflow-wrap: anywhere; }
+.msg .bub { background: var(--bg); color: var(--ink); border-bottom-left-radius: 4px; }
+.msg.me .bub { background: var(--you); color: var(--white); border-bottom-left-radius: 16px; border-bottom-right-radius: 4px; }
+.msg.err .bub { background: var(--danger-card); }
+.dots { display: inline-flex; gap: 4px; padding: 4px 0; }
+.dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); animation: dot 1s ease-in-out infinite; }
+.dots i:nth-child(2) { animation-delay: .15s; } .dots i:nth-child(3) { animation-delay: .3s; }
+@keyframes dot { 0%, 80%, 100% { transform: translateY(0); opacity: .4; } 40% { transform: translateY(-4px); opacity: 1; } }
+.chips2 { flex: none; display: flex; gap: 6px; padding: 0 14px 10px; overflow-x: auto; scrollbar-width: none; }
+.chips2::-webkit-scrollbar { display: none; }
+.chips2 button { flex: none; height: 32px; padding: 0 12px; border: 1px solid #BFD0FA; border-radius: 999px; background: var(--panel); color: var(--you); font-weight: 600; font-size: 12px; white-space: nowrap; }
+.chips2 button:hover { background: #EEF3FE; }
+.askrow { flex: none; display: flex; align-items: center; gap: 6px; margin: 0 14px 14px; padding: 4px 4px 4px 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); }
+.askrow:focus-within { border-color: var(--you); box-shadow: 0 0 0 3px rgba(37, 99, 235, .15); }
+.askrow input { flex: 1; min-width: 0; height: 36px; border: 0; padding: 0; font: inherit; font-size: 14px; background: none; color: var(--ink); outline: none; }
+.askrow button { width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; background: var(--you); color: var(--white); display: grid; place-items: center; }
+.askrow button:hover { filter: brightness(1.1); }
+@media (prefers-reduced-motion: reduce) { .dots i { animation: none; opacity: .7; } }
 .livetag { margin-left: 6px; font-size: 10px; font-weight: 700; letter-spacing: .04em; padding: 1px 6px; border-radius: 999px; background: var(--you); color: var(--white); vertical-align: 2px; }
 .livechip { font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: 999px; background: var(--you); color: var(--white); }
 @media (max-width: 760px) {
   .clipdock { position: fixed; inset: auto 0 0 0; width: auto; max-height: 85%; border-radius: 24px 24px 0 0; z-index: 55; padding-bottom: max(10px, env(safe-area-inset-bottom, 0px)); }
+  .askdock { padding-bottom: 0; }
+  .chat { height: min(560px, 80vh); }
   .mapv.docked .pop { right: 16px; }
   .mapv.docked .topstack { left: 50%; max-width: calc(100% - 32px); }
 }
@@ -409,6 +453,7 @@ body.clipmode .clip { flex: 1; max-width: 480px; width: 100%; margin: 0 auto; }
   .play { height: 36px; padding: 0 12px 0 10px; font-size: 13px; }
   .views button { padding: 3px 8px; }
   .views button span { font-size: 13px; }
+  .legend { gap: 6px; width: 100%; }
   .legend { gap: 6px; width: 100%; }
   .legend > span:not(.livechip) { display: none; }
   .hbtn, .demo-btn { height: 32px; padding: 0 9px; font-size: 12px; }
@@ -446,28 +491,360 @@ body.clipmode .clip { flex: 1; max-width: 480px; width: 100%; margin: 0 auto; }
   .pop, .locate { animation: none; }
 }
 </style>
+<style id="theme">
+/* ===== ThermoSafe theme: logo palette, Nixtio "Roam" layout (dark rounded map, warm panel, white cards) ===== */
+:root {
+  --bg: #F6F5F0; --frame: #E9E7DF; --panel: #FFFFFF; --ink: #15161A; --ink-2: #4B4D52; --ink-3: #7A7C80;
+  --line: #E2E0D8; --line-2: #EEECE5; --edge: #CFCCC2; --hover: #F1EFE8;
+  --brand: #14966E; --brand-ink: #FFFFFF; --brand-soft: #E1F2EA;
+  --ok: #14966E; --ok-ink: #FFFFFF; --ok-card: #FFFFFF; --ok-line: #E2E0D8;
+  --watch: #E0A21E; --watch-ink: #15161A; --watch-card: #FFF8E6; --watch-line: #F0D48C;
+  --danger: #E2472E; --danger-ink: #FFFFFF; --danger-card: #FDEBE7; --danger-line: #F2B3A6;
+  --gray: #A4A39C; --gray-ink: #15161A; --gray-card: #F3F2EC; --gray-line: #DAD8CF;
+  --cold: #4F86E0; --alert-btn: #E2472E; --you: #14966E; --map: #1C1E1C;
+  --night: #1E1F1D; --glass: rgba(24, 26, 24, .58); --glass-line: rgba(255, 255, 255, .14);
+  --plate: rgba(255, 255, 255, .62); --plate-on: rgba(255, 255, 255, .97); --plate-line: #C9C6BC;
+  --display: Urbanist, Inter, system-ui, sans-serif;
+  --font: Inter, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  --r: 22px;
+}
+body { background: var(--frame); }
+.num, .counts b, .kv b, .stat b, .dir .big, .cread b, .vrow .now { font-family: var(--display); }
+
+/* header: logo left, quiet pill controls */
+.hdr { background: var(--bg); border-bottom: 0; min-height: 64px; }
+.hdr h1 { gap: 0; }
+.hdr h1 .logo { display: block; height: 38px; width: auto; }
+.views { border: 0; background: var(--frame); border-radius: 999px; padding: 4px; }
+.views button { border-radius: 999px; padding: 4px 14px; }
+.views button[aria-pressed="true"] { background: var(--night); }
+.views button[aria-pressed="true"] small { color: #B9B8B0; }
+.hbtn, .demo-btn { border-radius: 999px; border: 1px solid var(--line); background: var(--panel); }
+.demo-btn { border-style: dashed; border-color: var(--edge); }
+.hbtn[aria-pressed="true"]:not(#sound-btn) { background: var(--night); border-color: var(--night); }
+.play { background: var(--brand); color: var(--brand-ink); box-shadow: 0 6px 18px rgba(20, 150, 110, .3); }
+.play[aria-pressed="true"] { background: var(--night); }
+.dot { box-shadow: 0 0 0 3px var(--bg); }
+.demo-pop { border-radius: 20px; border: 0; box-shadow: 0 18px 40px rgba(21, 22, 26, .18); }
+.demo-pop button.d { border-radius: 14px; border: 0; background: var(--bg); }
+.speed button { border-radius: 999px; }
+.speed button[aria-pressed="true"] { background: var(--night); border-color: var(--night); }
+
+/* the frame: map as a big rounded tile, panel on the right */
+.main { background: var(--frame); gap: 12px; padding: 0 12px 12px; }
+.mapv { order: 1; border-radius: 28px; background: var(--map); box-shadow: 0 10px 30px rgba(21, 22, 26, .18); }
+.rail { order: 2; background: var(--bg); border-right: 0; border-radius: 28px; flex-basis: 380px; }
+.rail-head { padding: 16px 14px 8px 20px; }
+.rail-head h2 { font-family: var(--display); font-size: 22px; font-weight: 600; letter-spacing: -.01em; }
+.ctl { border-radius: 999px; border: 1px solid var(--line); background: var(--panel); height: 38px; }
+.counts > div { background: var(--panel); border-radius: 16px; }
+.counts b { font-weight: 700; font-size: 26px; }
+.privrow .switch { background: var(--panel); border-color: var(--line); }
+.switch[aria-pressed="true"] i { background: var(--brand); }
+
+/* worker cards: white tiles, status by avatar + a slim edge */
+.wcard { background: var(--card); border-radius: 18px; padding: 12px 14px; box-shadow: 0 1px 2px rgba(21, 22, 26, .05); position: relative; }
+.wcard:hover { filter: none; box-shadow: 0 6px 18px rgba(21, 22, 26, .08); }
+.wcard.sel { box-shadow: inset 0 0 0 2px var(--ink); }
+.wcard .nm { font-family: var(--display); font-weight: 700; font-size: 16px; }
+.wcard .vals b { font-family: var(--display); font-weight: 700; }
+.av { font-family: var(--display); }
+.livetag, .livechip, .conn.live { background: var(--brand); }
+
+/* activity log: the dark "latest journeys" card */
+.log { margin: 4px 12px 12px; border-top: 0; border-radius: 22px; background: var(--night); color: #EDECE6; }
+.log-h { color: #fff; font-family: var(--display); font-size: 16px; padding: 14px 16px 6px; }
+.log-h small, .log li time, .log li.none, .lstat { color: #9C9B94; }
+.lstat b { color: #fff; }
+.log ol { padding: 0 12px 14px 16px; }
+.log li { color: #CFCEC7; }
+.log li.lv-danger span { color: #FF7A62; }
+.log li.lv-go span { color: #5FD3A6; }
+.log li.lv-ok span { color: #5FD3A6; }
+.log li.tap:hover { background: rgba(255, 255, 255, .07); }
+.log li.on { background: rgba(20, 150, 110, .25); }
+.sumb { background: transparent; border-color: rgba(255, 255, 255, .18); color: #5FD3A6; border-radius: 999px; }
+.sumb:hover { background: rgba(255, 255, 255, .08); }
+.sumline { background: rgba(20, 150, 110, .22); color: #fff; margin: 0 12px 8px 16px; border-radius: 12px; }
+
+/* map chrome: glass circles */
+.zoom { right: 18px; bottom: 18px; }
+.zoom button { width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--glass-line); background: var(--glass); color: #fff; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: none; }
+.zoom button:hover { background: rgba(24, 26, 24, .78); }
+.zoom button[aria-pressed="true"] { background: var(--brand); border-color: var(--brand); }
+.attrib { opacity: .75; }
+.sat img { filter: saturate(.75) brightness(.92); }
+.bld { stroke: rgba(255, 255, 255, .45); }
+.bld[data-bld]:hover, .bld.picked { fill: rgba(255, 255, 255, .18); }
+.bld.ilc { fill: rgba(20, 150, 110, .28); stroke: #7EE0BC; }
+.pin { border-width: 3px; box-shadow: 0 4px 12px rgba(0, 0, 0, .45); }
+.pin.sel { box-shadow: 0 0 0 3px var(--brand), 0 4px 12px rgba(0, 0, 0, .45); }
+.pin.you { background: var(--night); color: #fff; border: 2px solid #fff; }
+.pin .fl { background: var(--watch); color: var(--watch-ink); }
+.pin .tag { background: var(--panel); color: var(--ink); border-radius: 999px; padding: 4px 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, .3); }
+.bcard { border-radius: 20px; padding: 14px 16px; box-shadow: 0 12px 30px rgba(0, 0, 0, .35); }
+.bcard h3 { font-weight: 700; }
+.lnk { border-radius: 999px; border-color: var(--line); background: var(--bg); }
+
+/* banners and pills on the map */
+.banner { background: var(--glass); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid var(--glass-line); border-radius: 999px; padding: 6px 6px 6px 16px; }
+.btn { border-radius: 999px; }
+.btn.dark { background: var(--night); }
+.btn.go { border-color: var(--line); }
+.x { border-radius: 50%; background: var(--bg); }
+.ffpill { background: var(--brand); box-shadow: 0 10px 28px rgba(20, 150, 110, .4); font-family: var(--display); }
+.mapv.fast::after { box-shadow: inset 0 0 0 4px var(--brand), inset 0 0 70px rgba(20, 150, 110, .3); border-radius: 28px; }
+.caption { border: 0; border-radius: 20px; box-shadow: 0 14px 36px rgba(0, 0, 0, .35); }
+.caption .stepn { background: var(--brand); font-family: var(--display); }
+.caption .fast { color: var(--brand); }
+
+/* readings card: the floating white "station" card */
+.pop { border-radius: 26px; padding: 14px 16px 16px 20px; box-shadow: 0 18px 44px rgba(0, 0, 0, .38); }
+.pop-head h2 { font-family: var(--display); font-weight: 700; font-size: 20px; }
+.pill { border-radius: 999px; }
+.vrow { border-top-color: var(--line-2); }
+.vrow .now { font-weight: 700; }
+.bar .bands { border-radius: 999px; }
+.why-plot { background: var(--bg); border-radius: 14px; }
+.ev { background: var(--line-2); }
+
+/* locate: rounded sheet, warm side panel */
+.locate { border-radius: 28px; box-shadow: 0 18px 50px rgba(0, 0, 0, .4); }
+.loc-info { background: var(--bg); }
+.loc-head h2 { font-family: var(--display); font-weight: 700; font-size: 22px; }
+.arrow-wrap { background: var(--panel); box-shadow: 0 6px 18px rgba(21, 22, 26, .08); }
+.arrow { color: var(--brand); }
+.loc-view { border-radius: 22px; margin: 12px 12px 12px 0; }
+.floor-num { border-radius: 50%; }
+
+/* about */
+.about { background: rgba(21, 22, 26, .55); backdrop-filter: blur(4px); }
+.about-in { background: var(--bg); border-radius: 28px; }
+.about h2 { font-family: var(--display); font-weight: 800; letter-spacing: -.02em; }
+.stat { background: var(--panel); border-radius: 18px; }
+.stat b { color: var(--ink); }
+.stats .stat:nth-child(1) b, .stats .stat:nth-child(2) b { color: var(--danger); }
+.stats .stat:nth-child(3) b { color: var(--brand); }
+.steps > div { background: var(--panel); border: 0; border-radius: 18px; }
+.steps > div b::before { color: var(--brand); }
+.cmp tr.us td { background: var(--brand-soft); }
+.cmp .yes { color: var(--brand); }
+
+/* worker's clip view */
+.clipdock { background: var(--night); border-radius: 30px; }
+.clip { border-radius: 22px; background: var(--bg); }
+.clip-top b { font-family: var(--display); font-weight: 700; }
+.cstat { border-radius: 18px; }
+.cstat h3 { font-family: var(--display); font-weight: 800; }
+.cread > div { background: var(--panel); border-radius: 14px; }
+.chelp { background: var(--brand); border-radius: 16px; }
+.okbtn { border-radius: 999px; background: var(--panel); }
+.sos { border-radius: 20px; }
+
+@media (max-width: 760px) {
+  .main { padding: 0 8px 8px; gap: 8px; }
+  .mapv { border-radius: 22px; }
+  .rail { border-radius: 22px; }
+  .hdr h1 .logo { height: 30px; }
+  .loc-view { margin: 0 12px 12px; }
+  .locate { border-radius: 0; }
+}
+
+/* animated logo: the pulse line re-traces like a heart monitor */
+.hdr h1 svg.logo { aspect-ratio: 1138 / 580; overflow: visible; }
+.logo path { fill: none; stroke: url(#lg); stroke-width: 13; stroke-linecap: round; stroke-linejoin: round; }
+.logo .lg-line { stroke-dasharray: 100; stroke-dashoffset: 100; animation: lg-trace 4.5s linear infinite; }
+@keyframes lg-trace { 0% { stroke-dashoffset: 100; opacity: 1; } 38% { stroke-dashoffset: 0; opacity: 1; } 86% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .logo .lg-line { animation: none; stroke-dashoffset: 0; } }
+
+/* ===== Phone View: the app wrapped in a phone outline on black ===== */
+body.phone { background: #000; }
+body.phone .app { width: 394px; max-width: calc(100% - 16px); height: min(852px, calc(100% - 32px)); margin: 16px auto; border: 2px solid #A9A9A9; border-radius: 48px; overflow: hidden; transform: translateZ(0); background: var(--frame); box-shadow: 0 0 0 1px #000, 0 30px 80px rgba(255, 255, 255, .06); }
+body.phone .hdr { padding-top: 22px; }
+body.phone .about { left: 50%; right: auto; top: 16px; bottom: auto; width: 394px; max-width: calc(100% - 16px); height: min(852px, calc(100% - 32px)); transform: translateX(-50%); border-radius: 48px; padding: 16px 10px; }
+body.phone .locate, body.phone .clipdock { border-radius: 0 0 46px 46px; }
+body.phone .clipdock { position: fixed; inset: auto 0 0 0; width: auto; max-height: 85%; border-radius: 24px 24px 0 0; z-index: 55; padding-bottom: max(10px, env(safe-area-inset-bottom, 0px)); }
+body.phone .mapv.docked .pop { right: 16px; }
+body.phone .mapv.docked .topstack { left: 50%; max-width: calc(100% - 32px); }
+body.phone .hdr { gap: 8px; padding-block: 8px; }
+body.phone .hdr-left { gap: 8px; width: 100%; justify-content: space-between; }
+body.phone .play { height: 36px; padding: 0 12px 0 10px; font-size: 13px; }
+body.phone .views button { padding: 3px 8px; }
+body.phone .views button span { font-size: 13px; }
+body.phone .legend { gap: 6px; width: 100%; }
+body.phone .legend > span:not(.livechip) { display: none; }
+body.phone .hbtn, body.phone .demo-btn { height: 32px; padding: 0 9px; font-size: 12px; }
+body.phone .mapv { height: min(540px, 68svh); min-height: 380px; }
+body.phone .pop { max-height: 62%; }
+body.phone .why { grid-template-columns: minmax(0, 1fr); }
+body.phone .log { max-height: none; }
+body.phone .about-in { padding: 22px 18px; }
+body.phone .about h2 { font-size: 22px; }
+body.phone .attrib { right: 16px; bottom: 66px; max-width: calc(100% - 32px); }
+body.phone .main { flex-direction: column; flex-wrap: nowrap; }
+body.phone .mapv { order: -1; flex: 0 0 auto; height: 540px; }
+body.phone .rail { flex: 1 0 auto; max-width: none; border-right: 0; overflow: visible; }
+body.phone .rail.min { flex: 1 0 auto; }
+body.phone .list { overflow: visible; }
+body.phone .pop { right: 16px; bottom: 76px; max-height: calc(100% - 92px); overflow-y: auto; }
+body.phone .zoom { flex-direction: row; right: auto; left: 16px; bottom: 16px; }
+body.phone .ffpill { padding: 8px 14px; }
+body.phone .ffpill b { font-size: 22px; }
+body.phone .vrow { grid-template-columns: 1fr auto; gap: 6px 12px; }
+body.phone .vrow .rng { grid-column: 1 / -1; grid-row: 2; }
+body.phone .vrow .lvl { justify-content: flex-end; }
+body.phone .locate {
+    position: fixed; inset: 0; border-radius: 0; z-index: 50; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr);
+    padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+body.phone .loc-info { gap: 12px; }
+body.phone .dir { flex-direction: row; align-items: center; gap: 16px; }
+body.phone .dir .big { font-size: 38px; }
+body.phone .loc-view { margin: 0 12px 12px; border-radius: 12px; }
+body.phone .main { padding: 0 8px 8px; gap: 8px; }
+body.phone .mapv { border-radius: 22px; }
+body.phone .rail { border-radius: 22px; }
+body.phone .hdr h1 .logo { height: 30px; }
+body.phone .loc-view { margin: 0 12px 12px; }
+body.phone .locate { border-radius: 0; }
+@media (max-width: 759.98px) { #phone-btn { display: none; } }
+
+/* Worker's view as a phone cutout (default view) */
+.clipdock { width: 300px; height: min(610px, calc(100% - 32px)); max-height: none; overflow: hidden; display: flex; padding: 9px; background: #000; border: 2px solid #A9A9A9; border-radius: 46px; box-shadow: 0 18px 44px rgba(0, 0, 0, .5); }
+.clipdock .clip { flex: 1; min-height: 0; overflow-y: auto; border-radius: 35px; padding: 18px 14px 14px; scrollbar-width: none; }
+.mapv.docked .pop { right: 336px; }
+@media (max-width: 760px) { .clipdock { height: auto; border: 0; } .clipdock .clip { border-radius: 20px; } }
+/* Phone View: all four buttons on one row; Worker's view fills the phone */
+body.phone .legend { flex-wrap: nowrap; gap: 5px; }
+body.phone .legend .hbtn, body.phone .legend .demo-btn { padding: 0 8px; gap: 4px; white-space: nowrap; flex: 0 1 auto; }
+body.phone .clipdock { position: fixed; inset: 0; width: auto; height: auto; max-height: none; border: 0; border-radius: 0; padding: 0; background: var(--bg); box-shadow: none; z-index: 55; }
+body.phone .clipdock .clip { border-radius: 0; padding: 30px 18px 22px; }
+
+.askdock { background: var(--panel); border: 0; padding: 0; width: 340px; height: auto; max-height: calc(100% - 32px); border-radius: 20px; }
+body.phone .askdock { border-radius: 0; height: auto; max-height: none; }
+/* beat cycle: logo traces, then Okay / Questionable / In danger pop in turn, then the logo goes again (driven by body[data-beat]) */
+.logo .lg-line { animation: none; stroke-dashoffset: 0; }
+body[data-beat="logo"] .logo .lg-line { animation: lg-draw 1.7s linear both; }
+body[data-beat="fade"] .logo .lg-line { opacity: 0; transition: opacity .35s linear; }
+@keyframes lg-draw { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
+.legend > span:nth-child(1) .dot { --ring: rgba(20, 150, 110, .6); }
+.legend > span:nth-child(2) .dot { --ring: rgba(224, 162, 30, .65); }
+.legend > span:nth-child(3) .dot { --ring: rgba(226, 71, 46, .6); }
+body[data-beat="ok"] .legend > span:nth-child(1) .dot,
+body[data-beat="watch"] .legend > span:nth-child(2) .dot,
+body[data-beat="danger"] .legend > span:nth-child(3) .dot { animation: beat-pop .8s ease-out both; }
+@keyframes beat-pop { 0% { transform: scale(1); box-shadow: 0 0 0 0 var(--ring); } 30% { transform: scale(1.3); box-shadow: 0 0 0 3px var(--ring); } 60% { transform: scale(1); } 100% { transform: scale(1); box-shadow: 0 0 0 12px transparent; } }
+
+/* status change: shake the worker's card and the counter */
+.shake-watch { animation: shake-watch .5s ease-in-out both; }
+.shake-danger { animation: shake-danger 1.2s ease-in-out both; }
+@keyframes shake-watch { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-4px); } 40% { transform: translateX(4px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(2px); } }
+@keyframes shake-danger {
+  0%, 100% { transform: translateX(0) rotate(0); }
+  8%, 24%, 40%, 56%, 72% { transform: translateX(-8px) rotate(-.6deg); }
+  16%, 32%, 48%, 64%, 80% { transform: translateX(8px) rotate(.6deg); }
+  90% { transform: translateX(-3px) rotate(0); }
+}
+@media (prefers-reduced-motion: reduce) { .shake-watch, .shake-danger { animation: none; } }
+</style>
+<style id="motion">
+/* ===== small-scale motion: press, slide, colour fade, enter/leave, recovery mark. Still for reduced motion. ===== */
+.av { position: relative; }
+.okmark { position: absolute; inset: 0; pointer-events: none; display: none; }
+@media (prefers-reduced-motion: no-preference) {
+  /* 1 press: everything clickable dips to 97% */
+  button:not(.pin) { transition: transform 160ms cubic-bezier(.2, .7, .2, 1); }
+  button:not(.pin):active { transform: scale(.97); }
+  /* 3 status colour fades instead of snapping */
+  button.wcard { transition: transform 160ms cubic-bezier(.2, .7, .2, 1), background-color 200ms ease, box-shadow 200ms ease; }
+  button.av { transition: transform 160ms cubic-bezier(.2, .7, .2, 1), background-color 200ms ease, color 200ms ease, box-shadow 200ms ease; }
+  .av, .pill, .counts b i, .dot, .cstat { transition: background-color 200ms ease, color 200ms ease, box-shadow 200ms ease; }
+  .pin { transition: background-color 200ms ease; }
+  .mapv.story .pin { transition-duration: 200ms; transition-timing-function: ease; }
+  /* 4 panels leave the way they came, a little faster; menus grow from where they were opened */
+  .pop.leaving { animation: rise-out 180ms cubic-bezier(.4, 0, 1, 1) forwards; }
+  @keyframes rise-out { to { transform: translateY(24px); opacity: 0; } }
+  .locate.leaving { animation: pull-out 180ms cubic-bezier(.4, 0, 1, 1) forwards; }
+  @keyframes pull-out { to { transform: translateY(60px); opacity: 0; } }
+  .clipdock.entering { animation: dock-in 200ms cubic-bezier(.2, .7, .2, 1); }
+  .clipdock.leaving { animation: dock-out 180ms cubic-bezier(.4, 0, 1, 1) forwards; }
+  @keyframes dock-in { from { transform: translateY(16px); opacity: 0; } }
+  @keyframes dock-out { to { transform: translateY(16px); opacity: 0; } }
+  .demo-pop { transform-origin: top right; }
+  .demo-pop.entering { animation: grow-in 150ms cubic-bezier(.2, .7, .2, 1); }
+  .demo-pop.leaving { animation: grow-out 120ms cubic-bezier(.4, 0, 1, 1) forwards; }
+  @keyframes grow-in { from { transform: scale(.96); opacity: 0; } }
+  @keyframes grow-out { to { transform: scale(.96); opacity: 0; } }
+  .bcard { transform-origin: bottom center; }
+  .bcard.entering { animation: bcard-in 150ms cubic-bezier(.2, .7, .2, 1); }
+  .bcard.leaving { animation: bcard-out 120ms cubic-bezier(.4, 0, 1, 1) forwards; }
+  @keyframes bcard-in { from { transform: translate(-50%, calc(-100% - 12px)) scale(.96); opacity: 0; } to { transform: translate(-50%, calc(-100% - 12px)) scale(1); opacity: 1; } }
+  @keyframes bcard-out { to { transform: translate(-50%, calc(-100% - 12px)) scale(.96); opacity: 0; } }
+  /* 5 the alert banner drops in from the top edge and leaves the same way */
+  .banner.entering { animation: drop-in 300ms cubic-bezier(.2, .7, .2, 1); }
+  .banner.leaving { animation: drop-out 180ms cubic-bezier(.4, 0, 1, 1) forwards; }
+  @keyframes drop-in { from { transform: translateY(-120%); opacity: 0; } }
+  @keyframes drop-out { to { transform: translateY(-120%); opacity: 0; } }
+  /* 6 About: backdrop fades, the window grows from 96% */
+  .about.entering { animation: fade-in 200ms ease-out; }
+  .about.leaving { animation: fade-out 180ms ease-in forwards; }
+  .about-in { transform-origin: center; }
+  .about.entering .about-in { animation: grow-in 250ms cubic-bezier(.2, .7, .2, 1); }
+  .about.leaving .about-in { animation: grow-out 180ms cubic-bezier(.4, 0, 1, 1) forwards; }
+  @keyframes fade-in { from { opacity: 0; } }
+  @keyframes fade-out { to { opacity: 0; } }
+  /* 8 recovery: a check draws on the avatar, one soft ring */
+  .okmark { display: block; }
+  .okmark svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .okmark circle { fill: none; stroke: var(--ok); stroke-width: 2.5; transform-origin: center; animation: ok-ring 400ms ease-out both; }
+  .okmark path { fill: none; stroke: #fff; stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 20; stroke-dashoffset: 20; animation: ok-draw 320ms 80ms cubic-bezier(.2, .7, .2, 1) forwards; }
+  @keyframes ok-draw { to { stroke-dashoffset: 0; } }
+  @keyframes ok-ring { 0% { transform: scale(.8); opacity: .9; } 100% { transform: scale(1.7); opacity: 0; } }
+}
+</style>
+<style id="locate2">
+/* Locate: time to reach, the route through the floors; positions are drawn every frame, so no CSS position transitions */
+.pin { transition-property: background-color; }
+.marker, .ring { transition: none; }
+.flatmap img { left: 0; top: 0; transform-origin: 0 0; will-change: transform; transition: filter .8s ease; }
+.arrow { transition: color .2s ease; }
+.arrow-wrap { position: relative; }
+.eta-ring { position: absolute; inset: -5px; width: calc(100% + 10px); height: calc(100% + 10px); transform: rotate(-90deg); pointer-events: none; overflow: visible; }
+.eta-ring circle { fill: none; stroke-width: 4; }
+.eta-bg { stroke: var(--line); }
+.eta-fg { stroke: var(--brand, var(--you)); stroke-linecap: round; stroke-dasharray: 289.03; stroke-dashoffset: 289.03; }
+.dir .big { font-variant-numeric: tabular-nums; }
+.dir .sub { font-size: 14px; font-weight: 600; color: var(--ink-3); font-variant-numeric: tabular-nums; margin-top: 4px; }
+.dir .sub:empty { display: none; }
+.r3 { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.r3-halo { fill: none; stroke: rgba(255, 255, 255, .7); stroke-width: 9; stroke-linecap: round; stroke-linejoin: round; }
+.r3-walk { fill: none; stroke: var(--brand, var(--you)); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 2 10; }
+.r3-climb { fill: none; stroke: var(--brand, var(--you)); stroke-width: 6; stroke-linecap: round; filter: drop-shadow(0 0 5px var(--brand, var(--you))); }
+@media (prefers-reduced-motion: no-preference) {
+  .r3-walk { animation: r3-flow .9s linear infinite; }
+  .r3-climb { animation: r3-glow 1.6s ease-in-out infinite; }
+  @keyframes r3-flow { to { stroke-dashoffset: -12; } }
+  @keyframes r3-glow { 50% { opacity: .55; } }
+}
+</style>
 </head>
 <body>
 
 <div class="app">
   <header class="hdr">
     <div class="hdr-left">
-      <h1>Beacon</h1>
+      <h1><svg class="logo" viewBox="431 692 1138 580" role="img" aria-label="ThermoSafe"><defs><linearGradient id="lg" gradientUnits="userSpaceOnUse" x1="437" x2="1497" y1="0" y2="0"><stop offset="0" stop-color="#14966E"/><stop offset=".27" stop-color="#14966E"/><stop offset=".33" stop-color="#E0A21E"/><stop offset=".39" stop-color="#E0A21E"/><stop offset=".43" stop-color="#E2472E"/><stop offset=".5" stop-color="#E2472E"/><stop offset=".535" stop-color="#E0A21E"/><stop offset=".575" stop-color="#14966E"/><stop offset="1" stop-color="#14966E"/></linearGradient></defs><path class="lg-line" pathLength="100" d="M437 849H782L815 808L845 878L882 850L924 708L968 962L1005 849H1497"/><image href="wordmark.png" x="431" y="1060" width="1138" height="212"/></svg></h1>
       <button class="play" id="story-btn" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12.5-7.5z"/></svg><span>Play story</span></button>
-      <button class="hbtn" id="loop-btn" aria-pressed="false" aria-label="Loop the story"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M17 2l3 3-3 3M4 11V9a4 4 0 0 1 4-4h12M7 22l-3-3 3-3M20 13v2a4 4 0 0 1-4 4H4"/></svg></button>
-      <div class="views" role="group" aria-label="View as">
-        <button data-admin="B4" aria-pressed="true"><small>Supervisor</small><span>Hussein</span></button>
-        <button data-admin="B7" aria-pressed="false"><small>Manager</small><span>Solon</span></button>
-      </div>
     </div>
     <div class="legend">
       <span><span class="dot" style="background:var(--ok)"><svg viewBox="0 0 24 24" aria-hidden="true" style="stroke:var(--ok-ink)"><path d="M20 6L9 17l-5-5"/></svg></span>Okay</span>
       <span><span class="dot" style="background:var(--watch)"><svg viewBox="0 0 24 24" aria-hidden="true" style="stroke:var(--watch-ink)"><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg></span>Questionable</span>
       <span><span class="dot" style="background:var(--danger)"><svg viewBox="0 0 24 24" aria-hidden="true" style="stroke:var(--white)"><path d="M18 6L6 18M6 6l12 12"/></svg></span>In danger</span>
       <span class="livechip" id="livechip" hidden></span>
-      <button class="hbtn" id="clip-btn" aria-pressed="false"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>Worker's view</button>
+      <button class="hbtn" id="clip-btn" aria-pressed="false" aria-label="Worker's view"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>Worker</button>
+      <button class="hbtn" id="phone-btn" aria-pressed="false"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M10.5 18.5h3"/></svg><span>Phone</span></button>
+      <button class="hbtn ask" id="ask-btn" aria-pressed="false"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg>Thermo</button>
       <button class="hbtn" id="about-btn">About</button>
-      <button class="hbtn" id="sound-btn" aria-pressed="true" aria-label="Alert sound"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5L6 9H3v6h3l5 4zM16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12"/></svg>Sound</button>
       <button class="demo-btn" id="demo-btn" aria-expanded="false" aria-controls="demo-pop">Demo</button>
     </div>
     <div class="demo-pop" id="demo-pop" hidden>
@@ -476,13 +853,9 @@ body.clipmode .clip { flex: 1; max-width: 480px; width: 100%; margin: 0 auto; }
       <button class="d" id="d-mae" data-demo="mae_cold">Mae gets cold outside</button>
       <button class="d" id="d-dev" data-demo="dev_fall">Dev falls in the lot</button>
       <button class="d" id="d-ana" data-demo="ana_dead">Ana's clip dies</button>
+      <button class="d" id="d-sun" data-demo="dev_sun">Dev in full sun</button>
       <button class="d" id="d-walk" data-demo="walk">Walk me there</button>
       <button class="d" id="d-reset" data-demo="reset">Reset</button>
-      <div class="speed" role="group" aria-label="Speed">Speed
-        <button id="sp-1" data-speed="1" aria-pressed="true">1×</button>
-        <button id="sp-5" data-speed="5" aria-pressed="false">5×</button>
-        <button id="sp-20" data-speed="20" aria-pressed="false">20×</button>
-      </div>
     </div>
   </header>
   <div class="main">
@@ -510,6 +883,20 @@ body.clipmode .clip { flex: 1; max-width: 480px; width: 100%; margin: 0 auto; }
         <button id="z-fit" aria-label="Show everyone"><svg class="i" viewBox="0 0 24 24"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg></button>
       </div>
       <div class="bcard" id="bcard" data-nodrag hidden></div>
+      <aside class="clipdock askdock" id="askdock" data-nodrag hidden aria-label="Thermo">
+        <div class="chat">
+          <div class="chat-top"><span class="tav" aria-hidden="true">T</span><b>Thermo</b><span class="grow"></span><button class="x" data-act="ask-key" aria-label="Key" style="width:32px;height:32px"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M15 8l2 2"/></svg></button><button class="x" data-act="close-ask" aria-label="Close" style="width:32px;height:32px"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
+          <form class="keyrow" id="ask-keyrow" hidden><input id="ask-key" type="password" placeholder="Paste key" autocomplete="off" aria-label="Key"><button class="btn dark" type="submit">Save</button></form>
+          <div class="thread" id="ask-thread" aria-live="polite"></div>
+          <div class="chips2" id="ask-chips">
+            <button type="button" data-q="Who has the most risk right now?">Most risk?</button>
+            <button type="button" data-q="I can take someone off for 30 minutes. Who should I take off?">30 min off: who?</button>
+            <button type="button" data-q="Who has been outside the longest, and how strong is their sun?">Longest outside?</button>
+            <button type="button" data-q="Who is closest to help if something goes wrong on floor 2?">Who covers floor 2?</button>
+          </div>
+          <form class="askrow" id="ask-form"><input id="ask-q" type="text" placeholder="Ask Thermo" autocomplete="off" aria-label="Message"><button type="submit" aria-label="Send"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></form>
+        </div>
+      </aside>
       <aside class="clipdock" id="clipdock" data-nodrag hidden aria-label="What the worker's clip shows"><div class="clip" id="clip-d"></div></aside>
       <div class="attrib" data-nodrag>Imagery © <a href="https://www.esri.com" target="_blank" rel="noopener">Esri</a>, Maxar, Earthstar Geographics · Buildings © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></div>
       <section class="pop" id="pop" data-nodrag hidden></section>
@@ -525,7 +912,7 @@ body.clipmode .clip { flex: 1; max-width: 480px; width: 100%; margin: 0 auto; }
     <button class="x" data-act="close-about" aria-label="Close">
       <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
     </button>
-    <h2 id="about-h">Who's in danger, and how to reach them.</h2>
+    <h2 id="about-h">Statistics that drive our Mission</h2>
     <div class="stats">
       <div class="stat"><b>~40/yr</b><span>US workers killed by heat</span><a href="https://www.bls.gov/opub/ted/2023/36-work-related-deaths-due-to-environmental-heat-exposure-in-2021.htm" target="_blank" rel="noopener">BLS</a></div>
       <div class="stat"><b>50–70%</b><span>of heat deaths: first days on the job</span><a href="https://www.osha.gov/heat" target="_blank" rel="noopener">OSHA</a></div>
@@ -541,7 +928,7 @@ body.clipmode .clip { flex: 1; max-width: 480px; width: 100%; margin: 0 auto; }
     <div class="cmp-wrap"><table class="cmp">
       <thead><tr><th></th><th>Personal normal</th><th>Floor, no beacons</th><th>Sends a coworker</th><th>Cost</th></tr></thead>
       <tbody>
-        <tr class="us"><td>Beacon</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td>~$30 parts</td></tr>
+        <tr class="us"><td>ThermoSafe</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td>~$30 parts</td></tr>
         <tr><td>Blackline G7</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td>~$42/mo</td></tr>
         <tr><td>SlateSafety</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td>~$822</td></tr>
         <tr><td>Apple Watch</td><td class="no">—</td><td class="no">—</td><td class="no">Calls 911</td><td>$250+</td></tr>
@@ -549,14 +936,13 @@ body.clipmode .clip { flex: 1; max-width: 480px; width: 100%; margin: 0 auto; }
     </table></div>
     <div class="steps plain">
       <div><b>Private</b>Safety signals only</div>
-      <div><b>Hidden</b>Location only in alerts</div>
       <div><b>Theirs</b>Workers see their data</div>
     </div>
     <p class="fine">HackUMass XIV · simulated clips · Imagery © Esri, Maxar, Earthstar Geographics · Buildings © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></p>
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+
 <script>
 "use strict";
 
@@ -602,9 +988,147 @@ function feelsLike(T, RH, wind) {
   return null;
 }
 const nearPlace = (x, y) => { const l = nearest(LANDMARKS, x, y); return Math.hypot(l.x - x, l.y - y) < 90 ? l.name : ""; };
-const streetView = (x, y) => { const [la, lo] = toLatLon(x, y); return `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${la.toFixed(6)},${lo.toFixed(6)}`; };
-const gmaps = (x, y, q) => { const [la, lo] = toLatLon(x, y); return q ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q + ", UMass Amherst")}` : `https://www.google.com/maps/search/?api=1&query=${la.toFixed(6)},${lo.toFixed(6)}`; };
 const isInside = (x, y) => x >= 0 && x <= BUILDING.width_m && y >= 0 && y <= BUILDING.depth_m;
+/* ================= walking routes outdoors: around every building and the pond ================= */
+// Campus Pond, traced from the satellite photo (same metres as the buildings)
+const POND = [-12,-42,28,-42,38,-56,37,-80,32,-100,23,-125,21,-145,27,-155,24,-165,19,-180,16,-200,17,-235,17,-262,10,-282,-12,-282,-20,-262,-20,-200,-21,-185,-30,-160,-31,-135,-26,-110,-20,-85,-17,-60];
+const NAV = { c: 3, cols: 0, rows: 0, blk: null, g: null, from: null, stamp: null, gen: 0, cache: new Map() };
+function navBuild() {
+  const c = NAV.c, cols = (NAV.cols = Math.ceil((WORLD.x1 - WORLD.x0) / c)), rows = (NAV.rows = Math.ceil((WORLD.y1 - WORLD.y0) / c));
+  const raw = new Uint8Array(cols * rows);
+  const polys = CAMPUS.map((b) => b[2]).concat([POND, [0, 0, BUILDING.width_m, 0, BUILDING.width_m, BUILDING.depth_m, 0, BUILDING.depth_m]]);
+  for (const p of polys) {
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    for (let i = 0; i < p.length; i += 2) { x0 = Math.min(x0, p[i]); x1 = Math.max(x1, p[i]); y0 = Math.min(y0, p[i + 1]); y1 = Math.max(y1, p[i + 1]); }
+    const i0 = Math.max(0, Math.floor((x0 - WORLD.x0) / c)), i1 = Math.min(cols - 1, Math.floor((x1 - WORLD.x0) / c));
+    const j0 = Math.max(0, Math.floor((y0 - WORLD.y0) / c)), j1 = Math.min(rows - 1, Math.floor((y1 - WORLD.y0) / c));
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+      const px = WORLD.x0 + (i + 0.5) * c, py = WORLD.y0 + (j + 0.5) * c;
+      let inside = false;
+      for (let a = 0, b = p.length - 2; a < p.length; b = a, a += 2) {
+        if ((p[a + 1] > py) !== (p[b + 1] > py) && px < ((p[b] - p[a]) * (py - p[a + 1])) / (p[b + 1] - p[a + 1]) + p[a]) inside = !inside;
+      }
+      if (inside) raw[j * cols + i] = 1;
+    }
+  }
+  // keep a cell's width clear of every wall and the water's edge
+  const blk = (NAV.blk = new Uint8Array(cols * rows));
+  for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
+    const k = j * cols + i;
+    blk[k] = raw[k] || (i > 0 && raw[k - 1]) || (i < cols - 1 && raw[k + 1]) || (j > 0 && raw[k - cols]) || (j < rows - 1 && raw[k + cols]) ? 1 : 0;
+  }
+  NAV.g = new Float32Array(cols * rows); NAV.from = new Int32Array(cols * rows); NAV.stamp = new Uint32Array(cols * rows);
+}
+const navI = (x) => clamp(Math.floor((x - WORLD.x0) / NAV.c), 0, NAV.cols - 1), navJ = (y) => clamp(Math.floor((y - WORLD.y0) / NAV.c), 0, NAV.rows - 1);
+const navX = (i) => WORLD.x0 + (i + 0.5) * NAV.c, navY = (j) => WORLD.y0 + (j + 0.5) * NAV.c;
+function navFree(i, j) {
+  // the nearest open cell: someone standing in a doorway steps out of it first
+  if (!NAV.blk[j * NAV.cols + i]) return [i, j];
+  for (let r = 1; r < 40; r++) {
+    let best = null, bd = Infinity;
+    for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) {
+      if (Math.max(Math.abs(di), Math.abs(dj)) !== r) continue;
+      const a = i + di, b = j + dj;
+      if (a < 0 || b < 0 || a >= NAV.cols || b >= NAV.rows || NAV.blk[b * NAV.cols + a]) continue;
+      const d = di * di + dj * dj; if (d < bd) { bd = d; best = [a, b]; }
+    }
+    if (best) return best;
+  }
+  return [i, j];
+}
+function navClear(x0, y0, x1, y1) {
+  const d = Math.hypot(x1 - x0, y1 - y0), n = Math.max(1, Math.ceil(d / (NAV.c / 2)));
+  for (let s = 0; s <= n; s++) { const x = x0 + ((x1 - x0) * s) / n, y = y0 + ((y1 - y0) * s) / n; if (NAV.blk[navJ(y) * NAV.cols + navI(x)]) return false; }
+  return true;
+}
+// the points to walk through, in order, ending exactly at (x1, y1)
+function outPath(x0, y0, x1, y1) {
+  if (!NAV.blk) navBuild();
+  const cols = NAV.cols, [si, sj] = navFree(navI(x0), navJ(y0)), [gi, gj] = navFree(navI(x1), navJ(y1));
+  const key = `${navI(x0)},${navJ(y0)},${navI(x1)},${navJ(y1)}`;
+  let mid = NAV.cache.get(key);
+  if (!mid) {
+    const sBlocked = NAV.blk[navJ(y0) * cols + navI(x0)], gBlocked = NAV.blk[navJ(y1) * cols + navI(x1)];
+    const sx = sBlocked ? navX(si) : x0, sy = sBlocked ? navY(sj) : y0, gx = gBlocked ? navX(gi) : x1, gy = gBlocked ? navY(gj) : y1;
+    let cells = [];
+    if (!navClear(sx, sy, gx, gy)) {
+      // A* over the grid, eight directions, no cutting corners
+      const gen = ++NAV.gen, G = NAV.g, F = NAV.from, S = NAV.stamp, goal = gj * cols + gi, start = sj * cols + si;
+      const heap = [], hf = [];
+      const push = (k, f) => { let n = heap.length; heap.push(k); hf.push(f); while (n > 0) { const p = (n - 1) >> 1; if (hf[p] <= f) break; heap[n] = heap[p]; hf[n] = hf[p]; n = p; } heap[n] = k; hf[n] = f; };
+      const pop = () => {
+        const top = heap[0], k = heap.pop(), f = hf.pop(), len = heap.length;
+        if (len) { let n = 0; for (;;) { let ch = 2 * n + 1; if (ch >= len) break; if (ch + 1 < len && hf[ch + 1] < hf[ch]) ch++; if (hf[ch] >= f) break; heap[n] = heap[ch]; hf[n] = hf[ch]; n = ch; } heap[n] = k; hf[n] = f; }
+        return top;
+      };
+      const h = (k) => { const dx = Math.abs((k % cols) - gi), dy = Math.abs(Math.floor(k / cols) - gj); return Math.max(dx, dy) + 0.4142 * Math.min(dx, dy); };
+      S[start] = gen; G[start] = 0; F[start] = -1; push(start, h(start));
+      let found = false;
+      while (heap.length) {
+        const k = pop(); if (k === goal) { found = true; break; }
+        const i = k % cols, j = (k - i) / cols, gk = G[k];
+        for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+          if (!di && !dj) continue;
+          const a = i + di, b = j + dj; if (a < 0 || b < 0 || a >= cols || b >= NAV.rows) continue;
+          const nk = b * cols + a; if (NAV.blk[nk]) continue;
+          if (di && dj && (NAV.blk[j * cols + a] || NAV.blk[b * cols + i])) continue;
+          const ng = gk + (di && dj ? 1.4142 : 1);
+          if (S[nk] === gen && G[nk] <= ng) continue;
+          S[nk] = gen; G[nk] = ng; F[nk] = k; push(nk, ng + h(nk));
+        }
+      }
+      if (found) { for (let k = F[goal]; k !== -1 && k !== start; k = F[k]) cells.push([navX(k % cols), navY(Math.floor(k / cols))]); cells.reverse(); }
+    }
+    // pull the path tight: skip every point you can see past
+    const raw = [[sx, sy], ...cells, [gx, gy]], tight = [raw[0]];
+    for (let a = 0; a < raw.length - 1; ) { let b = raw.length - 1; while (b > a + 1 && !navClear(raw[a][0], raw[a][1], raw[b][0], raw[b][1])) b--; tight.push(raw[b]); a = b; }
+    mid = { pts: tight, sBlocked, gBlocked };
+    if (NAV.cache.size > 400) NAV.cache.clear();
+    NAV.cache.set(key, mid);
+  }
+  const out = mid.pts.slice(mid.sBlocked ? 0 : 1, mid.gBlocked ? mid.pts.length : mid.pts.length - 1);
+  out.push([x1, y1]);
+  return out;
+}
+function outLen(x0, y0, x1, y1) { let d = 0, px = x0, py = y0; for (const [x, y] of outPath(x0, y0, x1, y1)) { d += Math.hypot(x - px, y - py); px = x; py = y; } return d; }
+// which door: the one that makes the whole trip shortest, outside leg plus inside leg
+function doorFor(ox, oy, ix, iy) {
+  let best = BUILDING.doors[0], bd = Infinity;
+  for (const d of BUILDING.doors) { const L = outLen(ox, oy, d.x, d.y) + Math.hypot(d.x - ix, d.y - iy); if (L < bd) { bd = L; best = d; } }
+  return best;
+}
+/* ================= trips: one plan for any walk, shared by the walk itself, the drawn route and the time to reach ================= */
+// a leg is ["walk", floor, x, y] or ["climb", floor, x, y]: exactly the steps the simulated walk follows
+const FH = BUILDING.floor_height_m;
+function bestStairs(ax, ay, bx, by) {
+  // the staircase that makes the whole trip shortest, not just the closest one
+  let best = BUILDING.stairs[0], bd = Infinity;
+  for (const st of BUILDING.stairs) { const d = Math.hypot(st.x - ax, st.y - ay) + Math.hypot(bx - st.x, by - st.y); if (d < bd) { bd = d; best = st; } }
+  return best;
+}
+function planTrip(floor, x0, y0, tf, tx, ty) {
+  const P = []; let cf = floor || 1, cx = x0, cy = y0;
+  const toFloor = (f, nx, ny) => { if (f !== cf) { const st = bestStairs(cx, cy, nx, ny); P.push(["walk", cf, st.x, st.y], ["climb", f, st.x, st.y]); cf = f; cx = st.x; cy = st.y; } };
+  const out = (fx, fy, gx, gy) => { for (const [wx, wy] of outPath(fx, fy, gx, gy)) P.push(["walk", 1, wx, wy]); };   // outdoors: around buildings and the pond
+  const inNow = isInside(cx, cy), inT = isInside(tx, ty);
+  tf = inT ? tf || 1 : 1;
+  if (inNow && !inT) { const d = doorFor(tx, ty, cx, cy); toFloor(1, d.x, d.y); P.push(["walk", 1, d.x, d.y]); out(d.x, d.y, tx, ty); }
+  else if (!inNow && inT) { const d = doorFor(cx, cy, tx, ty); out(cx, cy, d.x, d.y); cx = d.x; cy = d.y; cf = 1; toFloor(tf, tx, ty); P.push(["walk", tf, tx, ty]); }
+  else if (!inNow) out(cx, cy, tx, ty);
+  else { toFloor(tf, tx, ty); P.push(["walk", tf, tx, ty]); }
+  return P;
+}
+function tripStats(floor, x, y, z, legs) {
+  // seconds, metres and the points to draw (h = metres above the ground floor)
+  let cx = x, cy = y, ch = isInside(x, y) ? ((floor || 1) - 1) * FH + (z || 0) : 0, secs = 0, metres = 0;
+  const pts = [{ x: cx, y: cy, h: ch }];
+  for (const [kind, f, lx, ly] of legs) {
+    if (kind === "walk") { const d = Math.hypot(lx - cx, ly - cy); secs += d / WALK; metres += d; cx = lx; cy = ly; ch = isInside(cx, cy) ? (f - 1) * FH : 0; }
+    else { const th = (f - 1) * FH; secs += Math.abs(th - ch) / CLIMB; ch = th; }
+    pts.push({ x: cx, y: cy, h: ch });
+  }
+  return { secs, metres, pts };
+}
 const PEOPLE = [
   { badge: "B1", name: "Rose Patel", pronoun: "her", age: 34 },
   { badge: "B2", name: "Joe Rivera", pronoun: "him", age: 52 },
@@ -612,7 +1136,6 @@ const PEOPLE = [
   { badge: "B5", name: "Dev Shah", pronoun: "him", age: 45 },
   { badge: "B6", name: "Ana Lopez", pronoun: "her", age: 61 },
   { badge: "B4", name: "Hussein", role: "Supervisor", pronoun: "him", admin: true },
-  { badge: "B7", name: "Solon", role: "Manager", pronoun: "him", admin: true },
 ];
 
 /* ================= helpers ================= */
@@ -621,7 +1144,7 @@ const r1 = (v) => Math.round(v * 10) / 10;
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 const median = (s) => { const n = s.length; return n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2; };
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
-const mmss = (s) => `${Math.floor(Math.max(0, s) / 60)}:${String(Math.round(Math.max(0, s)) % 60).padStart(2, "0")}`;
+const mmss = (s) => { const t = Math.round(Math.max(0, s)); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`; };   // round first: 59.6 s is 1:00, not 0:00
 const nearest = (list, x, y) => list.reduce((a, c) => (Math.hypot(c.x - x, c.y - y) < Math.hypot(a.x - x, a.y - y) ? c : a));
 const initials = (n) => n.split(" ").map((s) => s[0]).join("").slice(0, 2).toUpperCase();
 function rng(seed) {
@@ -715,6 +1238,24 @@ class AirModel {
   }
 }
 
+/* ================= sun: a light sensor on the clip, and how long they've been outside ================= */
+// The clip's photoresistor gives 0-100. We read it as a rough UV index (0-11) using the WHO bands.
+// Strong sun (UV 6+) adds up while outside and drains twice as fast in the shade.
+const SUN_WATCH = 25 * 60, SUN_ALERT = 40 * 60;
+const uvCat = (u) => (u >= 11 ? "Extreme" : u >= 8 ? "Very high" : u >= 6 ? "High" : u >= 3 ? "Moderate" : "Low");
+class SunModel {
+  constructor() { this.light = null; this.outT = 0; this.hot = 0; this.lastT = null; }
+  get uvi() { return this.light == null ? 0 : Math.round((this.light / 100) * 11); }
+  update(t, light, outdoor) {
+    const dt = this.lastT === null ? 1 : clamp(t - this.lastT, 0, 5);
+    this.lastT = t;
+    if (light != null) this.light = this.light == null ? light : this.light + 0.3 * (light - this.light);
+    if (outdoor) this.outT += dt;
+    if (outdoor && this.uvi >= 6) this.hot += dt; else this.hot = Math.max(0, this.hot - 2 * dt);
+  }
+  status() { return this.hot >= SUN_ALERT ? "alert" : this.hot >= SUN_WATCH ? "watch" : "ok"; }
+}
+
 /* ================= where: pressure for floors, Wi-Fi inside, GPS outside, Bluetooth up close ================= */
 const pressureToAlt = (p) => 44330 * (1 - Math.pow(p / 1013.25, 0.1903));
 const rssiToM = (rssi) => Math.pow(10, (-59 - rssi) / 22);
@@ -780,7 +1321,7 @@ class Hub {
   badge(id) {
     if (!this.badges.has(id)) {
       this.badges.set(id, {
-        id, person: this.people[id] || { name: id, pronoun: "them" }, heart: new HeartModel(), air: new AirModel(),
+        id, person: this.people[id] || { name: id, pronoun: "them" }, heart: new HeartModel(), air: new AirModel(), sun: new SunModel(),
         tracker: new FloorTracker(), lastT: null, pHist: [], floor: null, x: null, y: null, outdoor: false, gpsT: -1e9,
         posFloor: null, peers: {}, ackedBy: null, helper: null, arrived: false, recovery: null, buzz: null, stage: {}, lastBuzz: {}, alertSent: -1e9,
         hist: [], lastHist: -1e9, sos: null, okUntil: null, fall: { impactT: null, still: 0, state: null }, alertT: null, arriveT: null, prevSev: 0,
@@ -794,6 +1335,7 @@ class Hub {
     const gap = b.lastT === null ? 1 : clamp(t - b.lastT, 0, 5);
     b.lastT = t;
     b.heart.update(t, pkt.hr, pkt.q, pkt.act);
+    b.act = b.act == null ? +pkt.act || 0 : b.act + 0.3 * ((+pkt.act || 0) - b.act);   // how much they're moving, smoothed
     if (pkt.p) {
       b.pHist.push(pkt.p); if (b.pHist.length > 15) b.pHist.shift();
       if (this.ref && t - this.ref[0] < 30) b.floor = b.tracker.update(t, pkt.p, this.ref[1], this.offsets[b.id] || 0, this.heights());
@@ -816,6 +1358,7 @@ class Hub {
     b.wind = pkt.wind ?? 0;
     b.feels = pkt.air != null ? feelsLike(pkt.air, b.rh ?? 40, b.wind) : null;
     b.air.update(t, pkt.air, env, e.avg, e.spread, b.feels ? b.feels.f : null);
+    b.sun.update(t, pkt.light, b.outdoor);
     // falls: a hard jolt on the clip's accelerometer, then no movement at all
     const f = b.fall;
     if (pkt.g != null && pkt.g > 2.5) { f.impactT = t; f.still = 0; f.state = "maybe"; }
@@ -850,11 +1393,11 @@ class Hub {
     // the clip buzzes its wearer when things start going the wrong way
     const st = (s) => (s === "alert" ? 3 : s === "watch" ? 2 : 0);
     const hs = st(b.heart.status(t)), as = st(b.air.status());
-    const now = { rest: b.heart.dir === "high" ? hs : 0, cool: b.air.dir === "high" ? as : 0, warm: b.air.dir === "low" ? as : 0 };
+    const now = { rest: b.heart.dir === "high" ? hs : 0, cool: b.air.dir === "high" ? as : 0, warm: b.air.dir === "low" ? as : 0, shade: st(b.sun.status()) };
     for (const why of Object.keys(now)) {
       if (now[why] > (b.stage[why] || 0) && t - (b.lastBuzz[why] || -1e9) > 60) {
         b.buzz = { t, why }; b.lastBuzz[why] = t;
-        this.logEv(t, `${b.person.name.split(" ")[0]}'s clip buzzed: ${{ rest: "rest", cool: "cool off", warm: "warm up" }[why]}`, "info", b.id);
+        this.logEv(t, `${b.person.name.split(" ")[0]}'s clip buzzed: ${{ rest: "rest", cool: "cool off", warm: "warm up", shade: "find shade" }[why]}`, "info", b.id);
       }
       b.stage[why] = now[why];
     }
@@ -870,6 +1413,7 @@ class Hub {
       const cands = [
         [SEV[hs], hs === "alert" ? (h.dir === "high" ? "Heart racing" : "Heart too slow") : hs === "watch" ? (h.dir === "high" ? "Heart rising" : "Heart low") : hs === "sensor" ? "Check clip" : hs === "offline" ? "No signal" : ""],
         [b.sos != null && !b.recovery ? 3.03 : 0, "Asked for help"],
+        [hs === "offline" ? 0 : { alert: 2.98, watch: 1.98, ok: 0 }[b.sun.status()], b.sun.status() === "alert" ? "Too long in sun" : "Long in sun"],
         [b.fall.state === "down" ? 3.01 : b.fall.state === "maybe" ? 2.01 : 0, b.fall.state === "down" ? "Fell, not moving" : "Possible fall"],
         [SEV[as] - 0.01, as === "alert" ? (a.dir === "high" ? "Too hot here" : "Too cold here") : as === "watch" ? (a.dir === "high" ? "Getting hot here" : "Getting cold here") : ""],
       ].sort((x, y) => y[0] - x[0]);
@@ -891,7 +1435,8 @@ class Hub {
         const hb = this.badges.get(b.helper);
         if (hb && hb.x !== null && b.x !== null && hb.outdoor === b.outdoor && (b.outdoor || (hb.floor ?? hb.posFloor) === (b.floor ?? b.posFloor))) {
           const pr = hb.peers[b.id];
-          if ((pr && now - pr[1] < 10 && rssiToM(pr[0]) < 5) || Math.hypot(hb.x - b.x, hb.y - b.y) < 4) b.arrived = true;
+          const near = pr && now - pr[1] < 10 ? rssiToM(pr[0]) : Infinity;   // Bluetooth distance between the two clips
+          if (near < 5 || (near < 10 && Math.hypot(hb.x - b.x, hb.y - b.y) < 4)) b.arrived = true;   // a lucky Wi-Fi fix alone can't say you're there
         }
       }
       if (b.arrived && b.arriveT === null && b.alertT !== null) {
@@ -917,9 +1462,10 @@ class Hub {
         label, risk: sev * 1000 + (b.recovery ? 0 : Math.max(h.sUp, h.sDn, a.sUp * 1.3, a.sDn * 1.3)),
         hr: h.v && hs !== "sensor" && hs !== "offline" ? Math.round(h.v) : null, hrUsual: Math.round(h.mu), hrExp: h.expected, hrSpread: h.spread, hrState: [hs, h.dir],
         air: a.v !== null && as !== "offline" ? Math.round(a.v) : null, airAvg: e.avg, airSpread: e.spread, airState: [as, a.dir],
-        outdoor: b.outdoor, floor, x: b.x, y: b.y, place, peers, age: b.person.age || 40, hist: b.hist, hrN: Math.round(h.rest.length / 60),
-        hrZ: h.v !== null ? (h.v - h.expected) / h.spread : 0, evidence: Math.max(h.sUp / 60, h.sDn / 60, a.sUp / 45, a.sDn / 45), fall: b.fall.state, impactT: b.fall.impactT,
-        alertT: b.alertT, arriveT: b.arriveT, sos: b.sos != null, bat: hs === "offline" ? 0 : b.bat ?? null, seenAgo: b.lastT != null ? now - b.lastT : 0,
+        outdoor: b.outdoor, floor, x: b.x, y: b.y, moving: (b.act ?? 0) > 0.4, hgt: b.outdoor ? 0 : b.tracker.h != null ? clamp(b.tracker.h, 0, (BUILDING.floors.length - 1) * BUILDING.floor_height_m) : null, place, peers, age: b.person.age || 40, hist: b.hist, hrN: Math.round(h.rest.length / 60),
+        hrZ: h.v !== null ? (h.v - h.expected) / h.spread : 0, evidence: Math.max(h.sUp / 60, h.sDn / 60, a.sUp / 45, a.sDn / 45, b.sun.hot / SUN_ALERT), fall: b.fall.state, impactT: b.fall.impactT,
+        alertT: b.alertT, arriveT: b.arriveT, sos: b.sos != null,
+        uvi: b.sun.light == null ? null : b.sun.uvi, sunMin: Math.round(b.sun.hot / 60), outMin: Math.round(b.sun.outT / 60), sunState: b.sun.status(), bat: hs === "offline" ? 0 : b.bat ?? null, seenAgo: b.lastT != null ? now - b.lastT : 0,
         feels: b.feels && a.v !== null ? { f: Math.round(b.feels.f), kind: b.feels.kind, cat: b.feels.cat } : null, rh: b.rh ?? null, wind: b.wind ? Math.round(b.wind) : 0, acked_by: b.ackedBy, helper: b.helper, arrived: b.arrived, stage: b.recovery ? b.recovery.stage : null, buzz: b.buzz, alertSent: now - b.alertSent < 60,
       });
     }
@@ -939,14 +1485,7 @@ class SimPerson {
     this.extra = 0; this.extraTarget = 0; this.airExtra = 0; this.airTarget = 0; this.lastScan = -99;
   }
   go(floor, x, y) {
-    const P = []; let cf = this.floor, cx = this.x, cy = this.y;
-    const toFloor = (f) => { if (f !== cf) { const s = nearest(BUILDING.stairs, cx, cy); P.push(["walk", cf, s.x, s.y], ["climb", f, s.x, s.y]); cf = f; cx = s.x; cy = s.y; } };
-    const inNow = isInside(cx, cy), inT = isInside(x, y);
-    if (inNow && !inT) { toFloor(1); const d = nearest(BUILDING.doors, x, y); P.push(["walk", 1, d.x, d.y]); }
-    if (!inNow && inT) { const d = nearest(BUILDING.doors, cx, cy); P.push(["walk", 1, d.x, d.y]); cx = d.x; cy = d.y; }
-    if (inT) toFloor(floor);
-    P.push(["walk", inT ? floor : 1, x, y]);
-    this.path = P;
+    this.path = planTrip(this.floor, this.x, this.y, floor, x, y);
   }
 }
 class Sim {
@@ -959,9 +1498,8 @@ class Sim {
       B5: new SimPerson("B5", 1, 300, 20, 68, 30, -0.30, 1.0),        // Dev: in the lot off Thatcher Road
       B6: new SimPerson("B6", 3, 25, 40, 64, 30, +0.35, -0.6),        // Ana: floor 3
       B4: new SimPerson("B4", 1, 70, 15, 66, 30, -0.75, 0.3),         // Hussein, supervisor
-      B7: new SimPerson("B7", 1, -35, 20, 70, 30, +0.15, 0.5),        // Solon, manager, out on Metawampe Lawn
     };
-    for (const [id, bat] of Object.entries({ B1: 88, B2: 64, B3: 71, B5: 93, B6: 19, B4: 80, B7: 76 })) this.people[id].bat = bat;
+    for (const [id, bat] of Object.entries({ B1: 88, B2: 64, B3: 71, B5: 93, B6: 19, B4: 80 })) this.people[id].bat = bat;
     this.aps = [];
     for (const f of BUILDING.floors) [[15, 12], [45, 10], [75, 12], [15, 38], [45, 40], [75, 38], [45, 25]].forEach(([x, y], i) => this.aps.push([`ap${f}${i}`, f, x, y]));
   }
@@ -991,8 +1529,12 @@ class Sim {
     if (!p.path.length) { p.act = 0.05 + Math.abs(this.r.gauss(0, 0.03)); return; }
     const [kind, f, tx, ty] = p.path[0];
     if (kind === "walk") {
-      const d = Math.hypot(tx - p.x, ty - p.y), step = WALK * dt;
-      if (d <= step) { p.x = tx; p.y = ty; p.path.shift(); } else { p.x += ((tx - p.x) / d) * step; p.y += ((ty - p.y) / d) * step; }
+      // a steady pace: the rest of each step carries on past corners instead of pausing at them
+      let step = WALK * dt;
+      while (step > 1e-6 && p.path.length && p.path[0][0] === "walk") {
+        const wx = p.path[0][2], wy = p.path[0][3], d = Math.hypot(wx - p.x, wy - p.y);
+        if (d <= step) { p.x = wx; p.y = wy; p.path.shift(); step -= d; } else { p.x += ((wx - p.x) / d) * step; p.y += ((wy - p.y) / d) * step; step = 0; }
+      }
       p.act = 1 + this.r.gauss(0, 0.1);
     } else {
       const dir = f > p.floor ? 1 : -1;
@@ -1001,16 +1543,16 @@ class Sim {
     }
   }
   heart(p, dt) {
-    p.extra += (1 - Math.exp(-dt / (p.fast ? 2 : 12))) * (p.extraTarget - p.extra);
+    p.extra += (1 - Math.exp(-dt / (p.snap ? 0.5 : p.fast ? 2 : 12))) * (p.extraTarget - p.extra);
     const target = p.base + p.gain * Math.max(0, p.act - 0.05) + p.extra;
-    p.hr += (1 - Math.exp(-dt / (p.fast ? 3 : target > p.hr ? 25 : 65))) * (target - p.hr);
+    p.hr += (1 - Math.exp(-dt / (p.snap ? 0.9 : p.fast ? 3 : target > p.hr ? 25 : 65))) * (target - p.hr);
     p.wander = 0.97 * p.wander + this.r.gauss(0, p.wobble);
     return p.hr + p.wander + this.r.gauss(0, 1.2);
   }
   air(t, p, dt) {
-    p.airExtra += (1 - Math.exp(-dt / (p.fast ? 2 : 60))) * (p.airTarget - p.airExtra);
+    p.airExtra += (1 - Math.exp(-dt / (p.snap ? 0.5 : p.fast ? 2 : 60))) * (p.airTarget - p.airExtra);
     const target = this.placeTemp(t, p) + p.airExtra + 1.0;           // the clip sits a little warm from the body
-    p.amb = p.amb === null ? target : p.amb + (1 - Math.exp(-dt / (p.fast ? 3 : 40))) * (target - p.amb);   // the sensor takes time to settle
+    p.amb = p.amb === null ? target : p.amb + (1 - Math.exp(-dt / (p.snap ? 0.9 : p.fast ? 3 : 40))) * (target - p.amb);   // the sensor takes time to settle
     if (p.fast && Math.abs(p.extra) < 0.5 && Math.abs(p.airExtra) < 0.3 && Math.abs(p.amb - target) < 0.5) p.fast = false;
     return p.amb + this.r.gauss(0, 0.25);
   }
@@ -1026,10 +1568,13 @@ class Sim {
       };
       if (p.g) { pkt.g = p.g; pkt.act = 3; p.g = 0; }
       if (!isInside(p.x, p.y)) pkt.gps = toLatLon(p.x + this.r.gauss(0, 3), p.y + this.r.gauss(0, 3));
+      // the photoresistor: dim indoors, open sky outside (dark at night), full sun when the clouds clear
+      const sky = night ? 3 : p.sun != null ? p.sun : 36 + 4 * Math.sin(t / 1300);
+      pkt.light = Math.round(clamp((isInside(p.x, p.y) ? 7 : sky) + this.r.gauss(0, 1.5), 0, 100));
       // humidity, and wind outdoors (from the clip's humidity sensor and the campus weather feed)
       pkt.rh = Math.round(isInside(p.x, p.y) ? (p.airTarget > 10 ? 58 : 34) : 62);
       if (!isInside(p.x, p.y)) pkt.wind = Math.max(0, r1(7 + 3 * Math.sin(t / 900) + (p.airTarget < -10 ? 12 : 0) + this.r.gauss(0, 1)));
-      else if (t - p.lastScan >= 5) { pkt.wifi = this.scan(p); p.lastScan = t; }
+      else if (t - p.lastScan >= (p.act > 0.5 ? 2 : 5)) { pkt.wifi = this.scan(p); p.lastScan = t; }   // scan more often while moving
       this.hub.ingest(pkt, t);
     }
     this.hub.learnEnv(t, dt);
@@ -1055,23 +1600,33 @@ class Sim {
       this.step(t);
     }
   }
+  home() {
+    // the story's reset: responders are back at their posts at once, instead of walking there at high speed
+    const P = this.people;
+    Object.assign(P.B4, { floor: 1, x: 70, y: 15, z: 0, path: [] });
+    for (const p of Object.values(P)) p.lastScan = -99;
+  }
   recover(id) {
     // help has arrived: they sit down, cool off or warm up, and settle quickly
     const p = this.people[id]; if (!p) return;
-    p.extraTarget = 0; p.airTarget = 0; p.fast = true; p.down = false;
+    p.extraTarget = 0; p.airTarget = 0; p.fast = true; p.snap = true; p.down = false; p.sun = null;
   }
   action(name, targetId, adminId = "B4") {
     const P = this.people;
-    if (name === "rose_heart") { P.B1.path = []; P.B1.extraTarget = 38; }
-    else if (name === "joe_hot") P.B2.airTarget = 30;       // the boiler room
-    else if (name === "mae_cold") P.B3.airTarget = -24;     // wind off Campus Pond
+    // demo effects land within about three seconds (snap), with no fast-forward
+    if (name === "rose_heart") { P.B1.path = []; P.B1.extraTarget = 38; P.B1.snap = true; }
+    else if (name === "joe_hot") { P.B2.airTarget = 30; P.B2.snap = true; }       // the boiler room
+    else if (name === "mae_cold") { P.B3.airTarget = -24; P.B3.snap = true; }     // wind off Campus Pond
+    else if (name === "dev_sun") { P.B5.sun = 92; const b = this.hub.badges.get("B5"); if (b) b.sun.hot = Math.max(b.sun.hot, 18 * 60); }   // clouds clear over the lot
     else if (name === "ana_dead") { P.B6.dead = true; P.B6.bat = 0; }   // battery runs out on floor 3
-    else if (name === "dev_fall") { P.B5.path = []; P.B5.down = true; P.B5.g = 4.2; P.B5.extraTarget = 14; }   // slips on ice in the lot
+    else if (name === "dev_fall") { P.B5.path = []; P.B5.down = true; P.B5.g = 4.2; P.B5.extraTarget = 14; P.B5.snap = true; }   // slips on ice in the lot
     else if (name === "walk") { const who = P[adminId] || P.B4, t = P[targetId] || P.B1; if (t !== who) who.go(t.floor, t.x + 1.5, t.y + 1); }
     else if (name === "reset") {
-      for (const p of Object.values(P)) { p.extraTarget = 0; p.airTarget = 0; p.path = []; p.down = false; p.dead = false; }
+      // everything back to normal at once
+      for (const p of Object.values(P)) { p.extraTarget = 0; p.airTarget = 0; p.extra = 0; p.airExtra = 0; p.hr = p.base; p.amb = null; p.path = []; p.down = false; p.dead = false; p.snap = false; p.fast = false; p.sun = null; }
+      for (const b of this.hub.badges.values()) b.sun.hot = 0;
       if (P.B6.bat < 19) P.B6.bat = 19;
-      P.B4.go(1, 70, 15); P.B7.go(1, -35, 20);
+      Object.assign(P.B4, { floor: 1, x: 70, y: 15, z: 0 });
     }
   }
 }
@@ -1111,15 +1666,15 @@ const ICON = {
   bell: "M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0",
   check: "M20 6L9 17l-5-5",
   close: `<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>`,
-  street: `<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="2.5"/><path d="M9 21v-6l-1-1V10a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v4l-1 1v6M5 18c-1.5.6-2 1.2-2 1.8C3 21 7 22 12 22s9-1 9-2.2c0-.6-.5-1.2-2-1.8"/></svg>`,
   locate: `<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 3L3 10.5l7.2 2.3L12.5 20z"/></svg>`,
   buzz: `<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="3" width="8" height="18" rx="2"/><path d="M4 8v8M20 8v8"/></svg>`,
 };
 const TILT_X = 55, TURN_Z = -28, ARROW = "M35 4 L62 60 L35 47 L8 60 Z", CHECK = "M14 36 L29 51 L57 20";
 const $ = (id) => document.getElementById(id);
+const isPhone = () => document.body.classList.contains("phone") || matchMedia("(max-width: 760px)").matches;
 const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private window */ } } };
 
-let privacy = false, summaryText = "";
+let summaryText = "";
 // one-line shift handoff: written by Claude when the page may ask it, otherwise from the numbers
 function localSummary() {
   const n = hub.stats.alerts, H = hub.stats.help, open = workers().filter((w) => w.level === "danger" || w.level === "watch").length;
@@ -1139,14 +1694,40 @@ async function summarize() {
   } catch (e) { summaryText = localSummary(); }
   renderRail();
 }
-const hidden = (p) => privacy && !p.admin && p.sev < 2;
-let state = null, sel = "", railHidden = false, locating = false, locDom = null, lastAngle = 0, adminId = "B4";
+let state = null, sel = "", railHidden = false, locating = false, locDom = null, lastAngle = 0;
+const adminId = "B4";   // the one supervisor: Hussein
 let cam = { cx: 0, cy: 0, k: 1 }, drag = null;
 const person = (id) => state && state.people.find((p) => p.id === id);
 const me = () => person(adminId);
 const workers = () => state.people.filter((p) => !p.admin);
 const paint = (el, level) => { const l = LOOK[level]; el.style.setProperty("--fill", l.fill); el.style.setProperty("--ink2", l.ink); el.style.setProperty("--card", l.card); el.style.setProperty("--cline", l.line); };
 function setHtml(el, h) { if (el && el.dataset.h !== h) { el.innerHTML = h; el.dataset.h = h; } }
+const REDUCE = matchMedia("(prefers-reduced-motion: reduce)");
+function softHide(el, ms, onHidden) {
+  // `hidden` keeps its meaning, but hiding plays a leave animation first and showing plays an enter one
+  let hid = el.hasAttribute("hidden"), timer = null;
+  Object.defineProperty(el, "hidden", {
+    get() { return hid; },
+    set(v) {
+      v = !!v; if (v === hid) return; hid = v; clearTimeout(timer);
+      if (REDUCE.matches) { el.classList.remove("entering", "leaving"); el.toggleAttribute("hidden", v); if (v && onHidden) onHidden(); return; }
+      if (v) { el.classList.remove("entering"); el.classList.add("leaving"); timer = setTimeout(() => { el.classList.remove("leaving"); el.setAttribute("hidden", ""); if (onHidden) onHidden(); }, ms); }
+      else { el.classList.remove("leaving"); el.removeAttribute("hidden"); el.classList.remove("entering"); void el.offsetWidth; el.classList.add("entering"); timer = setTimeout(() => el.classList.remove("entering"), 400); }
+    },
+  });
+}
+softHide($("pop"), 180); softHide($("locate"), 180, () => { if (!locating) $("locate").innerHTML = ""; });
+softHide($("clipdock"), 180); softHide($("askdock"), 180); softHide($("demo-pop"), 120); softHide($("bcard"), 120);
+softHide($("banner"), 180); softHide($("about"), 180);
+function setIni(el, t) { const f = el.firstChild; if (!f || f.nodeType !== 3 || f.nodeValue !== t) { if (f && f.nodeType === 3) f.nodeValue = t; else el.prepend(t); } }
+function celebrate(el) {
+  // 8 recovery: back to Okay
+  if (!el || REDUCE.matches) return;
+  const old = el.querySelector(".okmark"); if (old) old.remove();
+  const m = document.createElement("span"); m.className = "okmark";
+  m.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11"/><path d="M7 12.5l3.2 3.2L17 9"/></svg>`;
+  el.appendChild(m); setTimeout(() => m.remove(), 1200);
+}
 function sync(box, items, make, update) {
   const have = new Map([...box.children].map((el) => [el.dataset.key, el]));
   items.forEach((it, i) => {
@@ -1162,6 +1743,16 @@ const ago = (s) => (s < 5 ? "just now" : s < 60 ? `${Math.round(s)}s ago` : `${M
 const iconSvg = (d, extra = "") => `<svg viewBox="0 0 24 24" aria-hidden="true" ${extra}><path d="${d}"/></svg>`;
 
 /* ---------- worker list ---------- */
+/* a short shake when someone gets worse: gentle for Questionable, harder and longer for In danger */
+const RANK = { ok: 0, gray: 1, watch: 2, danger: 3 }, prevCount = { d: null, w: null };
+function shake(el, kind) {
+  if (!el) return;
+  const wait = (el._slideEnd || 0) - performance.now();
+  if (wait > 0) { clearTimeout(el._shkWait); el._shkWait = setTimeout(() => shake(el, kind), wait); return; }   // after the card has slid into place
+  el.classList.remove("shake-watch", "shake-danger"); void el.offsetWidth;
+  el.classList.add("shake-" + kind);
+  clearTimeout(el._shk); el._shk = setTimeout(() => el.classList.remove("shake-watch", "shake-danger"), kind === "danger" ? 1300 : 600);
+}
 function renderRail() {
   const rail = $("rail");
   const ws = workers();
@@ -1170,46 +1761,64 @@ function renderRail() {
     rail.classList.toggle("min", railHidden);
     rail.innerHTML = railHidden
       ? `<div class="chips"><button class="ctl" data-act="rail" aria-expanded="false" aria-label="Show list" style="width:44px;padding:0"><svg class="i" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button><div id="chips" style="display:contents"></div></div>`
-      : `<div class="rail-head"><div style="display:flex;flex-direction:column;gap:1px"><h2>Workers</h2><span>Sorted by risk</span></div><button class="ctl" data-act="rail" aria-expanded="true">Hide list</button></div>
+      : `<div class="rail-head"><h2>Workers</h2><button class="ctl" data-act="rail" aria-expanded="true" aria-label="Hide list" style="width:44px;padding:0"><svg class="i" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button></div>
          <div class="counts"><div><b><i style="background:var(--danger)"></i><span id="n-d"></span></b><small>In danger</small></div><div><b><i style="background:var(--watch)"></i><span id="n-w"></span></b><small>Questionable</small></div><div><b><i style="background:var(--ok)"></i><span id="n-o"></span></b><small>Okay</small></div></div>
-         <div class="privrow"><span>Location</span><button class="switch" data-act="privacy" id="priv-sw" aria-pressed="false"><i></i><span id="priv-l">Always</span></button></div>
          <div class="list" id="wlist" role="list" aria-label="Workers, sorted by risk"></div>
          <div class="log"><div class="log-h"><span>Activity <span class="lstat" id="log-stat"></span></span><span class="lh-r"><small id="log-clock"></small><button class="sumb" data-act="summary" aria-label="Shift summary"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg></button></span></div><div class="sumline" id="sumline" hidden></div><ol id="logl"></ol></div>`;
   }
   if (railHidden) {
     sync($("chips"), ws, (w) => { const b = document.createElement("button"); b.className = "av"; b.dataset.sel = w.id; return b; }, (b, w) => {
-      paint(b, w.level); b.textContent = w.ini; b.classList.toggle("sel", w.id === sel); b.setAttribute("aria-label", `${w.name}, ${w.label}`);
+      paint(b, w.level); setIni(b, w.ini); b.classList.toggle("sel", w.id === sel);
+      if (b._wasLv && b._wasLv !== "ok" && w.level === "ok") celebrate(b);   // back to Okay
+      b._wasLv = w.level; b.setAttribute("aria-label", `${w.name}, ${w.label}`);
     });
     return;
   }
-  $("priv-sw").setAttribute("aria-pressed", String(privacy)); $("priv-l").textContent = privacy ? "Alerts only" : "Always";
   $("log-clock").textContent = clock(state.t);
   $("sumline").hidden = !summaryText; $("sumline").textContent = summaryText;
   const H = hub.stats.help, n = hub.stats.alerts;
   setHtml($("log-stat"), n ? `<b>${n}</b> alert${n > 1 ? "s" : ""}${H.length ? ` · <b>${mmss(H.reduce((a, v) => a + v, 0) / H.length)}</b> avg help` : ""}` : "");
   const L = hub.log.slice(-14).reverse();
   setHtml($("logl"), L.length ? L.map((e) => `<li class="lv-${e.level}${e.id ? " tap" : ""}${replay && replay.t === e.t && replay.id === e.id ? " on" : ""}"${e.id ? ` data-rid="${esc(e.id)}" data-rt="${e.t}"` : ""}><time>${clock(e.t)}</time><span>${esc(e.text)}</span></li>`).join("") : `<li class="none">No events yet</li>`);
-  $("n-d").textContent = ws.filter((w) => w.level === "danger").length;
-  $("n-w").textContent = ws.filter((w) => w.level === "watch" || w.level === "gray").length;
+  const nD = ws.filter((w) => w.level === "danger").length, nW = ws.filter((w) => w.level === "watch" || w.level === "gray").length;
+  if (prevCount.d != null && nD > prevCount.d) shake($("n-d").closest("div"), "danger");
+  if (prevCount.w != null && nW > prevCount.w) shake($("n-w").closest("div"), "watch");
+  prevCount.d = nD; prevCount.w = nW;
+  $("n-d").textContent = nD;
+  $("n-w").textContent = nW;
   $("n-o").textContent = ws.filter((w) => w.level === "ok").length;
-  sync($("wlist"), ws, (w) => {
+  const shakes = [];
+  const wl = $("wlist"), wasTop = new Map([...wl.children].map((el) => [el, el.getBoundingClientRect().top]));
+  sync(wl, ws, (w) => {
     const b = document.createElement("button"); b.className = "wcard"; b.dataset.sel = w.id; b.setAttribute("role", "listitem");
     b.innerHTML = `<span class="av"></span><span class="who"><span class="nm"></span><span class="st"></span><span class="pl"></span></span><span class="vals"></span>`;
     return b;
   }, (b, w) => {
     paint(b, w.level);
+    if (b.dataset.lv && RANK[w.level] > RANK[b.dataset.lv]) shakes.push([b, w.level === "danger" ? "danger" : "watch"]);   // just got worse; shakes after any slide
+    b.dataset.lv = w.level;
     b.classList.toggle("sel", w.id === sel);
-    b.querySelector(".av").textContent = w.ini;
-    setHtml(b.querySelector(".nm"), esc(w.name) + (liveWear.has(w.id) ? `<span class="livetag">LIVE</span>` : "") + (w.bat != null && w.bat < 25 ? `<span class="bat${w.bat < 10 ? " dead" : ""}" title="Clip battery">${BAT_ICON}${w.bat}%</span>` : ""));
+    setIni(b.querySelector(".av"), w.ini);
+    setHtml(b.querySelector(".nm"), esc(w.name) + (liveWear.has(w.id) ? `<span class="livetag">LIVE</span>` : "") + (w.outdoor && w.outMin > 0 ? `<span class="sunchip u${w.uvi >= 8 ? 3 : w.uvi >= 6 ? 2 : w.uvi >= 3 ? 1 : 0}" title="Time outside · UV ${w.uvi}">${SUN_ICON}${hm(w.outMin)}</span>` : "") + (w.bat != null && w.bat < 25 ? `<span class="bat${w.bat < 10 ? " dead" : ""}" title="Clip battery">${BAT_ICON}${w.bat}%</span>` : ""));
     setHtml(b.querySelector(".vals"), `<b>${w.air ?? "–"}°F</b><span>${w.hr ?? "–"} BPM</span>`);
+    if (b._wasLv && b._wasLv !== "ok" && w.level === "ok") celebrate(b.querySelector(".av"));   // back to Okay
+    b._wasLv = w.level;
     setHtml(b.querySelector(".st"), `${iconSvg(LOOK[w.level].icon)}<span>${esc(w.label)}</span>`);
-    b.querySelector(".pl").textContent = hidden(w) ? "Hidden" : w.label === "No signal" ? `Last seen ${ago(w.seenAgo)} · ${w.place}` : w.place;
+    b.querySelector(".pl").textContent = w.label === "No signal" ? `Last seen ${ago(w.seenAgo)} · ${w.place}` : w.place;
     b.setAttribute("aria-label", `${w.name}, ${w.label}, ${w.air}°F, ${w.hr} BPM. Show on the map.`);
   });
+  if (!REDUCE.matches) for (const el of wl.children) {
+    const was = wasTop.get(el); if (was == null) continue;
+    const d = was - el.getBoundingClientRect().top;
+    if (Math.abs(d) > 1) { el._slideEnd = performance.now() + 250; el.animate([{ transform: `translateY(${d}px)` }, { transform: "none" }], { duration: 250, easing: "ease-in-out" }); }
+  }
+  for (const [el, kind] of shakes) shake(el, kind);
 }
 
 /* ---------- map ---------- */
+let camMoveT = null;
 function camTransform() {
+  $("mapv").classList.add("moving"); clearTimeout(camMoveT); camMoveT = setTimeout(() => $("mapv").classList.remove("moving"), story ? 1500 : 500);
   $("world").style.transform = `scale(${cam.k.toFixed(4)}) translate(${(-cam.cx).toFixed(1)}px, ${(-cam.cy).toFixed(1)}px)`;
   $("world").style.setProperty("--lab", `${(12 / cam.k).toFixed(2)}px`);
   $("mapv").classList.toggle("far", cam.k < 0.9);
@@ -1222,7 +1831,7 @@ function fitAll() {
   camTransform(); renderPins();
 }
 function focusOn(p) {
-  if (!p || p.x === null || hidden(p)) return;
+  if (!p || p.x === null) return;
   const k = 2.4, v = $("mapv");
   cam = { cx: WX(p.x), cy: WY(p.y) + Math.min(130, v.clientHeight * 0.22) / k, k };
   camTransform(); renderPins();
@@ -1240,7 +1849,7 @@ function zoomBy(f) { cam.k = clamp(cam.k * f, 0.3, 5); camTransform(); renderPin
 let replay = null;
 function drawTrail(box) {
   const p = sel && person(sel);
-  if (!p || hidden(p)) { setHtml(box, ""); return; }
+  if (!p || !(replay && replay.id === p.id)) { setHtml(box, ""); return; }   // no trail just for being selected; only when replaying a log entry
   const end = replay && replay.id === p.id ? replay.t : state.t;
   const H = p.hist.filter((h) => h[7] != null && h[0] <= end && h[0] >= end - 300);
   if (H.length < 2) { setHtml(box, ""); return; }
@@ -1250,7 +1859,7 @@ function drawTrail(box) {
 }
 function renderPins() {
   const w = $("world");
-  sync(w, [{ id: "__map" }, { id: "__trail" }, ...state.people.filter((p) => p.x !== null && !hidden(p))], (p) => {
+  sync(w, [{ id: "__map" }, { id: "__trail" }, ...state.people.filter((p) => p.x !== null || p.admin)], (p) => {
     if (p.id === "__map") return worldMap();
     if (p.id === "__trail") { const d = document.createElement("div"); d.className = "trail"; return d; }
     const b = document.createElement("button");
@@ -1261,57 +1870,72 @@ function renderPins() {
   }, (b, p) => {
     if (p.id === "__map") return;
     if (p.id === "__trail") return drawTrail(b);
-    b.style.left = `${WX(p.x)}px`; b.style.top = `${WY(p.y)}px`;
-    b.style.transform = `translate(-50%, -50%) scale(${(1 / cam.k).toFixed(4)})`;
+    glideEnsure(p); paintPin(b);
     b.style.zIndex = p.admin ? (p.id === adminId ? 1 : 0) : p.id === sel ? 4 : p.level === "danger" ? 3 : 2;
     b.querySelector(".ini").textContent = p.admin && p.id === adminId ? "You" : p.ini;
-    const fl = b.querySelector(".fl"); fl.hidden = p.outdoor || p.floor == null; fl.textContent = p.floor ?? "";
+    const fp = p.admin ? respNow() : p, fl = b.querySelector(".fl"); fl.hidden = fp.outdoor || fp.floor == null; fl.textContent = fp.floor ?? "";
     if (p.admin) { b.setAttribute("aria-label", p.id === adminId ? "You" : `${p.role} ${p.name}`); return; }
     paint(b, p.level);
     b.classList.toggle("sel", p.id === sel);
     b.querySelector(".pulse").hidden = p.level !== "danger";
+    if (b._wasLv && b._wasLv !== "ok" && p.level === "ok") celebrate(b);
+    b._wasLv = p.level;
     const tag = b.querySelector(".tag"); tag.hidden = p.id !== sel; tag.textContent = p.name;
     b.setAttribute("aria-label", `${p.name}, ${p.label}. Show readings.`);
   });
 }
 
 const hyp = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-function pathLen(m, p) {
-  if (!m || !p || m.x === null || p.x === null) return Infinity;
-  const climb = (f) => Math.max(0, (f || 1) - 1) * BUILDING.floor_height_m * 2;
-  if (!m.outdoor && !p.outdoor) {
-    if (m.floor === p.floor) return hyp(m, p);
-    const st = nearest(BUILDING.stairs, m.x, m.y);
-    return hyp(m, st) + Math.abs((m.floor || 1) - (p.floor || 1)) * BUILDING.floor_height_m * 2 + hyp(st, p);
+function respNow() {
+  // where you are: the supervisor's own phone, straight from the walk
+  const w = sim.people[adminId], inside = isInside(w.x, w.y);
+  return { x: w.x, y: w.y, floor: w.floor, z: w.z, h: inside ? (w.floor - 1) * FH + w.z : 0, outdoor: !inside, path: w.path };
+}
+function etaTo(p) {
+  // the walk you're on, or the one you would take: legs, seconds, metres and the points to draw
+  if (!p || p.x == null) return null;
+  const r = respNow(), b = p.id ? hub.badges.get(p.id) : null;
+  const enRoute = !!(b && b.helper === adminId && !b.arrived && (r.path.length || ETA.has(p.id)));
+  const legs = enRoute ? r.path : planTrip(r.floor, r.x, r.y, p.outdoor ? 1 : p.floor || 1, p.x, p.y);
+  return { ...tripStats(r.floor, r.x, r.y, r.z, legs), legs, enRoute };
+}
+const ETA = new Map();   // worker id -> the countdown, once you're on your way
+function etaShown(p) {
+  // after "On my way" the time only ever goes down
+  const e = etaTo(p); if (!e) return null;
+  let c = ETA.get(p.id);
+  if (e.enRoute) {
+    if (!c) { c = { shown: e.secs, start: Math.max(1, e.secs) }; ETA.set(p.id, c); }
+    else c.shown = Math.min(c.shown, e.secs);
+    return { ...e, shown: c.shown, start: c.start };
   }
-  if (m.outdoor && p.outdoor) return hyp(m, p);
-  const [inn, out] = m.outdoor ? [p, m] : [m, p], d = nearest(BUILDING.doors, out.x, out.y);
-  if ((inn.floor || 1) > 1) { const st = nearest(BUILDING.stairs, inn.x, inn.y); return hyp(out, d) + hyp(d, st) + climb(inn.floor) + hyp(st, inn); }
-  return hyp(out, d) + hyp(d, inn);
+  if (c) ETA.delete(p.id);
+  return { ...e, shown: e.secs, start: null };
 }
 function nearestHelper(p) {
-  let best = null;
-  for (const a of state.people.filter((q) => q.admin)) { const d = pathLen(a, p); if (!best || d < best.d) best = { a, d }; }
-  return best && isFinite(best.d) ? best : null;
+  const a = me(), e = etaTo(p);
+  return a && e ? { a, d: e.metres, secs: e.secs } : null;
 }
 function nearHtml(p) {
-  // who should go: whoever can walk there fastest
+  // how long it would take you to get there
   const n = nearestHelper(p); if (!n) return "";
-  const m = Math.max(1, Math.round(n.d));
-  return n.a.id === adminId ? `<span class="near">You're nearest · ${m} m</span>` : `<button class="btn go" data-go="${esc(p.id)}" data-by="${esc(n.a.id)}">Send ${esc(n.a.name)} <span style="font-weight:500;opacity:.7">${m} m</span></button>`;
+  return `<span class="near">${WALK_ICON}${mmss(n.secs)}</span>`;
 }
 function onWayText(p) {
   if (!p.acked_by) return "";
   if (p.arrived) return p.arriveT != null && p.alertT != null ? `${p.acked_by} reached ${p.first} in ${mmss(p.arriveT - p.alertT)}` : `${p.acked_by} is there`;
+  if (p.helper === adminId) { const e = etaShown(p); return `${p.acked_by} is on the way · ${mmss(e && e.enRoute ? e.shown : 0)}`; }   // counts down to arrival
   return `${p.acked_by} is on the way` + (p.alertT != null ? ` · ${mmss(state.t - p.alertT)}` : "");
 }
 let night = false;   // night shift: the demo clock starts at 11 PM and the campus goes dark
 function clock(t) { const s = Math.floor(t - (1e6 - (night ? 23 : 9) * 3600)), h = Math.floor(s / 3600) % 24, m = Math.floor(s / 60) % 60; return `${((h + 11) % 12) + 1}:${String(m).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; }
+const SUN_ICON = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>`;
+const hm = (min) => `${Math.floor(min / 60)}:${String(min % 60).padStart(2, "0")}`;
 const BAT_ICON = `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="17" height="10" rx="2"/><path d="M22 11v2"/></svg>`;
 const WALK_ICON = `<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="13" cy="4" r="2"/><path d="M10 21l2-6 3 3v3M8 12l3-4 4 3 3 1M11 8l-1 5"/></svg>`;
 function renderBanner() {
   const top = workers().find((w) => w.level === "danger" && !w.stage);
-  $("banner").hidden = !top || locating || (sel === top.id && matchMedia("(max-width: 760px)").matches);   // on a phone the open card already has these buttons
+  $("banner").hidden = !top || locating || (sel === top.id && isPhone());   // on a phone the open card already has these buttons
   if (!top) return;
   $("bn-nm").textContent = `${top.first} is in danger`;
   $("bn-v").textContent = `${top.hr ?? "–"} BPM · ${top.air ?? "–"}°F` + (top.alertT != null && !top.acked_by ? ` · ${mmss(state.t - top.alertT)} since alert` : "");
@@ -1334,6 +1958,19 @@ function alertBtn(btn, p) {
 function bands(names, colors, edges) {
   return names.map((n, i) => ({ n, c: colors[i], f: Math.max(0.5, edges[i + 1] - edges[i]) }));
 }
+function sunRow(p) {
+  // UV bands (WHO): the bar shows where the clip's light reading sits; the words say how long in strong sun
+  const idx = p.uvi >= 8 ? 3 : p.uvi >= 6 ? 2 : p.uvi >= 3 ? 1 : 0;
+  const b = [{ n: "Low", c: "var(--ok)", f: 3 }, { n: "Moderate", c: "var(--watch)", f: 3 }, { n: "High", c: "#F08A24", f: 2 }, { n: "Very high", c: "var(--danger)", f: 4 }];
+  const lvl = p.sunState === "alert" ? 3 : p.sunState === "watch" ? 2 : 1;
+  return `<div class="vrow" role="row">
+    <div class="lbl" role="cell">Sun</div>
+    <div class="now" role="cell">UV ${p.uvi}<small>${hm(p.outMin)} outside</small></div>
+    <div class="rng" role="cell"><div class="bar"><div class="bands">${b.map((x, i) => `<span style="flex:${x.f} 1 0;background:${x.c};opacity:${i === idx ? 1 : 0.45}"></span>`).join("")}</div><span class="mark" style="left:${clamp((p.uvi / 12) * 100, 0, 100).toFixed(1)}%"></span></div>
+      <div class="bnames">${b.map((x, i) => `<span style="flex:${x.f} 1 0;font-weight:${i === idx ? 700 : 400};color:${i === idx ? "var(--ink)" : "var(--ink-2)"}">${x.n}</span>`).join("")}</div></div>
+    <div class="lvl" role="cell"><i style="background:${["", "var(--ok)", "var(--watch)", "var(--danger)"][lvl]}"></i>${p.sunMin}m strong</div>
+  </div>`;
+}
 function vitalRow(label, nowTxt, sub, value, b, min, max, state, words) {
   const idx = state[0] === "alert" ? (state[1] === "high" ? 3 : 0) : state[0] === "watch" ? (state[1] === "high" ? 2 : 0) : 1;
   const lvlColor = ["var(--cold)", "var(--ok)", "var(--watch)", "var(--danger)"][idx];
@@ -1353,7 +1990,7 @@ function renderPop() {
   if (pop.dataset.for !== p.id) {
     pop.dataset.for = p.id;
     pop.innerHTML = `<div class="pop-head"><span class="av" id="pp-av"></span><h2 id="pp-nm"></h2><span class="pill" id="pp-pill"></span><span class="where" id="pp-where"></span><span class="grow"></span>
-      <a class="lnk" id="pp-sv" target="_blank" rel="noopener">${ICON.street}<span>Street View</span></a><button class="btn dark" data-act="locate">${ICON.locate}<span>Locate</span></button><button class="btn red" id="pp-alert"></button><span id="pp-go" style="display:contents"></span>
+      <button class="btn dark" data-act="locate">${ICON.locate}<span>Locate</span></button><button class="btn red" id="pp-alert"></button><span id="pp-go" style="display:contents"></span>
       </div><button class="x pop-x" data-act="close-pop" aria-label="Close readings">${ICON.close}</button>
       <div role="table" aria-label="Readings" id="pp-rows"></div><div class="buzzline" id="pp-buzz"></div><div class="why" id="pp-why"></div>`;
   }
@@ -1361,10 +1998,7 @@ function renderPop() {
   $("pp-av").textContent = p.ini;
   $("pp-nm").textContent = p.name;
   setHtml($("pp-pill"), `${iconSvg(LOOK[p.level].icon)}<span>${esc(p.label)}</span>`);
-  setHtml($("pp-where"), hidden(p) ? `${ICON.pin}Hidden` : `${ICON.pin}${p.label === "No signal" ? `Last seen ${ago(p.seenAgo)} · ` : ""}${esc(p.place)}`);
-  pop.querySelector('[data-act="locate"]').hidden = hidden(p);
-  const sv = $("pp-sv"); sv.hidden = p.x === null || hidden(p);
-  if (p.x !== null) { const href = streetView(p.x, p.y); if (sv.getAttribute("href") !== href) sv.setAttribute("href", href); sv.setAttribute("aria-label", `Open Street View where ${p.first} is`); }
+  setHtml($("pp-where"), `${ICON.pin}${p.label === "No signal" ? `Last seen ${ago(p.seenAgo)} · ` : ""}${esc(p.place)}`);
   alertBtn($("pp-alert"), p);
   setHtml($("pp-go"), p.sev < 2 || p.stage ? "" : p.acked_by ? `<span class="otw">${WALK_ICON}<span>${esc(onWayText(p))}</span></span>` : `<button class="btn go" data-go="${esc(p.id)}">On my way</button>${nearHtml(p)}`);
   const E = p.hrExp, S = p.hrSpread, A = p.airAvg, T = p.airSpread;
@@ -1372,8 +2006,9 @@ function renderPop() {
   const ab = bands(["Too cold", "Normal", "Warm", "Too hot"], ["var(--cold)", "var(--ok)", "var(--watch)", "var(--danger)"], [A - 40, A - 2.5 * T, A + 2.5 * T, A + 2.5 * T + 10, A + 40]);
   setHtml($("pp-rows"),
     (p.hr != null ? vitalRow("Heart rate", `${p.hr} BPM`, `usual ${p.hrUsual}`, p.hr, hb, E - 45, E + 70, p.hrState, ["Too low", "Normal", "Elevated", "Too high"]) : "") +
+    (p.uvi != null && (p.outdoor || p.sunMin > 0) ? sunRow(p) : "") +
     (p.air != null ? vitalRow("Air temp", `${p.air}°F`, p.feels ? `feels ${p.feels.f}°` : `usual here ${Math.round(A)}°`, p.air, ab, A - 40, A + 40, p.airState, ["Too cold", "Normal", "Warm", "Too hot"]) : ""));
-  const bz = p.buzz ? `${ICON.buzz}<span>Buzzed: ${{ rest: "rest", cool: "cool off", warm: "warm up" }[p.buzz.why]} · ${ago(state.t - p.buzz.t)}</span>` : "";
+  const bz = p.buzz ? `${ICON.buzz}<span>Buzzed: ${{ rest: "rest", cool: "cool off", warm: "warm up", shade: "find shade" }[p.buzz.why]} · ${ago(state.t - p.buzz.t)}</span>` : "";
   setHtml($("pp-buzz"), bz); $("pp-buzz").hidden = !bz;
   const wh = whyHtml(p); setHtml($("pp-why"), wh); $("pp-why").hidden = !wh;
 }
@@ -1385,6 +2020,7 @@ function whyHtml(p) {
   const kv = (a, b) => `<div class="kv"><b>${a}</b><span>${b}</span></div>`;
   const meter = () => `<div class="ev${p.evidence >= 1 ? " hot" : ""}" role="img" aria-label="Evidence toward an alert: ${Math.round(Math.min(1, p.evidence) * 100)}%"><span style="width:${Math.min(100, p.evidence * 100).toFixed(0)}%"></span></div>`;
   if (p.sos && !p.stage) return `<div class="kvs">${kv("SOS", "from the clip")}</div>`;
+  if (/sun/i.test(p.label) && !p.stage) return `<div class="kvs">${kv(`UV ${p.uvi}`, uvCat(p.uvi).toLowerCase())}${kv(`${p.sunMin}m`, "strong sun")}${kv(hm(p.outMin), "outside")}${kv(`${SUN_ALERT / 60}m`, "limit")}</div>${meter()}`;
   if (p.fall && !p.stage) {
     const secs = p.impactT != null ? state.t - p.impactT : 0;
     return `<div class="kvs">${kv("4.2 g", "jolt")}${kv(mmss(secs), p.fall === "down" ? "not moving" : "since")}</div>`;
@@ -1423,64 +2059,133 @@ function whyHtml(p) {
 }
 
 /* ---------- locate: the route diagram ---------- */
-function openLocate() { if (!sel) return; locating = true; locDom = null; $("locate").hidden = false; renderAll(); }
-function closeLocate() { locating = false; locDom = null; $("locate").hidden = true; $("locate").innerHTML = ""; renderAll(); }
+let dest = null;   // a building to walk to, picked from its card on the map
+function openDirections(name) {
+  const c = CAMPUS.find((b) => b[0] === name); if (!c) return;
+  hideBuilding();
+  if (locating) closeLocate();
+  dest = { id: "bld:" + name, name, first: name, ini: initials(name), x: c[1][0], y: c[1][1], outdoor: true, floor: null, place: name, level: "ok", sev: 0, peers: {} };
+  locating = true; locDom = null; $("locate").hidden = false; renderAll();
+}
+function openLocate() { if (!sel) return; dest = null; locating = true; locDom = null; $("locate").hidden = false; renderAll(); }
+function closeLocate() { locating = false; locDom = null; dest = null; $("locate").hidden = true; renderAll(); }
 
 function route(p, m) {
-  if (!m || m.x === null || p.x === null) return { plain: true, big: p.place, then: "" };
+  // what to do next, in a few words, plus the walk itself (time, distance and the points to draw)
+  if (!m || m.x == null || p.x == null) return { plain: true, then: "" };
   const together = (p.outdoor && m.outdoor) || (!p.outdoor && !m.outdoor && p.floor === m.floor);
-  const peer = m.peers[p.id];
-  if (together && peer !== undefined && peer < 4) return { here: true, big: "Here", then: `${p.first} is ${Math.max(1, Math.round(peer))} m away` };
-  let to = { x: p.x, y: p.y }, then;
-  if (p.outdoor && !m.outdoor) {
-    if (m.floor > 1) { to = nearest(BUILDING.stairs, m.x, m.y); then = "Stairs down, then outside"; }
-    else { to = nearest(BUILDING.doors, p.x, p.y); then = cap(to.name) + ", then outside"; }
-  } else if (!p.outdoor && m.outdoor) {
-    to = nearest(BUILDING.doors, m.x, m.y); then = cap(to.name) + (p.floor > 1 ? `, then floor ${p.floor}` : "");
-  } else if (!p.outdoor && p.floor !== m.floor) {
-    to = nearest(BUILDING.stairs, m.x, m.y); const n = p.floor - m.floor;
-    then = `${cap(to.name)}, then ${Math.abs(n)} floor${Math.abs(n) > 1 ? "s" : ""} ${n > 0 ? "up" : "down"}`;
-  } else then = cap(p.outdoor ? "outside" : p.place.replace(/^ILC, floor \d+,?\s*/, "") || "on your floor");
-  const d = together && peer !== undefined && peer < 10 ? peer : Math.hypot(to.x - m.x, to.y - m.y);
-  return { big: `${Math.max(1, Math.round(d))} m`, then, dx: to.x - m.x, dy: to.y - m.y };
+  const peer = m.peers ? m.peers[p.id] : undefined;
+  const e = etaShown(p);
+  if (together && peer !== undefined && peer < 4) return { here: true, e, then: "" };
+  const legs = e.legs;
+  if (legs[0] && legs[0][0] === "climb") { const n = legs[0][1]; return { e, climb: n > m.floor ? "up" : "down", then: `${n > m.floor ? "Up" : "Down"} to floor ${n}` }; }
+  let then = null;
+  for (let i = 0; i < legs.length && !then; i++) {
+    const [k, f, lx, ly] = legs[i];
+    if (k === "climb") { const st = nearest(BUILDING.stairs, lx, ly), out = legs.slice(i + 1).some((l) => !isInside(l[2], l[3])); then = `${cap(st.name)}, then ${out ? "outside" : `floor ${f}`}`; }
+    else { const d = BUILDING.doors.find((dd) => Math.abs(dd.x - lx) < 0.01 && Math.abs(dd.y - ly) < 0.01); if (d) then = m.outdoor ? cap(d.name) + (!p.outdoor && p.floor > 1 ? `, then floor ${p.floor}` : "") : `${cap(d.name)}, then outside`; }
+  }
+  if (!then) then = cap(p.outdoor ? "outside" : p.place.replace(/^ILC, floor \d+,?\s*/, "") || "on your floor");
+  return { e, then };
 }
 
 function renderLocate() {
-  const box = $("locate"), p = person(sel);
+  // once per update: the plan, the words and the colours; paintLocate() draws every frame
+  const box = $("locate"), p = dest || person(sel);
   if (!p) return closeLocate();
-  const m = me(), mode = p.outdoor ? "out" : "in";
+  const mode = p.outdoor ? "out" : "in";
   if (!locDom || locDom.mode !== mode || locDom.id !== p.id) {
     box.innerHTML = `<div class="loc-info">
         <div class="loc-head"><span class="av" id="lc-av"></span><h2>${esc(p.name)}</h2><button class="x" data-act="close-locate" aria-label="Close route">${ICON.close}</button></div>
-        <div class="dir"><div class="arrow-wrap" id="lc-aw"><svg class="arrow" id="lc-arrow" viewBox="0 0 70 70" aria-hidden="true"><path id="lc-ap" d="${ARROW}" fill="currentColor"/></svg></div>
-          <div><div class="big" id="lc-big"></div><div class="then" id="lc-then"></div></div></div>
+        <div class="dir"><div class="arrow-wrap" id="lc-aw"><svg class="eta-ring" viewBox="0 0 100 100" aria-hidden="true"><circle class="eta-bg" cx="50" cy="50" r="46"/><circle class="eta-fg" id="lc-ring" cx="50" cy="50" r="46"/></svg><svg class="arrow" id="lc-arrow" viewBox="0 0 70 70" aria-hidden="true"><path id="lc-ap" d="${ARROW}" fill="currentColor"/></svg></div>
+          <div><div class="big" id="lc-big"></div><div class="sub" id="lc-sub"></div><div class="then" id="lc-then"></div></div></div>
         <div class="where" id="lc-where"></div>
-        <a class="lnk" id="lc-sv" target="_blank" rel="noopener" style="align-self:flex-start">${ICON.street}<span>Street View here</span></a>
         <div id="lc-act" style="margin-top:auto"></div>
       </div><div class="loc-view" id="lc-view"></div>`;
     const el = $("lc-view");
-    locDom = { mode, id: p.id, scene: mode === "in" ? buildScene(el, p) : buildFlat(el) };
+    locDom = { mode, id: p.id, scene: mode === "in" ? buildScene(el, p) : buildFlat(el), ang: null, shape: "arrow", prog: null, secs: null };
   }
   paint($("lc-av"), p.level); $("lc-av").textContent = p.ini;
+  const rn = respNow(), m = { ...(me() || {}), ...rn };
   const r = route(p, m);
-  $("lc-aw").hidden = !!r.plain;
-  $("lc-big").textContent = r.big;
+  if (dest && r.then === "Outside") r.then = `To ${dest.name}`;
+  locDom.r = r; locDom.p = p;
   $("lc-then").textContent = r.then;
-  const svg = $("lc-arrow"), path = $("lc-ap");
-  if (r.here) {
-    svg.classList.add("here"); path.setAttribute("d", CHECK); path.setAttribute("fill", "none"); path.setAttribute("stroke", "currentColor"); path.setAttribute("stroke-width", "8"); svg.style.transform = "none";
-  } else if (r.dx !== undefined) {
-    svg.classList.remove("here"); path.setAttribute("d", ARROW); path.setAttribute("fill", "currentColor"); path.removeAttribute("stroke");
-    const a = mode === "in" ? screenAngle(r.dx, r.dy) : (Math.atan2(r.dx, r.dy) * 180) / Math.PI;
-    lastAngle += ((((a - lastAngle) % 360) + 540) % 360) - 180;
-    svg.style.transform = `rotate(${lastAngle}deg)`;
-  }
   setHtml($("lc-where"), `${ICON.pin}${esc(p.place)}`);
-  if (p.x !== null) { const href = streetView(p.x, p.y); if ($("lc-sv").getAttribute("href") !== href) $("lc-sv").setAttribute("href", href); }
   setHtml($("lc-act"), p.sev >= 2 && !p.stage
     ? (p.acked_by ? `<div class="btn green">${WALK_ICON}${esc(onWayText(p))}</div>` : `<button class="btn dark" data-go="${esc(p.id)}">On my way</button>`)
     : "");
-  if (mode === "in") updateScene(p, m); else updateFlat(p, m);
+  const Lk = LOOK[p.level], sc = locDom.scene;
+  sc.pin.head.style.setProperty("--c", Lk.fill); sc.pin.head.style.setProperty("--c-ink", Lk.ink); sc.pin.ring.style.setProperty("--c", Lk.fill);
+  sc.you.head.style.setProperty("--c", "var(--ink)"); sc.you.ring.style.setProperty("--c", "var(--ink)");
+  if (mode === "in") {
+    for (const [n, f] of Object.entries(sc.fl)) {
+      f.classList.toggle("on", +n === p.floor); f.classList.toggle("mine", !rn.outdoor && +n === rn.floor); f.style.setProperty("--c", Lk.fill);
+      sc.nums[n].classList.toggle("on", +n === p.floor); sc.nums[n].style.setProperty("--c", Lk.fill); sc.nums[n].style.setProperty("--c-ink", Lk.ink);
+    }
+  } else sc.pin.head.querySelector(".head").textContent = p.ini;
+  paintLocate(performance.now());
+}
+
+const RING_C = 2 * Math.PI * 46, STAIR_ARROW = "M35 6 L60 32 L45 32 L45 62 L25 62 L25 32 L10 32 Z";
+function simFrac(now) { return clamp((now - lastTickAt) / GL.tickMsRaw, 0, 1) * stepsPer; }   // sim seconds since the last update
+function arrowShape(L, kind) {
+  if (L.shape === kind) return;
+  L.shape = kind; const svg = $("lc-arrow"), path = $("lc-ap"); if (!svg || !path) return;
+  svg.classList.toggle("here", kind === "check");
+  if (kind === "check") { path.setAttribute("d", CHECK); path.setAttribute("fill", "none"); path.setAttribute("stroke", "currentColor"); path.setAttribute("stroke-width", "8"); }
+  else { path.setAttribute("d", kind === "stairs" ? STAIR_ARROW : ARROW); path.setAttribute("fill", "currentColor"); path.removeAttribute("stroke"); }
+}
+function paintLocate(now) {
+  // every frame: the countdown, the ring, the arrow, the markers and the route
+  const L = locDom; if (!L || !L.r || !$("lc-big")) return;
+  const dt = Math.min(0.1, Math.max(0, (now - (L.painted || now)) / 1000)); L.painted = now;
+  const p = L.p, r = L.r, rn = respNow(), reduce = REDUCE.matches;
+  const you = GL.items.get(adminId) || { x: rn.x, y: rn.y, h: rn.h };
+  const tg = dest ? { x: p.x, y: p.y, h: 0 } : GL.items.get(p.id) || { x: p.x, y: p.y, h: p.outdoor ? 0 : ((p.floor || 1) - 1) * FH };
+  const arrived = !dest && p.arrived && p.alertT != null;
+  const here = r.here || (L.done && r.e && !r.e.enRoute && r.e.metres < 6);
+  let bigTxt, subTxt = "", progress = 0;
+  $("lc-aw").hidden = !!r.plain;
+  if (r.plain) { bigTxt = p.place; L.secs = null; }
+  else if (here || arrived) {
+    // you're there: the clock stops on how long help took from the alert, and stays while you're with them
+    if (arrived && p.arriveT != null) L.done = mmss(p.arriveT - p.alertT);
+    bigTxt = "Here"; subTxt = L.done ? `help in ${L.done}` : ""; progress = 1; L.secs = null;
+  } else {
+    const e = r.e;
+    if (e.enRoute) L.done = null;
+    let secs = e.enRoute ? Math.max(0, e.shown - simFrac(now)) : e.shown;
+    if (e.enRoute) { secs = Math.min(secs, L.secs ?? L.pre ?? secs); L.secs = secs; } else { L.secs = null; L.pre = secs; }   // after "On my way" it never ticks back up
+    bigTxt = mmss(secs); subTxt = `${Math.round(e.metres)} m`;
+    progress = e.start ? clamp(1 - secs / e.start, 0, 1) : 0;
+  }
+  const big = $("lc-big"), sub = $("lc-sub"), ring = $("lc-ring");
+  if (big.textContent !== bigTxt) big.textContent = bigTxt;
+  if (sub.textContent !== subTxt) sub.textContent = subTxt;
+  if (ring) { L.prog = L.prog == null || reduce ? progress : L.prog + (progress - L.prog) * (1 - Math.exp(-dt / 0.2)); ring.style.strokeDashoffset = (RING_C * (1 - L.prog)).toFixed(1); }
+  if (!r.plain) {
+    const svg = $("lc-arrow");
+    if (here || arrived) { arrowShape(L, "check"); svg.style.transform = "none"; L.ang = null; }
+    else {
+      let target;
+      if (r.climb) { arrowShape(L, "stairs"); target = r.climb === "up" ? 0 : 180; }
+      else {
+        // point at the next turn of the route, not straight at the person
+        arrowShape(L, "arrow");
+        const pts = r.e.pts; let q = null;
+        for (let i = 1; i < pts.length; i++) if (Math.hypot(pts[i].x - you.x, pts[i].y - you.y) > 1.5) { q = pts[i]; break; }
+        q = q || tg;
+        const dx = q.x - you.x, dy = q.y - you.y;
+        target = L.mode === "in" ? screenAngle(dx, dy) : (Math.atan2(dx, dy) * 180) / Math.PI;
+      }
+      if (L.ang == null || reduce) L.ang = target;
+      else L.ang += (((((target - L.ang) % 360) + 540) % 360) - 180) * (1 - Math.exp(-dt / 0.15));
+      svg.style.transform = `rotate(${L.ang.toFixed(1)}deg)`;
+    }
+  }
+  const way = !r.plain && !here && !arrived && r.e ? [{ x: you.x, y: you.y, h: you.h }, ...r.e.pts.slice(1)] : null;
+  if (L.mode === "in") paintScene(L.scene, you, tg, way); else paintFlat(L.scene, you, tg, way, dt);
 }
 
 function screenAngle(dx, dy) {
@@ -1496,8 +2201,9 @@ function buildScene(el, p) {
   const topPct = 50 + Math.min(16, (((floors.length - 1) * gap * 0.82) / ch) * 50);
   const scene = document.createElement("div"); scene.className = "scene flat"; scene.style.top = `${topPct}%`;
   const ground = document.createElement("div"); ground.className = "ground";
-  ground.style.cssText = `width:${(WORLD.x1 - WORLD.x0) * ppm}px;height:${(WORLD.y1 - WORLD.y0) * ppm}px;left:${(WORLD.x0 - 45) * ppm}px;top:${(25 - WORLD.y1) * ppm}px`;
-  ground.innerHTML = `<img alt="" src="${MAP_URL}">`;
+  const gx0 = Math.max(WORLD.x0, 45 - 460), gx1 = Math.min(WORLD.x1, 45 + 330), gy0 = Math.max(WORLD.y0, 25 - 270), gy1 = Math.min(WORLD.y1, 25 + 460);   // more to the far side, which the tilt shows
+  ground.style.cssText = `width:${(gx1 - gx0) * ppm}px;height:${(gy1 - gy0) * ppm}px;left:${(gx0 - 45) * ppm}px;top:${(25 - gy1) * ppm}px;overflow:hidden`;
+  ground.innerHTML = `<img alt="" src="${MAP_URL}" style="inset:auto;left:${(WORLD.x0 - gx0) * ppm}px;top:${(gy1 - WORLD.y1) * ppm}px;width:${(WORLD.x1 - WORLD.x0) * ppm}px;height:${(WORLD.y1 - WORLD.y0) * ppm}px">`;
   scene.appendChild(ground);
   const fl = {}, level = {};
   floors.forEach((n, i) => {
@@ -1510,6 +2216,11 @@ function buildScene(el, p) {
   requestAnimationFrame(() => requestAnimationFrame(() => scene.classList.remove("flat")));
   setTimeout(() => overlay.classList.add("shown"), matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 950);
   const s = { el, fl, level, W, D, fw, fd, gap, cw, ch, topPct, sy: (ch * topPct) / 100, overlay, nums: {} };
+  // the route: dashes along each floor, a glowing line up the stairs (drawn under the markers)
+  const holder = document.createElement("div");
+  holder.innerHTML = `<svg class="r3" aria-hidden="true"><polyline class="r3-halo" points=""/><polyline class="r3-walk" points=""/><path class="r3-climb" d=""/></svg>`;
+  const rsvg = holder.firstElementChild; overlay.appendChild(rsvg);
+  s.rHalo = rsvg.querySelector(".r3-halo"); s.rWalk = rsvg.querySelector(".r3-walk"); s.rClimb = rsvg.querySelector(".r3-climb");
   for (const n of floors) { const lab = document.createElement("div"); lab.className = "floor-num"; lab.textContent = n; overlay.appendChild(lab); s.nums[n] = lab; }
   placeNums(s);
   s.you = makeMarker(s.overlay, "You", "you"); s.pin = makeMarker(s.overlay, p.ini, "");
@@ -1523,6 +2234,14 @@ function project(s, x, y, floor) {
   const y2 = y1 * Math.cos(b) - pz * Math.sin(b), z2 = y1 * Math.sin(b) + pz * Math.cos(b), k = P / (P - z2);
   return { left: s.cw / 2 + x1 * k, top: s.ch / 2 + (s.sy + y2 - s.ch / 2) * k };
 }
+function project3(s, x, y, h) {
+  // like project(), but at any height, so someone on the stairs rises smoothly between floors
+  const px = -s.fw / 2 + (x / s.W) * s.fw, py = -s.fd / 2 + (1 - y / s.D) * s.fd, pz = h == null ? 0 : clamp(h / FH, 0, BUILDING.floors.length - 1) * s.gap;
+  const a = (TURN_Z * Math.PI) / 180, b = (TILT_X * Math.PI) / 180, P = 1200;
+  const x1 = px * Math.cos(a) - py * Math.sin(a), y1 = px * Math.sin(a) + py * Math.cos(a);
+  const y2 = y1 * Math.cos(b) - pz * Math.sin(b), z2 = y1 * Math.sin(b) + pz * Math.cos(b), k = P / (P - z2);
+  return { left: s.cw / 2 + x1 * k, top: s.ch / 2 + (s.sy + y2 - s.ch / 2) * k };
+}
 function makeMarker(parent, label, cls) {
   const ring = document.createElement("div"); ring.className = "ring " + cls;
   const head = document.createElement("div"); head.className = "marker " + cls;
@@ -1530,63 +2249,172 @@ function makeMarker(parent, label, cls) {
   parent.appendChild(head);
   return { ring, head };
 }
-function putMarker(s, mk, who, color, ink) {
-  if (who.x === null) { mk.ring.remove(); mk.head.hidden = true; return; }
-  const f = who.outdoor ? null : s.fl[who.floor];
-  if (f) {
-    if (mk.ring.parentNode !== f) f.appendChild(mk.ring);
-    mk.ring.style.left = `${(who.x / s.W) * 100}%`; mk.ring.style.top = `${(1 - who.y / s.D) * 100}%`; mk.ring.style.setProperty("--c", color);
+function mark3(s, mk, who) {
+  // a marker in the 3D stack: its head at any height, its ring on a floor plate only while standing on one
+  if (!who || who.x == null) { mk.ring.remove(); mk.head.hidden = true; return; }
+  const inside = isInside(who.x, who.y), lv = inside ? clamp(who.h / FH, 0, BUILDING.floors.length - 1) : 0, near = Math.round(lv);
+  const plate = inside && Math.abs(lv - near) < 0.2 ? s.fl[near + 1] : null;
+  if (plate) {
+    if (mk.ring.parentNode !== plate) plate.appendChild(mk.ring);
+    mk.ring.style.left = `${((who.x / s.W) * 100).toFixed(2)}%`; mk.ring.style.top = `${((1 - who.y / s.D) * 100).toFixed(2)}%`;
   } else mk.ring.remove();
-  const pt = project(s, who.x, who.y, who.outdoor ? null : who.floor);
-  mk.head.hidden = false; mk.head.style.left = `${pt.left}px`; mk.head.style.top = `${pt.top}px`;
-  mk.head.style.setProperty("--c", color); if (ink) mk.head.style.setProperty("--c-ink", ink);
+  const pt = project3(s, who.x, who.y, inside ? who.h : null);
+  mk.head.hidden = false; mk.head.style.left = `${pt.left.toFixed(1)}px`; mk.head.style.top = `${pt.top.toFixed(1)}px`;
 }
-function updateScene(p, m) {
-  const s = locDom.scene, L = LOOK[p.level];
+function paintScene(s, you, tg, way) {
   if (s.el.clientWidth !== s.cw || s.el.clientHeight !== s.ch) { s.cw = s.el.clientWidth; s.ch = s.el.clientHeight; s.sy = (s.ch * s.topPct) / 100; placeNums(s); }
-  for (const [n, f] of Object.entries(s.fl)) {
-    f.classList.toggle("on", +n === p.floor); f.classList.toggle("mine", !!(m && !m.outdoor && +n === m.floor));
-    f.style.setProperty("--c", L.fill);
-    s.nums[n].classList.toggle("on", +n === p.floor); s.nums[n].style.setProperty("--c", L.fill); s.nums[n].style.setProperty("--c-ink", L.ink);
+  mark3(s, s.you, you); mark3(s, s.pin, tg);
+  if (!way) { s.rWalk.setAttribute("points", ""); s.rHalo.setAttribute("points", ""); s.rClimb.setAttribute("d", ""); return; }
+  const P = way.map((q) => project3(s, q.x, q.y, isInside(q.x, q.y) ? q.h : null));
+  const str = P.map((a) => `${a.left.toFixed(1)},${a.top.toFixed(1)}`).join(" ");
+  s.rWalk.setAttribute("points", str); s.rHalo.setAttribute("points", str);
+  let d = "";
+  for (let i = 1; i < way.length; i++) {
+    if (Math.abs(way[i].h - way[i - 1].h) > 0.3 && Math.hypot(way[i].x - way[i - 1].x, way[i].y - way[i - 1].y) < 1) d += `M${P[i - 1].left.toFixed(1)},${P[i - 1].top.toFixed(1)}L${P[i].left.toFixed(1)},${P[i].top.toFixed(1)}`;
   }
-  if (m) putMarker(s, s.you, m, "var(--ink)"); else { s.you.ring.remove(); s.you.head.hidden = true; }
-  putMarker(s, s.pin, p, L.fill, L.ink);
+  s.rClimb.setAttribute("d", d);
 }
 function buildFlat(el) {
   el.classList.add("flatmap");
-  el.innerHTML = `<img alt="" id="fm-img" src="${MAP_URL}"><svg class="route" aria-hidden="true"><line id="fm-line" stroke="var(--you)" stroke-width="3" stroke-dasharray="2 8" stroke-linecap="round"/></svg>`;
-  const s = { el, ppm: null };
+  el.innerHTML = `<img alt="" id="fm-img" src="${MAP_URL}"><svg class="route" aria-hidden="true"><polyline class="r3-halo" id="fm-halo" points=""/><polyline class="r3-walk" id="fm-line" points=""/></svg>`;
+  const s = { el, cam: null, kT: null, imgK: 0, img: $("fm-img"), line: $("fm-line"), halo: $("fm-halo") };
   s.you = makeMarker(el, "You", "you"); s.pin = makeMarker(el, "", "");
   return s;
 }
-function updateFlat(p, m) {
-  const s = locDom.scene, el = s.el, cw = el.clientWidth, ch = el.clientHeight;
-  const pts = [p, m].filter((q) => q && q.x !== null);
+function damp(c, k, target, T, dt) {
+  // critically damped spring: moves c[k] toward target in about T seconds, with no sudden change of speed
+  const w = 2 / T, x = w * dt, e = 1 / (1 + x + 0.48 * x * x + 0.235 * x * x * x), ch = c[k] - target, v = c[k + "v"] || 0, t = (v + w * ch) * dt;
+  c[k + "v"] = (v - w * t) * e; c[k] = target + (ch + t) * e;
+}
+function paintFlat(s, you, tg, way, dt) {
+  // the outdoor view: the camera glides to keep you, them and the route in frame
+  const el = s.el, cw = el.clientWidth, ch = el.clientHeight;
+  const pts = [tg, you].concat(way ? way.slice(1) : []).filter((q) => q && q.x != null);
   if (!pts.length) return;
-  const cx = pts.reduce((a, q) => a + q.x, 0) / pts.length, cy = pts.reduce((a, q) => a + q.y, 0) / pts.length;
+  const xs = pts.map((q) => q.x), ys = pts.map((q) => q.y), cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2;
   const spanX = Math.max(...pts.map((q) => Math.abs(q.x - cx))) * 2 + 60, spanY = Math.max(...pts.map((q) => Math.abs(q.y - cy))) * 2 + 60;
   const want = clamp(Math.min(cw / spanX, ch / spanY), 1.2, 5);
-  if (!s.ppm || want < s.ppm * 0.8 || want > s.ppm * 1.4) s.ppm = want;
-  const k = s.ppm, sx = (x) => cw / 2 + (x - cx) * k, sy = (y) => ch / 2 - (y - cy) * k;
-  const img = $("fm-img");
-  img.style.width = `${(WORLD.x1 - WORLD.x0) * k}px`; img.style.height = `${(WORLD.y1 - WORLD.y0) * k}px`;
-  img.style.left = `${sx(WORLD.x0)}px`; img.style.top = `${sy(WORLD.y1)}px`;
-  const place = (mk, q, color, ink) => {
-    if (!q || q.x === null) { mk.head.hidden = true; return; }
-    mk.head.hidden = false; mk.head.style.left = `${sx(q.x)}px`; mk.head.style.top = `${sy(q.y)}px`;
-    mk.head.style.setProperty("--c", color); if (ink) mk.head.style.setProperty("--c-ink", ink);
-  };
-  const L = LOOK[p.level];
-  s.pin.head.querySelector(".head").textContent = p.ini;
-  place(s.pin, p, L.fill, L.ink); place(s.you, m, "var(--ink)");
-  const line = $("fm-line");
-  if (m && m.x !== null) { line.setAttribute("x1", sx(m.x)); line.setAttribute("y1", sy(m.y)); line.setAttribute("x2", sx(p.x)); line.setAttribute("y2", sy(p.y)); }
+  if (!s.kT || want < s.kT * 0.8 || want > s.kT * 1.4) s.kT = want;
+  if (!s.cam || REDUCE.matches) s.cam = { cx, cy, lk: Math.log(s.kT) };
+  else if (dt > 0) { damp(s.cam, "cx", cx, 0.7, dt); damp(s.cam, "cy", cy, 0.7, dt); damp(s.cam, "lk", Math.log(s.kT), 0.8, dt); }
+  const k = Math.exp(s.cam.lk), sx = (x) => cw / 2 + (x - s.cam.cx) * k, sy = (y) => ch / 2 - (y - s.cam.cy) * k;
+  if (Math.abs(s.imgK - k) > 0.002) { s.img.style.width = `${((WORLD.x1 - WORLD.x0) * k).toFixed(1)}px`; s.img.style.height = `${((WORLD.y1 - WORLD.y0) * k).toFixed(1)}px`; s.imgK = k; }
+  s.img.style.transform = `translate3d(${sx(WORLD.x0).toFixed(1)}px, ${sy(WORLD.y1).toFixed(1)}px, 0)`;
+  const put = (mk, q) => { if (!q || q.x == null) { mk.head.hidden = true; return; } mk.head.hidden = false; mk.head.style.left = `${sx(q.x).toFixed(1)}px`; mk.head.style.top = `${sy(q.y).toFixed(1)}px`; };
+  put(s.pin, tg); put(s.you, you);
+  const str = way ? way.map((q) => `${sx(q.x).toFixed(1)},${sy(q.y).toFixed(1)}`).join(" ") : "";
+  s.line.setAttribute("points", str); s.halo.setAttribute("points", str);
 }
+
+/* ================= smooth motion: what moves on screen glides every frame, between simulation updates ================= */
+// You (the supervisor) move exactly along your walk, interpolated between updates. Workers' estimated
+// positions (Wi-Fi, GPS, barometer) ease toward each new estimate, so a noisy fix drifts instead of hopping.
+const GL = { items: new Map(), tickAt: performance.now(), tickMs: 1100, tickMsRaw: 1000, last: performance.now() };
+function walkAhead(w, n) {
+  // your walk over the next n simulation seconds, by exactly the rules Sim.move follows
+  const P = w.path, out = []; let x = w.x, y = w.y, floor = w.floor, z = w.z, i = 0;
+  for (let k = 1; k <= n; k++) {
+    if (i < P.length && P[i][0] === "walk") {
+      let step = WALK;
+      while (step > 1e-6 && i < P.length && P[i][0] === "walk") {
+        const wx = P[i][2], wy = P[i][3], d = Math.hypot(wx - x, wy - y);
+        if (d <= step) { x = wx; y = wy; i++; step -= d; } else { x += ((wx - x) / d) * step; y += ((wy - y) / d) * step; step = 0; }
+      }
+    } else if (i < P.length) {
+      const f = P[i][1], dir = f > floor ? 1 : -1; z += dir * CLIMB;
+      if (Math.abs(z) >= FH) { floor += dir; z = 0; if (floor === f) i++; }
+    }
+    out.push({ t: simT + k, x, y, h: isInside(x, y) ? (floor - 1) * FH + z : 0 });
+  }
+  return out;
+}
+const AHEAD = () => walkAhead(sim.people[adminId], Math.ceil(Math.max(2.5 * stepsPer, 0.45 * rate)) + 2);
+function glideSet(id, x, y, h, exact, fut, still) {
+  let g = GL.items.get(id);
+  const smp = { t: simT, x, y, h };   // t: simulation seconds
+  if (!g || REDUCE.matches || Math.hypot(x - g.tx, y - g.ty) > 60) { g = { x, y, h, tx: x, ty: y, th: h, exact, buf: [smp], fut: fut || [] }; g.all = g.buf.concat(g.fut); GL.items.set(id, g); return g; }
+  if (!exact && still && Math.hypot(x - g.tx, y - g.ty) < 6) { if (x !== g.lx || y !== g.ly) { g.tx += (x - g.tx) * 0.25; g.ty += (y - g.ty) * 0.25; } }
+  else { g.tx = x; g.ty = y; }
+  g.lx = x; g.ly = y; g.th = h; g.exact = exact;
+  if (exact) {
+    // the walk went as foreseen, unless a new one began in between: then it carries on from where the marker is
+    const pr = glideAt(g.all, simT), miss = Math.hypot(pr.x - x, pr.y - y) + Math.abs(pr.h - h) > 0.05;
+    let from = 0;
+    if (miss && g.ds != null) {
+      // start the new walk from the marker, at about the moment it began, so its first steps run at walking pace
+      const t0 = Math.min(g.ds, simT - Math.min(stepsPer, (Math.hypot(x - g.x, y - g.y) + Math.abs(h - g.h)) / WALK));
+      g.buf = [{ t: t0, x: g.x, y: g.y, h: g.h }, smp]; g.ds = t0; from = simT + 1e-6;
+    }
+    else if (simT > g.buf[g.buf.length - 1].t) { g.buf.push(smp); if (g.buf.length > 40) g.buf.shift(); }
+    from = Math.max(from, g.buf[g.buf.length - 1].t + 1e-6);
+    g.fut = (fut || []).filter((q) => q.t >= from);
+    g.all = g.buf.concat(g.fut);
+  }
+  return g;
+}
+function glideTick() {
+  // once per simulation update: new targets for everything that moves
+  GL.tickAt = performance.now();
+  const r = respNow();
+  glideSet(adminId, r.x, r.y, r.h, true, AHEAD());
+  for (const q of state.people) if (!q.admin && q.x != null) glideSet(q.id, q.x, q.y, q.outdoor ? 0 : q.hgt ?? ((q.floor || 1) - 1) * FH, false, null, !q.moving);
+}
+function glideEnsure(q) {
+  if (GL.items.has(q.id)) return;
+  if (q.admin) { const r = respNow(); glideSet(q.id, r.x, r.y, r.h, true, AHEAD()); }
+  else if (q.x != null) glideSet(q.id, q.x, q.y, q.outdoor ? 0 : q.hgt ?? ((q.floor || 1) - 1) * FH, false);
+}
+function glideAt(B, t) {
+  // the walk at simulation time t, between the two points around it
+  let i = B.length - 1;
+  while (i > 0 && B[i].t > t) i--;
+  const A = B[i], C = B[Math.min(i + 1, B.length - 1)], f = C.t > A.t ? clamp((t - A.t) / (C.t - A.t), 0, 1) : 1;
+  return { x: A.x + (C.x - A.x) * f, y: A.y + (C.y - A.y) * f, h: A.h + (C.h - A.h) * f };
+}
+function glideStep(now) {
+  const dt = Math.min(0.1, Math.max(0, (now - GL.last) / 1000)); GL.last = now;
+  const a = 1 - Math.exp(-dt / 0.45), e = 1 - Math.exp(-dt / 0.15);
+  const tgt = simT + clamp((now - lastTickAt) / GL.tickMsRaw, 0, 1.5) * stepsPer;   // the simulation's clock right now
+  for (const g of GL.items.values()) {
+    if (g.exact) {
+      // you're drawn where you are now, not where the last update left you: between updates the marker follows the walk
+      // ahead. Its clock only moves forward, and eases its speed instead of jumping when time speeds up or an update is late.
+      const B = g.all, end = B[B.length - 1].t;
+      if (g.ds == null || g.ds < B[0].t || tgt - g.ds > 8 * stepsPer) { g.ds = clamp(tgt, B[0].t, end); g.vr = rate; g.k = 1; g.v = rate; }
+      g.vr += (rate - g.vr) * e;
+      g.k += (clamp(1 + (tgt - g.ds) / Math.max(1, rate) / 0.5, 0, 3) - g.k) * (1 - Math.exp(-dt / 0.3));   // softer: no wobble when time speeds up
+      let j = B.length - 1; while (j > 0 && B[j - 1].x === B[j].x && B[j - 1].y === B[j].y && B[j - 1].h === B[j].h) j--;
+      let v = g.vr * g.k;
+      if (j < B.length - 1 && B[j].t > g.ds) v = Math.min(Math.max(v, g.v), Math.max(0.5, (B[j].t - g.ds) / 0.3));   // slow into a stop
+      g.v = v; g.ds = Math.min(end, g.ds + dt * v);
+      const q = glideAt(B, g.ds); g.x = q.x; g.y = q.y; g.h = q.h;
+    } else { g.x += (g.tx - g.x) * a; g.y += (g.ty - g.y) * a; g.h += (g.th - g.h) * a; }
+  }
+}
+function paintPin(el) {
+  const g = GL.items.get(el.dataset.key); if (!g) return;
+  const l = WX(g.x), t = WY(g.y), k = GL.wk || cam.k;
+  if (el._k !== k) { el._k = k; el.style.transform = `translate(-50%, -50%) scale(${(1 / k).toFixed(4)})`; }
+  if (el._l === l && el._t === t) return;
+  el._l = l; el._t = t; el.style.left = `${l.toFixed(1)}px`; el.style.top = `${t.toFixed(1)}px`;
+}
+function worldScale() {
+  // the map's scale this frame, mid-zoom included
+  const m = /matrix\(([^,]+),\s*([^,]+)/.exec(getComputedStyle($("world")).transform || "");
+  return m ? Math.hypot(+m[1], +m[2]) : cam.k;
+}
+function paintPins() { GL.wk = worldScale(); for (const el of $("world").children) if (el.classList.contains("pin")) paintPin(el); }
 
 /* ================= run ================= */
 const hub = new Hub(), sim = new Sim(hub);
-let simT = 1e6, timer = null;
-let audio = null, soundOn = true;
+let simT = 1e6, timer = null, lastTickAt = performance.now();
+function schedule() {
+  // the next update falls one interval after the last one, even when the speed changes in between
+  clearTimeout(timer);
+  timer = setTimeout(runTick, Math.max(0, lastTickAt + GL.tickMsRaw - performance.now()));
+}
+function runTick() { lastTickAt = performance.now(); tick(); schedule(); }
+let audio = null, soundOn = false;   // alert sound removed
 const dangerNow = new Set();
 function chime() {
   if (!soundOn || !audio) return;
@@ -1607,20 +2435,69 @@ function checkChime() {
   if (fresh) chime();
 }
 function renderAll() { if (!clipMode) { renderRail(); renderPins(); renderBanner(); renderPop(); if (locating) renderLocate(); checkChime(); } renderClips(); pushBoardPresence(); }
-let speed = 1, ff = null, fastFrom = null;   // ff: fast-forward a demo scenario until its effect shows
-function tick() {
-  simT += 1; sim.step(simT); state = hub.snapshot(simT); renderAll(); storyFast();
-  if (fastFrom !== null) { const s = simT - fastFrom; $("ff-clock").textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; }
-  if (ff && (simT >= ff.cap || ff.done())) { ff = null; setRate(speed); }
+let ff = null, fastFrom = null, stepsPer = 1, fx = [];   // ff: time runs fast only while someone walks over; fx: demo effects still landing
+function applyFx() {
+  // a demo effect is in full swing three seconds after its button: a warning first, then the alert
+  fx = fx.filter((f) => {
+    const b = hub.badges.get(f.id), e = simT - f.t0; if (!b) return false;
+    const full = e >= 3;
+    if (f.kind === "heart") { b.heart.sUp = Math.max(b.heart.sUp, full ? 60 : 35); if (full) b.heart.alerting = true; }
+    else if (f.kind === "hot") { b.air.sUp = Math.max(b.air.sUp, full ? 45 : 24); if (full) b.air.alerting = true; }
+    else if (f.kind === "cold") { b.air.sDn = Math.max(b.air.sDn, full ? 45 : 24); if (full) b.air.alerting = true; }
+    else if (f.kind === "fall" && full) b.fall.still = Math.max(b.fall.still, 30);
+    else if (f.kind === "dead" && full) b.heart.lastT = Math.min(b.heart.lastT, simT - 21);
+    else if (f.kind === "sun") b.sun.hot = Math.max(b.sun.hot, full ? SUN_ALERT : SUN_WATCH);
+    return !full;
+  });
 }
-function setRate(n) {
-  document.documentElement.style.setProperty("--move", `${Math.max(0.05, 0.8 / n)}s`);
-  clearInterval(timer); timer = setInterval(tick, 1000 / n);
+function tick() {
+  for (let i = 0; i < stepsPer; i++) {
+    simT += 1; applyFx(); sim.step(simT);
+    if (ff && (simT >= ff.cap || ff.done())) { ff = null; setRate(1); break; }
+  }
+  state = hub.snapshot(simT);
+  // help has arrived: the alert clears by itself and they're back to normal about three seconds later
+  let cleared = false;
+  for (const b of hub.badges.values()) if (b.arrived && b.helper && !b.recovery && !(sim.people[b.helper] && sim.people[b.helper].path.length)) { resolve(b.id, true); cleared = true; }
+  if (cleared) state = hub.snapshot(simT);
+  glideTick();
+  renderAll();
+  if (fastFrom !== null) { const s = simT - fastFrom; $("ff-clock").textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; }
+}
+let rate = 1, rampT = null;
+function rampRate(n) {
+  // speed up over about half a second instead of all at once
+  clearInterval(rampT); rampT = null;
+  const from = rate, steps = 5; let i = 0;
+  if (REDUCE.matches || n <= from) return setRate(n);
+  rampT = setInterval(() => {
+    i++; const e = i / steps, k = e * e * (3 - 2 * e);
+    setRate(Math.max(1, Math.round(from + (n - from) * k)), true);
+    if (i >= steps) { clearInterval(rampT); rampT = null; }
+  }, 110);
+}
+function setRate(n, ramping) {
+  if (!ramping && rampT) { clearInterval(rampT); rampT = null; }
+  rate = n;
+  stepsPer = n > 20 ? Math.ceil(n / 20) : 1;
+  GL.tickMsRaw = (1000 * stepsPer) / n; GL.tickMs = GL.tickMsRaw * 1.1;   // glide a touch longer than an update, so motion never pauses
+  document.documentElement.style.setProperty("--move", `${Math.max(0.05, (1.08 * stepsPer) / n)}s`);   // a touch longer than a tick, so motion never pauses between updates
+  schedule();
   // whenever time runs faster than real life, say so loudly
   const fast = n > 1;
-  $("ffpill").hidden = !fast || !!story; $("mapv").classList.toggle("fast", fast); $("ff-rate").textContent = `${n}×`;
+  $("ffpill").hidden = !fast || !!story; $("mapv").classList.toggle("fast", fast && !story); $("ff-rate").textContent = `${n}×`;
   if (fast && fastFrom === null) { fastFrom = simT; $("ff-clock").textContent = "0:00"; }
   if (!fast) fastFrom = null;
+}
+function walkSecs(id) {
+  // how long the walk ahead really takes, at walking pace and on the stairs
+  const w = sim.people[id];
+  return tripStats(w.floor, w.x, w.y, w.z, w.path).secs;
+}
+function fastWalk(id, done) {
+  // the walk is the only thing that's sped up: whatever its length, it plays in about three seconds
+  ff = { cap: simT + 1800, done };
+  rampRate(Math.max(1, Math.round(walkSecs(id) / (story ? 8 : 3))));
 }
 function refresh() { state = hub.snapshot(simT); renderAll(); }
 function goHelp(id, helperId) {
@@ -1629,67 +2506,58 @@ function goHelp(id, helperId) {
   if (!b || !m) return;
   b.ackedBy = m.name; b.helper = m.id; b.arrived = false;
   hub.logEv(simT, `${m.name} is on the way to ${b.person.name.split(" ")[0]}`, "go", id);
+  ETA.delete(id);   // a fresh countdown for this walk
   sim.action("walk", id, m.id);
   let idle = 0;
-  ff = { cap: simT + 600, done: () => {
-    if (b.arrived) return true;
-    if (!sim.people[m.id].path.length && ++idle > 3) { b.arrived = true; refresh(); return true; }
+  fastWalk(m.id, () => {
+    if (b.arrived && !sim.people[m.id].path.length) return true;
+    if (!sim.people[m.id].path.length && ++idle > 2) { b.arrived = true; return true; }
     return false;
-  } };
-  setRate(Math.max(speed, 15));
+  });
   if (!locating) fitPts([person(id), m]);
   refresh();
 }
-function resolve(id) {
-  // they're safe: clear the alert now, yellow in 3 seconds, green 3 seconds after that
+function resolve(id, quiet) {
+  // they're safe: the alert clears now, and three seconds later they're back to normal
   const b = hub.badges.get(id);
-  if (!b) return;
-  b.recovery = { stage: "cleared" }; sim.recover(id); b.sos = null;
+  if (!b || b.recovery) return;
+  b.recovery = { stage: "yellow" }; sim.recover(id); b.sos = null; b.sun.hot = 0;
   b.fall = { impactT: null, still: 0, state: null };
   hub.logEv(simT, `${b.person.name.split(" ")[0]} is safe. Alert cleared${b.arriveT != null && b.alertT != null ? ` (help in ${mmss(b.arriveT - b.alertT)})` : ""}`, "ok", id);
-  refresh();
-  setTimeout(() => { if (b.recovery) { b.recovery.stage = "yellow"; refresh(); } }, 3000);
+  if (!quiet) refresh();
+  const rec = b.recovery;
   setTimeout(() => {
-    if (!b.recovery) return;
+    if (b.recovery !== rec) return;
     b.recovery.stage = "green";
     for (const m of [b.heart, b.air]) { m.sUp = 0; m.sDn = 0; m.guard = 0; m.alerting = false; }
     b.ackedBy = null; b.helper = null; b.arrived = false; b.alertT = null; b.arriveT = null; b.fall = { impactT: null, still: 0, state: null }; b.sos = null; b.okUntil = null; refresh();
-  }, 6000);
-}
-function switchAdmin(id) {
-  adminId = id;
-  document.querySelectorAll("[data-admin]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.admin === id)));
-  store.set("beacon.admin", id);
-  if (locating) locDom = null;
-  refresh();
-}
-function setSpeed(n) {
-  speed = n; ff = null;
-  document.querySelectorAll("[data-speed]").forEach((b) => b.setAttribute("aria-pressed", String(+b.dataset.speed === n)));
-  setRate(n);
+  }, 3000);
 }
 function runDemo(name) {
   const top = workers().find((w) => w.level === "danger");
-  const pick = { rose_heart: "B1", joe_hot: "B2", mae_cold: "B3", dev_fall: "B5", ana_dead: "B6" }[name];
+  const pick = { rose_heart: "B1", joe_hot: "B2", mae_cold: "B3", dev_fall: "B5", ana_dead: "B6", dev_sun: "B5" }[name];
   const walkTo = sel || (top && top.id) || "B1";
   sim.action(name, walkTo, adminId);
-  let done, cap = simT + 180;
   if (pick) {
     if (locating) closeLocate();
+    fx = fx.filter((f) => f.id !== pick);
+    fx.push({ id: pick, kind: { rose_heart: "heart", joe_hot: "hot", mae_cold: "cold", dev_fall: "fall", ana_dead: "dead", dev_sun: "sun" }[name], t0: simT });
     sel = pick; focusOn(person(pick));
-    done = () => person(pick).level === (name === "ana_dead" ? "gray" : "danger");
   } else if (name === "walk") {
     if (locating && sel !== walkTo) closeLocate();
     sel = walkTo; focusOn(person(walkTo));
     if (!locating) openLocate();
-    done = () => !sim.people[adminId].path.length;
-  } else {   // reset
+    fastWalk(adminId, () => !sim.people[adminId].path.length);
+  } else {   // reset: everyone is back to normal straight away
     if (locating) closeLocate();
-    for (const b of hub.badges.values()) { b.recovery = null; b.ackedBy = null; b.helper = null; b.arrived = false; b.alertT = null; b.arriveT = null; b.fall = { impactT: null, still: 0, state: null }; b.sos = null; b.okUntil = null; }
-    sel = ""; cap = simT + 300;
-    done = () => workers().every((w) => w.level === "ok");
+    fx = []; ff = null; setRate(1);
+    for (const b of hub.badges.values()) {
+      b.recovery = null; b.ackedBy = null; b.helper = null; b.arrived = false; b.alertT = null; b.arriveT = null; b.fall = { impactT: null, still: 0, state: null }; b.sos = null; b.okUntil = null;
+      for (const m of [b.heart, b.air]) { m.sUp = 0; m.sDn = 0; m.guard = 0; m.alerting = false; }
+      if (b.person.admin) b.x = null;   // supervisors are back at their posts
+    }
+    sel = "";
   }
-  ff = { done, cap }; setRate(Math.max(speed, name === "reset" ? 40 : 15));
   renderAll();
 }
 /* ---------- the worker's clip: what the wearer sees ---------- */
@@ -1711,30 +2579,28 @@ function advice(d) {
   if (d.sos) return ["Help is coming", "Stay put if safe"];
   if (/fell|fall/i.test(L)) return [red ? "Did you fall?" : "Hard bump", "Tap I'm OK if fine"];
   if (/cold/i.test(L)) return [red ? "Too cold" : "Getting cold", "Get warm"];
+  if (/sun/i.test(L)) return [red ? "Too much sun" : "Long in the sun", "Find shade"];
   if (/hot/i.test(L)) return [red ? "Too hot" : "Getting hot", "Get cool, drink water"];
   if (/heart/i.test(L)) return [red ? "Heart racing" : "Heart up", "Sit and rest"];
   if (/says ok/i.test(L)) return ["Noted", "Still watching"];
   if (/recover/i.test(L)) return ["Settling", ""];
-  if (d.buzz) return ["Buzz", { rest: "Rest", cool: "Cool off", warm: "Warm up" }[d.buzz] || ""];
+  if (d.buzz) return ["Buzz", { rest: "Rest", cool: "Cool off", warm: "Warm up", shade: "Find shade" }[d.buzz] || ""];
   return ["You're okay", ""];
 }
 function clipShell(box, where) {
   const opts = PEOPLE.filter((q) => !q.admin).map((q) => `<option value="${q.badge}">${esc(q.name)}</option>`).join("");
-  box.innerHTML = `<div class="clip-top"><b>Beacon clip</b><span class="conn" data-k="conn"></span>${where === "dock" ? `<button class="x" data-act="close-dock" aria-label="Close worker's view" style="width:32px;height:32px">${ICON.close}</button>` : ""}</div>
+  box.innerHTML = `<div class="clip-top"><b>ThermoSafe clip</b><span class="conn" data-k="conn"></span>${where === "dock" ? `<button class="x" data-act="close-dock" aria-label="Close worker's view" style="width:32px;height:32px">${ICON.close}</button>` : ""}</div>
     <label>Wearer <select data-k="as" aria-label="Whose clip">${opts}</select></label>
     <div class="cstat" data-k="stat"><h3 data-k="h"></h3><p data-k="p"></p></div>
     <div class="chelp" data-k="help" hidden></div>
     <div class="cread"><div><b data-k="hr"></b><small>heart</small></div><div><b data-k="air"></b><small data-k="airl">air</small></div><div class="wide" data-k="pl"></div></div>
     <button class="okbtn" data-k="ok" data-clip="ok">I'm OK</button>
     <button class="sos" data-k="sos" data-clip="sos"><span>Hold for help<small>Hold 1 second</small></span></button>
-    ${where === "dock" ? `<div class="share"><div class="qr" data-k="qr"></div><p><b>Scan to wear it</b><br><code>${esc(CLIP_URL)}</code></p></div>` : ""}`;
+    `;
   box.dataset.built = where;
   const sel = box.querySelector('[data-k="as"]');
   sel.value = clipAs;
   sel.addEventListener("change", () => { clipAs = sel.value; pushClipPresence(); renderClips(); });
-  if (where === "dock" && window.qrcode) {
-    try { const q = window.qrcode(0, "M"); q.addData(CLIP_URL); q.make(); box.querySelector('[data-k="qr"]').innerHTML = q.createSvgTag({ cellSize: 3, margin: 0, scalable: true }); } catch (e) { /* no code */ }
-  }
   wireHold(box.querySelector(".sos"));
 }
 function renderClip(box, where) {
@@ -1762,7 +2628,7 @@ function renderClip(box, where) {
 function renderClips() {
   if (clipMode) renderClip($("clip-p"), "phone");
   $("clipdock").hidden = !dockOpen || clipMode;
-  $("mapv").classList.toggle("docked", dockOpen && !clipMode);
+  $("mapv").classList.toggle("docked", (dockOpen && !clipMode) || askOpen);
   if (dockOpen && !clipMode) renderClip($("clip-d"), "dock");
   const n = liveWear.size, chip = $("livechip");
   chip.hidden = !n || clipMode; chip.textContent = `${n} live clip${n > 1 ? "s" : ""}`;
@@ -1789,7 +2655,7 @@ function pushBoardPresence() {
   if (!room || clipMode || Date.now() - lastBoardPush < 1000) return;
   lastBoardPush = Date.now();
   const people = {};
-  for (const w of workers()) people[w.id] = { l: w.level, lb: w.label, hr: w.hr, air: w.air, pl: hidden(w) ? "Hidden" : w.place, hp: w.acked_by ? onWayText(w) : "", bz: w.buzz && state.t - w.buzz.t < 90 ? w.buzz.why : "", sos: !!w.sos, fl: w.feels ? w.feels.f : null };
+  for (const w of workers()) people[w.id] = { l: w.level, lb: w.label, hr: w.hr, air: w.air, pl: w.place, hp: w.acked_by ? onWayText(w) : "", bz: w.buzz && state.t - w.buzz.t < 90 ? w.buzz.why : "", sos: !!w.sos, fl: w.feels ? w.feels.f : null };
   room.presence({ role: "board", people }).catch(() => {});
 }
 function onRoomPeers(ch) {
@@ -1819,6 +2685,90 @@ async function connectRoom() {
 }
 setInterval(() => { if (remoteBoard && clipMode && Date.now() - remoteBoard.at > 15000) { remoteBoard = null; } }, 3000);
 
+/* ---------- Ask Beacon: Gemini answers questions about the live crew data ---------- */
+// The key is pasted in the page and kept only in this browser. Calls go straight to Google's Gemini API,
+// which works from GitHub Pages or a local file (a claude.ai artifact blocks outside calls).
+const GEM_DEFAULT_MODEL = "gemini-2.5-flash";
+let askOpen = false; const askLog = [];
+const gemKey = () => store.get("beacon.gemini.key") || "";
+const gemModel = () => store.get("beacon.gemini.model") || GEM_DEFAULT_MODEL;
+function crewData() {
+  // everything the assistant may use, as plain numbers and words
+  return {
+    clock: clock(state.t), shift: night ? "night" : "day", you: me() ? me().name : "",
+    workers: workers().map((w) => ({
+      name: w.name, status: w.label, level: { danger: "in danger", watch: "questionable", gray: "questionable", ok: "okay" }[w.level],
+      place: w.place, outdoor: w.outdoor,
+      heart_bpm: w.hr, heart_normal_bpm: Math.round(w.hrExp), fixed_alarm_bpm: 180 - w.age,
+      air_f: w.air, feels_like_f: w.feels ? w.feels.f : null, usual_air_f: Math.round(w.airAvg),
+      uv_index: w.uvi, uv_level: w.uvi != null ? uvCat(w.uvi) : null, minutes_in_strong_sun: w.sunMin, minutes_outside: w.outMin,
+      clip_battery_pct: w.bat, help_on_the_way: w.acked_by ? onWayText(w) : null, asked_for_help: !!w.sos,
+      nearest_responder: (() => { const n = nearestHelper(w); return n ? `${n.a.name}, ${Math.round(n.d)} m` : null; })(),
+    })),
+    responders: state.people.filter((q) => q.admin).map((a) => ({ name: a.name, role: a.role, place: a.place })),
+    recent_events: hub.log.slice(-15).map((e) => `${clock(e.t)} ${e.text}`),
+    alerts_today: hub.stats.alerts,
+  };
+}
+const ASK_RULES = "You are Thermo, a safety assistant for a supervisor of custodial and grounds staff at UMass Amherst. " +
+  "Answer from the JSON data only. Be brief: at most 2 short sentences, no lists unless asked. Name the person, then the reason with its number. " +
+  "Risk order: asked for help or in danger first, then questionable, then long strong sun, heat or cold, then heart above their own normal, then low clip battery. " +
+  "For time off, pick who gains the most from rest and say for how long. If the data cannot answer, say so. You support decisions; you do not give medical advice.";
+async function askGemini(q) {
+  const key = gemKey();
+  if (!key) throw new Error("nokey");
+  const body = {
+    systemInstruction: { parts: [{ text: ASK_RULES }] },
+    contents: [
+      ...askLog.slice(-4).flatMap((m) => [{ role: "user", parts: [{ text: m.q }] }, { role: "model", parts: [{ text: m.a }] }]),
+      { role: "user", parts: [{ text: `${q}\n\nDATA:\n${JSON.stringify(crewData())}` }] },
+    ],
+    generationConfig: { temperature: 0.2, maxOutputTokens: 400 },
+  };
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(gemModel())}:generateContent`, {
+    method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": key }, body: JSON.stringify(body),
+  });
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error((j.error && j.error.message) || `HTTP ${res.status}`);
+  const text = ((j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts) || []).map((x) => x.text || "").join("").trim();
+  if (!text) throw new Error("Gemini sent an empty answer.");
+  return text;
+}
+const bubble = (text, me, err) => `<div class="msg${me ? " me" : ""}${err ? " err" : ""}">${me ? "" : `<span class="tav" aria-hidden="true">T</span>`}<div class="bub">${esc(text)}</div></div>`;
+function renderThread(pending) {
+  const t = $("ask-thread");
+  t.innerHTML = bubble("Ask me about your crew.", false) + askLog.slice(-8).map((m) => bubble(m.q, true) + bubble(m.a, false, m.err)).join("") +
+    (pending ? bubble(pending, true) + `<div class="msg"><span class="tav" aria-hidden="true">T</span><div class="bub"><span class="dots" aria-label="Thinking"><i></i><i></i><i></i></span></div></div>` : "");
+  t.scrollTop = t.scrollHeight;
+}
+async function ask(q) {
+  q = (q || "").trim(); if (!q) return;
+  if (!gemKey()) { showKeyRow(true); $("ask-key").focus(); return; }
+  $("ask-q").value = ""; renderThread(q);
+  let a, err = false;
+  try { a = await askGemini(q); }
+  catch (e) {
+    err = true;
+    a = e.message === "nokey" ? "Add a key first (key icon above)." :
+      e instanceof TypeError ? "I can't connect from here. Open the GitHub Pages version." : `Couldn't answer: ${e.message}`;
+  }
+  askLog.push({ q, a, err }); renderThread();
+}
+function showKeyRow(on) { $("ask-keyrow").hidden = !on; if (on) $("ask-key").value = gemKey(); }
+function setAsk(on) {
+  askOpen = on; $("askdock").hidden = !on; $("ask-btn").setAttribute("aria-pressed", String(on));
+  if (on && dockOpen) { dockOpen = false; $("clip-btn").setAttribute("aria-pressed", "false"); renderClips(); }
+  $("mapv").classList.toggle("docked", on || (dockOpen && !clipMode));
+  if (on) { renderThread(); showKeyRow(!gemKey()); setTimeout(() => (gemKey() ? $("ask-q") : $("ask-key")).focus(), 0); }
+}
+$("ask-form").addEventListener("submit", (e) => { e.preventDefault(); ask($("ask-q").value); });
+$("ask-keyrow").addEventListener("submit", (e) => {
+  e.preventDefault();
+  store.set("beacon.gemini.key", $("ask-key").value.trim());
+  showKeyRow(false); $("ask-q").focus();
+});
+$("ask-chips").addEventListener("click", (e) => { const b = e.target.closest("[data-q]"); if (b) ask(b.dataset.q); });
+
 /* ---------- the 60-second story: one scripted walk-through for judges ---------- */
 let story = null;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -1829,69 +2779,74 @@ async function waitFor(fn, ms) {
   return false;
 }
 async function hold(ms) { await waitFor(() => false, ms); }
+const STORY_RATE = 5;
 function caption(n, html) {
-  $("caption").hidden = false; $("cap-n").textContent = n; $("cap-t").innerHTML = html;
+  const c = $("caption"), t = $("cap-t");
+  c.hidden = false; $("cap-n").textContent = n;
+  if (t.innerHTML === html) return;
+  const quick = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (quick) { t.innerHTML = html; return; }
+  t.style.opacity = "0";
+  setTimeout(() => { t.innerHTML = html; t.style.opacity = "1"; }, 220);
 }
-function storyFast() { const c = $("cap-fast"); if (!story) return; const fast = !!ff || speed > 1; c.hidden = !fast; c.textContent = fast ? "▸▸" : ""; }
+function storyFast() {}
 function stopStory() {
+  $("mapv").classList.remove("story", "resetting");
   if (!story) return;
   story.stopped = true; story = null;
   $("caption").hidden = true; $("story-btn").setAttribute("aria-pressed", "false"); $("story-btn").querySelector("span").textContent = "Play story";
   renderBanner();
 }
-let loopOn = false;
-function syncLoop() { $("loop-btn").setAttribute("aria-pressed", String(loopOn)); }
-function userStop() { loopOn = false; syncLoop(); stopStory(); }
-// an unattended expo table: in loop mode the story replays until someone touches the page
-document.addEventListener("pointerdown", (e) => {
-  if (loopOn && !e.target.closest("#story-btn, #loop-btn, #cap-stop")) { loopOn = false; syncLoop(); if (story) stopStory(); }
-}, true);
+function userStop() { stopStory(); }
 async function playStory() {
   if (story) return userStop();
   story = { stopped: false };
   $("story-btn").setAttribute("aria-pressed", "true"); $("story-btn").querySelector("span").textContent = "Stop";
   $("about").hidden = true;
-  if (privacy) { privacy = false; }
   try {
-    if (adminId !== "B4") switchAdmin("B4");
     if (locating) closeLocate();
+    $("mapv").classList.add("story");
     caption(1, "Resetting…");
+    $("mapv").classList.add("resetting");
+    sim.home();
     runDemo("reset");
     await waitFor(() => !ff, 20000);
     sel = ""; renderAll(); fitAll();
     setNight(true);
+    await hold(400);
+    $("mapv").classList.remove("resetting");
     caption(1, "<b>11 PM.</b> Five people working alone. Each clip knows <b>their own</b> normal.");
-    await hold(3500);
+    await hold(4500);
     caption(2, "<b>Rose</b>'s heart races. She hasn't moved.");
     runDemo("rose_heart");
-    await hold(3500);
-    await waitFor(() => { const r = person("B1"); return r.buzz && state.t - r.buzz.t < 90; }, 25000);
+    await hold(4000);
+    await waitFor(() => { const r = person("B1"); return r.buzz && state.t - r.buzz.t < 90; }, 60000);
     caption(3, "Her clip buzzes: <b>rest</b>.");
-    await hold(3000);
-    await waitFor(() => person("B1").level === "danger", 30000);
+    await hold(3500);
+    await waitFor(() => person("B1").level === "danger", 60000);
     await hold(600);
     const r = person("B1");
     caption(4, `<b>${r.hr} BPM</b> vs her normal ${Math.round(r.hrExp)}. A fixed alarm waits for ${180 - r.age}.`);
-    await hold(4500);
+    await hold(5500);
     caption(5, "Hussein: <b>On my way</b>.");
-    await hold(1500);
-    goHelp("B1");
-    await hold(1200);
+    await hold(2000);
     if (!locating) { sel = "B1"; openLocate(); }
-    caption(6, "Which stairs. Which floor. How far.");
+    await hold(1200);
+    goHelp("B1");
+    caption(6, "Which stairs. Which floor. How long.");
     await hold(5000);
-    await waitFor(() => person("B1").arrived, 45000);
+    await waitFor(() => { const q = person("B1"); return q.arrived || q.stage; }, 120000);
     await hold(600);
     const r2 = person("B1");
     caption(7, `Help in <b>${r2.arriveT != null && r2.alertT != null ? mmss(r2.arriveT - r2.alertT) : "minutes"}</b>.`);
-    await hold(3500);
+    await hold(5000);
     if (locating) closeLocate();
-    resolve("B1");
     caption(8, "Safe. Logged.");
-    await hold(4000);
+    await hold(5000);
+    sel = ""; replay = null; renderAll();   // close Rose's card once the story ends
   } catch (e) { /* stopped */ }
+  $("mapv").classList.remove("story", "resetting");
   stopStory();
-  if (loopOn) setTimeout(() => { if (loopOn && !story) playStory(); }, 3000);
 }
 
 function replayAt(id, t) {
@@ -1900,7 +2855,7 @@ function replayAt(id, t) {
   const p = person(id); if (!p) return;
   replay = { id, t: +t }; sel = id;
   const h = p.hist.filter((x) => x[7] != null && x[0] <= +t).pop();
-  if (h && !hidden(p)) { const k = 2.4, v = $("mapv"); cam = { cx: WX(h[7]), cy: WY(h[8]) + Math.min(130, v.clientHeight * 0.22) / k, k }; camTransform(); }
+  if (h) { const k = 2.4, v = $("mapv"); cam = { cx: WX(h[7]), cy: WY(h[8]) + Math.min(130, v.clientHeight * 0.22) / k, k }; camTransform(); }
   renderAll();
 }
 function select(id) {
@@ -1908,27 +2863,46 @@ function select(id) {
   if (locating) closeLocate();
   sel = sel === id ? "" : id;
   if (sel) focusOn(person(sel));
-  if (sel && matchMedia("(max-width: 760px)").matches) document.querySelector(".main").scrollTo({ top: 0, behavior: "smooth" });   // the map sits above the list on phones
+  if (sel && isPhone()) document.querySelector(".main").scrollTo({ top: 0, behavior: "smooth" });   // the map sits above the list on phones
   renderAll();
 }
 
 document.addEventListener("click", (e) => {
   const rl = e.target.closest("[data-rid]"); if (rl) return replayAt(rl.dataset.rid, rl.dataset.rt);
+  const dr = e.target.closest("[data-dir]"); if (dr) return openDirections(dr.dataset.dir);
   if (e.target.closest("#story-btn")) return playStory();
   if (e.target.closest("#cap-stop")) return userStop();
-  if (e.target.closest("#loop-btn")) { loopOn = !loopOn; syncLoop(); if (loopOn && !story) playStory(); return; }
+  if (e.target.closest("#phone-btn")) {
+    const flip = () => {
+      const on = document.body.classList.toggle("phone");
+      $("phone-btn").setAttribute("aria-pressed", String(on));
+      if (on) railHidden = false;
+      if (locating) locDom = null;
+      renderAll(); setTimeout(() => { if (state) fitAll(); }, 60);
+    };
+    const app = document.querySelector(".app");
+    if (REDUCE.matches) { flip(); return; }
+    // switch only once the fade-out has really finished, even on a slow frame
+    const out = app.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 100, easing: "ease-in", fill: "forwards" });
+    out.finished.then(() => {
+      flip();
+      app.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, easing: "ease-out" }).finished.then(() => out.cancel(), () => out.cancel());
+    }, () => flip());
+    return;
+  }
   if (e.target.closest("#about-btn")) { $("about").hidden = false; return; }
-  if (e.target.closest("#clip-btn")) { dockOpen = !dockOpen; if (dockOpen && sel && !person(sel).admin) clipAs = sel; $("clip-btn").setAttribute("aria-pressed", String(dockOpen)); renderClips(); return; }
+  if (e.target.closest("#ask-btn")) { setAsk(!askOpen); return; }
+  if (e.target.closest('[data-act="close-ask"]')) { setAsk(false); return; }
+  if (e.target.closest('[data-act="ask-key"]')) { showKeyRow($("ask-keyrow").hidden); return; }
+  if (e.target.closest("#askdock")) return;
+  if (e.target.closest("#clip-btn")) { if (!dockOpen && askOpen) setAsk(false); dockOpen = !dockOpen; if (dockOpen && sel && !person(sel).admin) clipAs = sel; $("clip-btn").setAttribute("aria-pressed", String(dockOpen)); renderClips(); return; }
   const cb = e.target.closest('[data-clip="ok"]'); if (cb) return clipAction("ok");
   if (e.target.closest("[data-clip]")) return;
   if (e.target.id === "about") { $("about").hidden = true; return; }
-  if (e.target.closest("#sound-btn")) { soundOn = !soundOn; $("sound-btn").setAttribute("aria-pressed", String(soundOn)); if (soundOn) chime(); return; }
-  const sp = e.target.closest("[data-speed]"); if (sp) return setSpeed(+sp.dataset.speed);
   const demo = e.target.closest("[data-demo]");
   if (demo) { $("demo-pop").hidden = true; $("demo-btn").setAttribute("aria-expanded", "false"); return runDemo(demo.dataset.demo); }
   if (e.target.closest("#demo-btn")) { const p = $("demo-pop"); p.hidden = !p.hidden; $("demo-btn").setAttribute("aria-expanded", String(!p.hidden)); return; }
   if (!e.target.closest("#demo-pop")) { $("demo-pop").hidden = true; $("demo-btn").setAttribute("aria-expanded", "false"); }
-  const adm = e.target.closest("[data-admin]"); if (adm) return switchAdmin(adm.dataset.admin);
   const go = e.target.closest("[data-go]"); if (go) return goHelp(go.dataset.go, go.dataset.by || undefined);
   const ok = e.target.closest("[data-arrived]"); if (ok) return resolve(ok.dataset.arrived);
   const s = e.target.closest("[data-sel]");
@@ -1945,7 +2919,6 @@ document.addEventListener("click", (e) => {
   else if (act === "close-about") $("about").hidden = true;
   else if (act === "summary") summarize();
   else if (act === "close-dock") { dockOpen = false; $("clip-btn").setAttribute("aria-pressed", "false"); renderClips(); }
-  else if (act === "privacy") { privacy = !privacy; if (sel && hidden(person(sel))) { if (locating) closeLocate(); } renderAll(); }
 });
 document.addEventListener("keydown", (e) => {
   if (e.key === " " && (e.target === document.body || e.target === document.documentElement) && !clipMode) { e.preventDefault(); playStory(); return; }
@@ -1964,7 +2937,7 @@ function showBuilding(poly, e) {
   if (picked) picked.classList.remove("picked");
   picked = poly; poly.classList.add("picked");
   card.style.left = `${clamp(e.clientX - r.left, 140, r.width - 140)}px`; card.style.top = `${Math.max(e.clientY - r.top, 130)}px`;
-  card.innerHTML = `<h3>${esc(name)}</h3><div class="links"><a class="lnk" target="_blank" rel="noopener" href="${streetView(c[1][0], c[1][1])}">${ICON.street}<span>Street View</span></a><a class="lnk" target="_blank" rel="noopener" href="${gmaps(c[1][0], c[1][1], name)}">${ICON.pin}<span>Google Maps</span></a></div><button class="x" data-act="close-bcard" aria-label="Close">${ICON.close}</button>`;
+  card.innerHTML = `<h3>${esc(name)}</h3><div class="links"><button class="lnk" data-dir="${esc(name)}">${ICON.locate}<span>Directions</span></button></div><button class="x" data-act="close-bcard" aria-label="Close">${ICON.close}</button>`;
   card.hidden = false;
 }
 function hideBuilding() { $("bcard").hidden = true; if (picked) { picked.classList.remove("picked"); picked = null; } }
@@ -1995,22 +2968,34 @@ mapv.addEventListener("wheel", (e) => { if (e.target.closest("[data-nodrag]")) r
 let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { if (locating) locDom = null; renderAll(); }, 200); });
 
 (function start() {
-  if (matchMedia("(max-width: 760px)").matches) railHidden = false;
-  const saved = store.get("beacon.admin");
-  if (saved === "B4" || saved === "B7") { adminId = saved; document.querySelectorAll("[data-admin]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.admin === saved))); }
+  if (isPhone()) railHidden = false;
   clipMode = location.hash === "#clip";
   document.body.classList.toggle("clipmode", clipMode);
   window.addEventListener("hashchange", () => { clipMode = location.hash === "#clip"; document.body.classList.toggle("clipmode", clipMode); pushClipPresence(); refresh(); });
   sim.boot(simT);
+  { const d = hub.badges.get("B5"); if (d) d.sun.outT = 100 * 60; const m = hub.badges.get("B3"); if (m) m.sun.outT = 35 * 60; }
   hub.log = []; hub.stats = { alerts: 0, help: [] };
   connectRoom();
   state = hub.snapshot(simT);
+  glideTick();
   renderAll();
   fitAll();
-  setSpeed(1);
+  setRate(1);
+  (function frame(now) {
+    glideStep(now);
+    if (!clipMode) { paintPins(); if (locating && locDom) paintLocate(now); }
+    requestAnimationFrame(frame);
+  })(performance.now());
 })();
+
+/* the header beat: logo, then each status badge, then the logo again */
+if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  const BEAT = [["logo", 1800], ["ok", 850], ["watch", 850], ["danger", 850], ["fade", 400]];
+  (function beat(i) { document.body.dataset.beat = BEAT[i][0]; setTimeout(() => beat((i + 1) % BEAT.length), BEAT[i][1]); })(0);
+}
 </script>
 
 </body>
 </html>
 
+</body></html>
