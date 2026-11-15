@@ -1745,7 +1745,7 @@ class Sim {
     }
     this.fakeRisk = {
       B3: { mode: "green", kind: "cold", until: now + 18, air: 0, hr: 0, next: "yellow" },
-      B5: { mode: "green", kind: "heat", until: now + 48, air: 0, hr: 0, next: "yellow" },
+      B5: { mode: "green", kind: "heat", until: now + 30, air: 0, hr: 0, next: "yellow" },
       B6: { mode: "green", kind: "heat", until: now + 76, air: 0, hr: 0, next: "yellow" },
     };
     for (const id of FAKE_WORKERS) Object.assign(this.people[id], { airTarget: 0, extraTarget: 0, fast: true });
@@ -1763,7 +1763,8 @@ class Sim {
         if (mode === "yellow") { air = (kind === "heat" ? 1 : -1) * (9 + Math.random() * 6); hr = 16 + Math.random() * 18; }
         if (mode === "red") { air = kind === "heat" ? 48 + Math.random() * 8 : -29 - Math.random() * 8; hr = 35 + Math.random() * 35; }
         const next = mode === "yellow" && id === "B5" ? "red" : mode === "red" ? "green" : mode === "yellow" && id === "B3" ? "green" : null;
-        this.fakeRisk[id] = { mode, kind, next, until: t + (mode === "green" ? 65 + Math.random() * 45 : mode === "yellow" ? 70 + Math.random() * 20 : 55 + Math.random() * 15), air, hr };
+        const duration = mode === "green" ? 65 + Math.random() * 45 : mode === "yellow" && id === "B5" ? 40 + Math.random() * 8 : mode === "yellow" ? 70 + Math.random() * 20 : 55 + Math.random() * 15;
+        this.fakeRisk[id] = { mode, kind, next, until: t + duration, air, hr };
         this.people[id].fast = true;
       }
       const current = this.fakeRisk[id], p = this.people[id];
