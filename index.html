@@ -847,6 +847,8 @@ body[data-beat="danger"] .legend > span:nth-child(3) .dot { animation: beat-pop 
 #locate.mini .where { font-size: 13px; }
 #locate.mini .loc-info .btn { height: 44px; font-size: 14px; }
 .why-fixed.mine { color: var(--danger); }
+.bar .mtrack { position: absolute; inset: 0; pointer-events: none; }
+.bar .mtrack .mark { left: 0; transition: none; }
 </style>
 </head>
 <body>
@@ -2007,7 +2009,7 @@ function renderRail() {
     b.classList.toggle("sel", w.id === sel);
     setIni(b.querySelector(".av"), w.ini);
     setHtml(b.querySelector(".nm"), esc(w.name) + (liveWear.has(w.id) ? `<span class="livetag">LIVE</span>` : "") + (w.outdoor && w.outMin > 0 ? `<span class="sunchip u${w.uvi >= 8 ? 3 : w.uvi >= 6 ? 2 : w.uvi >= 3 ? 1 : 0}" title="Time outside · UV ${w.uvi}">${SUN_ICON}${hm(w.outMin)}</span>` : "") + (w.bat != null && w.bat < 25 ? `<span class="bat${w.bat < 10 ? " dead" : ""}" title="Clip battery">${BAT_ICON}${w.bat}%</span>` : ""));
-    setHtml(b.querySelector(".vals"), `<b>${w.air ?? "–"}°F</b><span>${w.hr ?? "–"} BPM</span>`);
+    setHtml(b.querySelector(".vals"), `<b>${lvs(w.id, "air")}°F</b><span>${lvs(w.id, "hr")} BPM</span>`);
     if (b._wasLv && b._wasLv !== "ok" && w.level === "ok") celebrate(b.querySelector(".av"));   // back to Okay
     b._wasLv = w.level;
     setHtml(b.querySelector(".st"), `${iconSvg(LOOK[w.level].icon)}<span>${esc(w.label)}</span>`);
@@ -2179,7 +2181,7 @@ function renderBanner() {
   $("banner").hidden = !top || locating || (sel === top.id && isPhone());   // on a phone the open card already has these buttons
   if (!top) return;
   $("bn-nm").textContent = `${top.first} is in danger`;
-  $("bn-v").textContent = `${top.hr ?? "–"} BPM · ${top.air ?? "–"}°F` + (top.alertT != null && !top.acked_by ? ` · ${mmss(state.t - top.alertT)} since alert` : "");
+  setHtml($("bn-v"), `${lvs(top.id, "hr")} BPM · ${lvs(top.id, "air")}°F` + (top.alertT != null && !top.acked_by ? ` · ${mmss(state.t - top.alertT)} since alert` : ""));
   $("bn-show").dataset.sel = top.id;
   // no Alert or On my way here: the clip tells them to rest and they recover on their own
   const otw = $("bn-otw"); otw.hidden = !top.acked_by; setHtml(otw, top.acked_by ? `${WALK_ICON}<span>${esc(onWayText(top))}</span>` : "");
@@ -2210,14 +2212,14 @@ function sunRow(p) {
     <div class="lvl" role="cell"><i style="background:${["", "var(--ok)", "var(--watch)", "var(--danger)"][lvl]}"></i>${p.sunMin}m strong</div>
   </div>`;
 }
-function vitalRow(label, nowTxt, sub, value, b, min, max, state, words) {
+function vitalRow(label, nowTxt, sub, value, b, min, max, state, words, key) {
   const idx = state[0] === "alert" ? (state[1] === "high" ? 3 : 0) : state[0] === "watch" ? (state[1] === "high" ? 2 : 0) : 1;
   const lvlColor = ["var(--cold)", "var(--ok)", "var(--watch)", "var(--danger)"][idx];
   const pct = clamp((value - min) / (max - min), 0, 1) * 100;
   return `<div class="vrow" role="row">
     <div class="lbl" role="cell">${label}</div>
     <div class="now" role="cell">${nowTxt}<small>${sub}</small></div>
-    <div class="rng" role="cell"><div class="bar"><div class="bands">${b.map((x, i) => `<span style="flex:${x.f.toFixed(2)} 1 0;background:${x.c};opacity:${i === idx ? 1 : 0.45}"></span>`).join("")}</div><span class="mark" style="left:${pct.toFixed(1)}%"></span></div>
+    <div class="rng" role="cell"><div class="bar"><div class="bands">${b.map((x, i) => `<span style="flex:${x.f.toFixed(2)} 1 0;background:${x.c};opacity:${i === idx ? 1 : 0.45}"></span>`).join("")}</div><span class="mtrack"${key ? ` data-mk="${key}" data-min="${min}" data-max="${max}"` : ""} style="transform:translateX(${pct.toFixed(2)}%)"><span class="mark"></span></span></div>
       <div class="bnames">${b.map((x, i) => `<span style="flex:${x.f.toFixed(2)} 1 0;font-weight:${i === idx ? 700 : 400};color:${i === idx ? "var(--ink)" : "var(--ink-2)"}">${x.n}</span>`).join("")}</div></div>
     <div class="lvl" role="cell"><i style="background:${lvlColor}"></i>${words[idx]}</div>
   </div>`;
@@ -2243,33 +2245,49 @@ function renderPop() {
   const hb = bands(["Too low", "Normal", "Elevated", "Too high"], ["var(--cold)", "var(--ok)", "var(--watch)", "var(--danger)"], [E - 45, E - 3 * S, E + 2.5 * S, E + 2.5 * S + 15, E + 70]);
   const ab = bands(["Too cold", "Normal", "Warm", "Too hot"], ["var(--cold)", "var(--ok)", "var(--watch)", "var(--danger)"], [A - 40, A - 2.5 * T, A + 2.5 * T, A + 2.5 * T + 10, A + 40]);
   setHtml($("pp-rows"),
-    (p.hr != null ? vitalRow("Heart rate", `${p.hr} BPM`, `usual ${p.hrUsual}`, p.hr, hb, E - 45, E + 70, p.hrState, ["Too low", "Normal", "Elevated", "Too high"]) : "") +
+    (p.hr != null ? vitalRow("Heart rate", `${lvs(p.id, "hr")} BPM`, `usual ${p.hrUsual}`, lv(p.id, "hr"), hb, E - 45, E + 70, p.hrState, ["Too low", "Normal", "Elevated", "Too high"], `${p.id}:hr`) : "") +
     (p.uvi != null && (p.outdoor || p.sunMin > 0) ? sunRow(p) : "") +
-    (p.air != null ? vitalRow("Air temp", `${p.air}°F`, p.feels ? `feels ${p.feels.f}°` : `usual here ${Math.round(A)}°`, p.air, ab, A - 40, A + 40, p.airState, ["Too cold", "Normal", "Warm", "Too hot"]) : ""));
+    (p.air != null ? vitalRow("Air temp", `${lvs(p.id, "air")}°F`, p.feels ? `feels ${p.feels.f}°` : `usual here ${Math.round(A)}°`, lv(p.id, "air"), ab, A - 40, A + 40, p.airState, ["Too cold", "Normal", "Warm", "Too hot"], `${p.id}:air`) : ""));
   const bz = p.buzz ? `${ICON.buzz}<span>Buzzed: ${{ rest: "rest", cool: "cool off", warm: "warm up", shade: "find shade" }[p.buzz.why]} · ${ago(state.t - p.buzz.t)}</span>` : "";
   setHtml($("pp-buzz"), bz); $("pp-buzz").hidden = !bz;
   const wh = whyHtml(p); setHtml($("pp-why"), wh); $("pp-why").hidden = !wh;
-  $("pp-why").dataset.for = p.id; slideWhy($("pp-why"));
 }
 
 /* ---------- why: the evidence behind a status ---------- */
 const POSS = { her: "her", him: "his", them: "their" };
 const WHY_R = new Map();   // each chart's last scale, so it eases instead of jumping
-function slideWhy(box) {
-  // a new reading came in: start the chart where it was (one step right) and glide it left over the next update
-  const g = box && box.querySelector(".why-slide"); if (!g) return;
-  // the card is rebuilt every update, so the glide is kept on the box and picked up again where it was
-  const key = box.dataset.for + ":" + g.dataset.t, now = performance.now();
-  if (REDUCE.matches) return;
-  if (!box._sl || box._sl.key !== key) {
-    const fresh = box._sl && box._sl.who === box.dataset.for;   // first look at someone: no glide
-    box._sl = { key, who: box.dataset.for, st: fresh ? +g.dataset.step || 0 : 0, t0: now, dur: Math.max(200, (+g.dataset.gap || 1) * ((GL.tickMsRaw || 1000) / (stepsPer || 1))) };
+// what the screen shows for heart rate and air temperature: each worker's reading eased every frame, so numbers,
+// bar markers and the chart's live end move smoothly instead of snapping once a second
+const LIVE = new Map();
+let liveLast = 0;
+const lv = (id, k) => { const L = LIVE.get(id), q = person(id); const v = L && L[k] != null ? L[k] : q ? q[k] : null; return v == null ? null : Math.round(v); };
+const lvs = (id, k) => `<span data-live="${id}:${k}">${lv(id, k) ?? "–"}</span>`;
+function paintLive(now) {
+  if (!state) return;
+  const dt = Math.min(0.25, Math.max(0, (now - (liveLast || now)) / 1000)); liveLast = now;
+  const a = REDUCE.matches ? 1 : 1 - Math.exp(-dt / 0.8);
+  for (const w of state.people) {
+    let L = LIVE.get(w.id); if (!L) { L = { hr: w.hr, air: w.air }; LIVE.set(w.id, L); }
+    for (const k of ["hr", "air"]) { const v = w[k]; if (v == null) L[k] = null; else if (L[k] == null) L[k] = v; else L[k] += (v - L[k]) * a; }
   }
-  const S = box._sl, rem = S.st ? Math.max(0, 1 - (now - S.t0) / S.dur) : 0;
-  if (rem <= 0) return;
-  g.style.transition = "none"; g.style.transform = `translateX(${(S.st * rem).toFixed(2)}px)`;
-  g.getBoundingClientRect();
-  g.style.transition = `transform ${Math.round(S.dur * rem)}ms linear`; g.style.transform = "translateX(0)";
+  for (const el of document.querySelectorAll("[data-live]")) {
+    const [id, k] = el.dataset.live.split(":"), v = lv(id, k), t = v == null ? "–" : String(v);
+    if (el.textContent !== t) el.textContent = t;
+  }
+  for (const el of document.querySelectorAll("[data-mk]")) {
+    const [id, k] = el.dataset.mk.split(":"), L = LIVE.get(id); if (!L || L[k] == null) continue;
+    const pct = clamp((L[k] - +el.dataset.min) / (+el.dataset.max - +el.dataset.min), 0, 1) * 100;
+    el.style.transform = `translateX(${pct.toFixed(2)}%)`;
+  }
+  // the chart scrolls with the clock, and its newest end follows the eased reading
+  const sv = document.querySelector("#pp-why svg.why-chart[data-t1]");
+  if (sv) {
+    const d = REDUCE.matches || replay ? 0 : clamp(simT + simFrac(now) - +sv.dataset.t1, 0, 30), pps = +sv.dataset.pps, W = +sv.dataset.w, HH = +sv.dataset.hh;
+    const g = sv.querySelector(".why-slide"), ln = sv.querySelector(".why-live"), L = LIVE.get(sv.dataset.id);
+    const v = L && L[sv.dataset.k] != null ? L[sv.dataset.k] : +sv.dataset.last, lo = +sv.dataset.lo, hi = +sv.dataset.hi;
+    if (g) g.setAttribute("transform", `translate(${(-d * pps).toFixed(2)} 0)`);
+    if (ln) { ln.setAttribute("x2", (W + d * pps).toFixed(2)); ln.setAttribute("y2", (HH - ((v - lo) / (hi - lo)) * HH).toFixed(2)); }
+  }
 }
 function whyHtml(p) {
   const poss = POSS[p.obj] || "their", f = p.first;
@@ -2294,22 +2312,22 @@ function whyHtml(p) {
   const pad = (hi - lo) * 0.06 + 1; lo -= pad; hi += pad;
   // a steady scale: it widens at once when a reading needs room, and narrows back slowly, so the chart doesn't jump
   const rk = `${p.id}:${heat ? "a" : "h"}`, pr = WHY_R.get(rk);
-  if (pr) { lo = Math.min(lo, pr.lo + (lo - pr.lo) * 0.15); hi = Math.max(hi, pr.hi + (hi - pr.hi) * 0.15); }
-  WHY_R.set(rk, { lo, hi });
+  if (pr && pr.t1 === t1) { lo = pr.lo; hi = pr.hi; }   // no new reading yet: same scale
+  else { if (pr) { lo = Math.min(lo, pr.lo + (lo - pr.lo) * 0.3); hi = Math.max(hi, pr.hi + (hi - pr.hi) * 0.3); } WHY_R.set(rk, { lo, hi, t1 }); }
   const W = 600, HH = 80, X = (t) => (((t - t0) / Math.max(1, t1 - t0)) * W).toFixed(1), Y = (v) => (HH - ((v - lo) / (hi - lo)) * HH).toFixed(1);
   const band = V.map((v) => `${X(v[0])},${Y(v[3])}`).join(" ") + " " + V.slice().reverse().map((v) => `${X(v[0])},${Y(v[2])}`).join(" ");
   const line = V.map((v) => `${X(v[0])},${Y(v[1])}`).join(" ");
   const fy = fixed ? (((HH - ((fixed - lo) / (hi - lo)) * HH) / HH) * 100) : 0;
   const my = mine ? (((HH - ((mine - lo) / (hi - lo)) * HH) / HH) * 100) : 0;
-  const step = H.length > 1 ? +X(t1) - +X(H[H.length - 2][0]) : 0;   // how far the newest reading pushed the chart left
-  const gap = H.length > 1 ? t1 - H[H.length - 2][0] : 0;            // sim seconds between readings
-  const plot = `<div><div class="why-plot"><svg class="why-chart" viewBox="0 0 ${W} ${HH}" preserveAspectRatio="none" aria-hidden="true">
+  const last = V[V.length - 1][1];
+  const plot = `<div><div class="why-plot"><svg class="why-chart" viewBox="0 0 ${W} ${HH}" preserveAspectRatio="none" aria-hidden="true" data-id="${p.id}" data-k="${heat ? "air" : "hr"}" data-t1="${t1}" data-pps="${(W / Math.max(1, t1 - t0)).toFixed(4)}" data-w="${W}" data-hh="${HH}" data-lo="${lo.toFixed(3)}" data-hi="${hi.toFixed(3)}" data-last="${last}">
       ${fixed ? `<line x1="0" x2="${W}" y1="${Y(fixed)}" y2="${Y(fixed)}" stroke="var(--ink-3)" stroke-width="1.5" stroke-dasharray="6 5" vector-effect="non-scaling-stroke"/>` : ""}
       ${mine ? `<line x1="0" x2="${W}" y1="${Y(mine)}" y2="${Y(mine)}" stroke="var(--danger)" stroke-width="1.5" stroke-dasharray="6 5" vector-effect="non-scaling-stroke"/>` : ""}
-      <g class="why-slide" data-step="${step.toFixed(2)}" data-gap="${gap}" data-t="${t1}">
+      <g class="why-slide">
       <polygon points="${band}" fill="var(--ok-card)" stroke="var(--ok-line)" stroke-width="1" vector-effect="non-scaling-stroke" opacity=".85"/>
       ${replay && replay.id === p.id && replay.t >= t0 && replay.t <= t1 ? `<line x1="${X(replay.t)}" x2="${X(replay.t)}" y1="0" y2="${HH}" stroke="var(--you)" stroke-width="2" vector-effect="non-scaling-stroke"/>` : ""}
-      <polyline points="${line}" fill="none" stroke="var(--ink)" stroke-width="2.2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></g></svg>
+      <polyline points="${line}" fill="none" stroke="var(--ink)" stroke-width="2.2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+      <line class="why-live" x1="${W}" y1="${Y(last)}" x2="${W}" y2="${Y(last)}" stroke="var(--ink)" stroke-width="2.2" stroke-linecap="round" vector-effect="non-scaling-stroke"/></g></svg>
       ${fixed ? `<span class="why-fixed" style="top:calc(6px + ${(fy * 0.8).toFixed(1)}px)">Fixed alarm ${fixed}</span>` : ""}
       ${mine ? `<span class="why-fixed mine" style="top:calc(6px + ${(my * 0.8).toFixed(1)}px)">${esc(cap(poss))} alarm ${mine}</span>` : ""}</div>
     <div class="why-key"><span><i style="background:var(--ink)"></i>${heat ? "Air" : "Heart"}</span><span><i style="background:var(--ok-card);box-shadow:inset 0 0 0 1px var(--ok-line)"></i>Normal</span><span>${Math.max(1, Math.round((t1 - t0) / 60))} min</span></div></div>`;
@@ -2319,7 +2337,7 @@ function whyHtml(p) {
   } else if (p.hrState[0] === "learning") {
     txt = kv("…", `learning ${esc(f)}'s normal`);
   } else if (p.sev >= 2 && p.hrState[0] !== "ok") {
-    txt = kv(p.hr, "BPM now") + kv(Math.round(p.hrExp), `${esc(f)}'s normal`) + (mine ? kv(mine, `${esc(f)}'s alarm`) : "") + (fixed ? kv(fixed, "fixed alarm") : "");
+    txt = kv(lvs(p.id, "hr"), "BPM now") + kv(Math.round(p.hrExp), `${esc(f)}'s normal`) + (mine ? kv(mine, `${esc(f)}'s alarm`) : "") + (fixed ? kv(fixed, "fixed alarm") : "");
   } else {
     txt = kv(Math.round(p.hrExp), `${esc(f)}'s normal`) + kv(`${p.hrN}m`, "learned");
   }
@@ -3298,7 +3316,7 @@ let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTime
   setRate(1);
   (function frame(now) {
     glideStep(now);
-    if (!clipMode) { paintPins(); if (locating && locDom) paintLocate(now); }
+    if (!clipMode) { paintPins(); paintLive(now); if (locating && locDom) paintLocate(now); }
     requestAnimationFrame(frame);
   })(performance.now());
 })();
