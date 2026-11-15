@@ -877,7 +877,7 @@ svg.mesh { position: absolute; inset: 0; width: 100%; height: 100%; pointer-even
 .call-h .st { font-weight: 600; color: var(--ink); } .call-h .st.ok { color: var(--ok); } .call-h .st.bad { color: var(--danger); }
 .call .tx { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
 .call .tx p { margin: 0; font-size: 14px; line-height: 1.45; max-width: none; color: var(--ink); }
-.call .tx p b { margin-right: 6px; } .call .tx p.system { color: var(--ink-3); font-size: 13px; } .call .tx p.worker b { color: var(--ok); }
+.call .tx p b { margin-right: 6px; } .call .tx .gem { margin-left: 8px; font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 999px; background: #E8F0FE; color: #1A56DB; vertical-align: 1px; } .call .tx p.system { color: var(--ink-3); font-size: 13px; } .call .tx p.worker b { color: var(--ok); }
 .pins .pin { pointer-events: auto; }
 .mapv.td .blab { display: none; }   /* names are drawn on the roofs instead */
 .mapv.td .bld, .mapv.td .bld.ilc, .mapv.td .bld[data-bld]:hover, .mapv.td .bld.picked { fill: transparent; stroke: none; }
@@ -3315,10 +3315,10 @@ function setContact(id, key, val) { contactEdits[id] = { ...(contactEdits[id] ||
 function fmtPhone(n) { const d = String(n || "").replace(/\D/g, ""), t = d.length === 11 && d[0] === "1" ? d.slice(1) : d; return t.length === 10 ? `(${t.slice(0, 3)}) ${t.slice(3, 6)}-${t.slice(6)}` : n || ""; }
 
 // the call server (thermo_server.py): found by asking it, same origin unless localStorage beacon.server says otherwise
-const srv = { ok: false, twilio: false, public: false, base: (store.get("beacon.server") || "").replace(/\/$/, "") };
+const srv = { ok: false, twilio: false, public: false, gemini: false, base: (store.get("beacon.server") || "").replace(/\/$/, "") };
 async function srvCheck() {
   if (!/^https?:/.test(location.protocol) && !srv.base) return;
-  try { const r = await fetch(srv.base + "/api/health", { cache: "no-store" }); const j = await r.json(); Object.assign(srv, { ok: !!j.ok, twilio: !!j.twilio, public: !!j.public }); }
+  try { const r = await fetch(srv.base + "/api/health", { cache: "no-store" }); const j = await r.json(); Object.assign(srv, { ok: !!j.ok, twilio: !!j.twilio, public: !!j.public, gemini: !!j.gemini }); }
   catch (e) { srv.ok = false; }
   renderContactsTop();
 }
@@ -3350,7 +3350,8 @@ function startCall(id, auto) {
   if (!c.phone) { rec.status = "failed"; callLine(rec, "system", "No phone number saved"); return callUpdate(rec); }
   callUpdate(rec);
   if (twilio) {
-    fetch(srv.base + "/api/call", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ to: c.phone, name: w.name, worker: id }) })
+    fetch(srv.base + "/api/call", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ to: c.phone, name: w.name, worker: id,
+      context: { first: w.first, place: w.place, offline_s: w.seenAgo ?? null, reason: w.meshOut ? "no chain of clips reaches the site manager" : w.offline ? "the clip stopped sending" : "manual test call" } }) })
       .then((r) => r.json()).then((j) => { if (j.ok) { rec.sid = j.id; pollCalls(); } else { rec.status = "failed"; callLine(rec, "system", j.error || "The server couldn't place the call"); callUpdate(rec); } })
       .catch(() => { rec.status = "failed"; callLine(rec, "system", "Couldn't reach the call server"); callUpdate(rec); });
   } else practiceCall(rec);
@@ -3374,7 +3375,7 @@ function pollCalls() {
     if (!live.length) { clearInterval(callPoll); callPoll = null; return; }
     try {
       const all = await (await fetch(srv.base + "/api/calls", { cache: "no-store" })).json();
-      for (const r of live) { const s = all.find((x) => x.id === r.sid); if (s) { r.status = s.status; r.digits = s.digits; r.lines = s.lines.map((l) => ({ who: l.who, text: l.text })); callUpdate(r); } }
+      for (const r of live) { const s = all.find((x) => x.id === r.sid); if (s) { r.status = s.status; r.digits = s.digits; r.lines = s.lines.map((l) => ({ who: l.who, text: l.text, ai: !!l.ai })); callUpdate(r); } }
     } catch (e) { /* try again next round */ }
   }, 1500);
 }
@@ -3410,7 +3411,7 @@ function renderToast(rec) {
 
 function renderContactsTop() {
   const el = $("ct-srv"); if (!el) return;
-  el.textContent = srv.ok ? (srv.twilio ? (srv.public ? "Calls: Twilio, with key presses" : "Calls: Twilio (no key presses: set PUBLIC_URL)") : "Server on · Twilio not set up: practice calls") : "Practice calls (open from thermo_server.py to really call)";
+  el.textContent = srv.ok ? (srv.twilio ? (srv.public ? "Calls: Twilio, with key presses" : "Calls: Twilio (no key presses: set PUBLIC_URL)") + (srv.gemini ? " · Gemini writes each call" : "") : "Server on · Twilio not set up: practice calls") : "Practice calls (open from thermo_server.py to really call)";
   el.classList.toggle("on", srv.ok && srv.twilio);
 }
 function renderContacts() {
@@ -3428,7 +3429,7 @@ function renderCalls() {
   const L = CALLS.slice().reverse();
   setHtml($("ct-calls"), L.length ? L.map((r) => `<div class="call"><div class="call-h"><b>${esc(r.name)}</b><span>${esc(fmtPhone(r.to))}</span><span>${clock(r.t)}</span>` +
     `<span class="st ${r.digits === "1" ? "ok" : r.digits === "2" || r.status === "no-answer" || r.status === "failed" ? "bad" : ""}">${esc(callWord(r))}</span>${r.mode === "practice" ? `<span class="tag2">Practice</span>` : ""}</div>` +
-    `<div class="tx">${r.lines.map((l) => `<p class="${l.who}">${l.who === "thermo" ? "<b>Thermo</b>" : l.who === "worker" ? `<b>${esc(r.first)}</b>` : ""}${esc(l.text)}</p>`).join("") || "<p class=\"system\">Dialing…</p>"}</div></div>`).join("")
+    `<div class="tx">${r.lines.map((l) => `<p class="${l.who}">${l.who === "thermo" ? "<b>Thermo</b>" : l.who === "worker" ? `<b>${esc(r.first)}</b>` : ""}${esc(l.text)}${l.ai ? `<span class="gem">Gemini</span>` : ""}</p>`).join("") || "<p class=\"system\">Dialing…</p>"}</div></div>`).join("")
     : `<p class="empty">When a clip goes offline, Thermo calls its wearer. Calls show here.</p>`);
 }
 function setContacts(on) { $("contacts").hidden = !on; $("contacts-btn").setAttribute("aria-pressed", String(on)); if (on) renderContacts(); }

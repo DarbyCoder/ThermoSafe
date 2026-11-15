@@ -37,6 +37,8 @@ export TWILIO_ACCOUNT_SID=AC... TWILIO_AUTH_TOKEN=... TWILIO_FROM=+1... PUBLIC_U
 python3 thermo_server.py                # then open http://localhost:8000
 ```
 
+Add `export GEMINI_API_KEY=...` (and optionally `GEMINI_MODEL`, default `gemini-3.7-flash`) and Gemini writes each call from what the dashboard knows (name, where they were last heard from, how long ago) and understands spoken answers ("my ankle hurts" counts as needs help). Lines Gemini wrote are tagged in the transcript. If Gemini takes over 3 seconds or fails, the fixed words are used, so a call is never silent.
+
 Never commit these values. `thermo_server.py` needs no installs. It serves the dashboard, places calls, takes Twilio's key presses at `/twilio/*`, and takes clip readings at `/api/ingest` (the badge firmware's JSON with an `"id"`). A clip whose id matches a worker (B1, B5, ...) drives that worker, and goes offline once it's quiet for 4 seconds (`OFFLINE_AFTER`). On a Twilio trial account, calls only reach verified numbers and start with a trial notice.
 
 ## What's in here
