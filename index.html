@@ -1737,13 +1737,18 @@ class Sim {
     return p.amb + this.r.gauss(0, 0.25);
   }
   startFakeRisk(now) {
-    // Start with one worker in a changing cold watch so the map is not all green.
+    // Let the crew start green, then stage a watch and a guaranteed red during a demo.
+    for (const id of FAKE_WORKERS) {
+      const badge = this.hub.badge(id);
+      badge.air.env = "outside";
+      badge.air.envSince = now - 121; // they begin outdoors; do not apply the indoor-to-outdoor settling delay
+    }
     this.fakeRisk = {
-      B3: { mode: "yellow", kind: "cold", until: now + 58, air: -11, hr: 12 },
-      B5: { mode: "green", kind: "heat", until: now + 83, air: 0, hr: 0 },
-      B6: { mode: "green", kind: "cold", until: now + 116, air: 0, hr: 0 },
+      B3: { mode: "green", kind: "cold", until: now + 18, air: 0, hr: 0, next: "yellow" },
+      B5: { mode: "green", kind: "heat", until: now + 48, air: 0, hr: 0, next: "yellow" },
+      B6: { mode: "green", kind: "heat", until: now + 76, air: 0, hr: 0, next: "yellow" },
     };
-    for (const id of FAKE_WORKERS) Object.assign(this.people[id], { airTarget: this.fakeRisk[id].air, extraTarget: this.fakeRisk[id].hr });
+    for (const id of FAKE_WORKERS) Object.assign(this.people[id], { airTarget: 0, extraTarget: 0, fast: true });
   }
   updateFakeRisk(t) {
     if (!this.fakeRisk) return;
@@ -1752,12 +1757,13 @@ class Sim {
       const phase = this.fakeRisk[id];
       if (t >= phase.until) {
         const modes = ["green", "yellow", "red"].filter((mode) => mode !== phase.mode);
-        const mode = modes[Math.floor(Math.random() * modes.length)];
+        const mode = phase.next || modes[Math.floor(Math.random() * modes.length)];
         const kind = Math.random() < 0.5 ? "heat" : "cold";
         let air = 0, hr = 0;
-        if (mode === "yellow") { air = (kind === "heat" ? 1 : -1) * (8 + Math.random() * 6); hr = 12 + Math.random() * 14; }
-        if (mode === "red") { air = kind === "heat" ? 46 + Math.random() * 10 : -27 - Math.random() * 9; hr = 28 + Math.random() * 28; }
-        this.fakeRisk[id] = { mode, kind, until: t + (mode === "green" ? 45 + Math.random() * 70 : mode === "yellow" ? 55 + Math.random() * 30 : 35 + Math.random() * 20), air, hr };
+        if (mode === "yellow") { air = (kind === "heat" ? 1 : -1) * (9 + Math.random() * 6); hr = 16 + Math.random() * 18; }
+        if (mode === "red") { air = kind === "heat" ? 48 + Math.random() * 8 : -29 - Math.random() * 8; hr = 35 + Math.random() * 35; }
+        const next = mode === "yellow" && id === "B5" ? "red" : mode === "red" ? "green" : mode === "yellow" && id === "B3" ? "green" : null;
+        this.fakeRisk[id] = { mode, kind, next, until: t + (mode === "green" ? 65 + Math.random() * 45 : mode === "yellow" ? 70 + Math.random() * 20 : 55 + Math.random() * 15), air, hr };
         this.people[id].fast = true;
       }
       const current = this.fakeRisk[id], p = this.people[id];
