@@ -835,6 +835,17 @@ body[data-beat="danger"] .legend > span:nth-child(3) .dot { animation: beat-pop 
 .mapv.td .blab { display: none; }   /* names are drawn on the roofs instead */
 .mapv.td .bld, .mapv.td .bld.ilc, .mapv.td .bld[data-bld]:hover, .mapv.td .bld.picked { fill: transparent; stroke: none; }
 .zoom .t3 { font-family: var(--display); font-weight: 700; font-size: 13px; letter-spacing: .02em; }
+/* Locate on the 3D map: a small card instead of the full window */
+#locate.mini { position: absolute; inset: auto auto 16px 16px; width: min(300px, calc(100% - 92px)); height: auto; display: block; padding: 0; border-radius: 22px; z-index: 8; }
+#locate.mini .loc-info { gap: 10px; padding: 14px; background: var(--panel); }
+#locate.mini .loc-head h2 { font-size: 17px; }
+#locate.mini .dir { flex-direction: row; align-items: center; gap: 14px; }
+#locate.mini .arrow-wrap { width: 60px; height: 60px; flex: none; }
+#locate.mini .arrow-wrap .arrow { width: 30px; height: 30px; }
+#locate.mini .dir .big { font-size: 30px; }
+#locate.mini .dir .then { font-size: 14px; }
+#locate.mini .where { font-size: 13px; }
+#locate.mini .loc-info .btn { height: 44px; font-size: 14px; }
 </style>
 </head>
 <body>
@@ -1671,7 +1682,7 @@ function worldMap() {
 const BH = {
   "W.E.B. Du Bois Library": 87, "Lederle Graduate Research Tower": 60, "Murray D. Lincoln Campus Center": 42, "Thompson Hall": 30, "Tobin Hall": 30,
   "Conte National Polymer Research Center": 30, "Mullins Center": 28, "John W. Olver Design Building": 26, "Life Science Laboratories": 22,
-  "Integrated Sciences Building": 22, "Lederle Graduate Research Center": 22, "Old Chapel": 22, "Integrative Learning Center": 20, "Physical Sciences Building": 20,
+  "Integrated Sciences Building": 22, "Lederle Graduate Research Center": 22, "Old Chapel": 22, "Integrative Learning Center": 18, "Physical Sciences Building": 20,
   "Isenberg School of Management": 18, "Herter Hall": 18, "Goessmann Laboratory": 18, "Hasbrouck Laboratory": 18, "Morrill IV North": 18, "Morrill IV South": 18,
   "Recreation Center": 16, "Machmer Hall": 16, "Bartlett Hall": 16, "Whitmore Administration Building": 16, "Curry Hicks Cage": 16,
   "Randolph W. Bromery Center for the Arts": 16, "Student Union": 14, "Boyden Gym": 14, "Campus Center Parking Garage": 14, "Franklin Dining Commons": 10,
@@ -1691,7 +1702,9 @@ function drawBuildings() {
   const v = $("mapv"), cv = $("bcanvas"), vw = v.clientWidth, vh = v.clientHeight, dpr = Math.min(2, window.devicePixelRatio || 1);
   const night = v.classList.contains("night"), imgs = v.querySelectorAll(".sat img"), main = imgs[0], hi = imgs[1];
   const ready = (im) => im && im.complete && im.naturalWidth > 0;
-  const key = [GL.tr, vw, vh, map3d, night, picked ? picked.dataset.bld : "", ready(main), ready(hi), cam.k < 0.9].join("|");
+  if (ready(main) && !BC.colors) roofColors(main);
+  const L = locating && locDom && !locDom.scene ? locDom : null;   // Locate on the 3D map
+  const key = [GL.tr, vw, vh, map3d, night, picked ? picked.dataset.bld : "", ready(main), ready(hi), cam.k < 0.9, BC.colors, L ? performance.now() : ""].join("|");
   if (key === BC.key) return;   // nothing moved: keep the last drawing
   BC.key = key;
   if (cv.width !== Math.round(vw * dpr) || cv.height !== Math.round(vh * dpr)) { cv.width = Math.round(vw * dpr); cv.height = Math.round(vh * dpr); }
@@ -1711,9 +1724,36 @@ function drawBuildings() {
   list.sort((a, b) => b[0] - a[0]);
   const lx = 0.55, ly = 0.83;   // light from the south-east
   const pick = picked ? picked.dataset.bld : "";
+  const lp = L && L.p, glass = lp ? (dest ? dest.name : !lp.outdoor ? "Integrative Learning Center" : "") : "";
+  const css = (v) => { const m = /var\((--[^)]+)\)/.exec(v); return m ? getComputedStyle(document.body).getPropertyValue(m[1]).trim() || "#14966E" : v; };
+  const path = (pts) => { ctx.beginPath(); pts.forEach((q, i) => (i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]))); ctx.closePath(); };
   for (const [, b] of list) {
     const n = b.pts.length, base = b.pts.map((q) => P(q[0], q[1], b.z0)), top = b.pts.map((q) => P(q[0], q[1], b.z0 + b.h));
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (b.name && b.name === glass) {
+      // the building you're locating someone in turns to glass: its floors show, theirs lit in their status colour
+      if (b.ilc && lp && !lp.outdoor) {
+        const rn = respNow();
+        for (const f of BUILDING.floors) {
+          const z = (f - 1) * FH * PPM + 0.3, fl = b.pts.map((q) => P(q[0], q[1], z)), on = f === lp.floor;
+          path(fl);
+          ctx.globalAlpha = on ? 0.5 : 0.12; ctx.fillStyle = on ? css(LOOK[lp.level].fill) : "#fff"; ctx.fill(); ctx.globalAlpha = 1;
+          ctx.strokeStyle = on ? css(LOOK[lp.level].fill) : !rn.outdoor && f === rn.floor ? "rgba(21,22,26,.8)" : "rgba(255,255,255,.55)";
+          ctx.lineWidth = on ? 2 : 1; ctx.stroke();
+          const lb = P(b.bb[0], (b.bb[1] + b.bb[3]) / 2, z);
+          ctx.font = "700 11px Inter, system-ui, sans-serif"; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+          ctx.lineWidth = 3; ctx.strokeStyle = "rgba(10,14,12,.75)"; ctx.fillStyle = on ? "#fff" : "rgba(255,255,255,.8)";
+          ctx.strokeText(`Floor ${f}`, lb[0] - 6, lb[1]); ctx.fillText(`Floor ${f}`, lb[0] - 6, lb[1]);
+        }
+      }
+      for (let i = 0; i < n; i++) {
+        const j = (i + 1) % n; path([base[i], base[j], top[j], top[i]]);
+        ctx.fillStyle = "rgba(220,235,255,.10)"; ctx.fill(); ctx.strokeStyle = "rgba(255,255,255,.35)"; ctx.lineWidth = 0.8; ctx.stroke();
+      }
+      path(top); ctx.fillStyle = "rgba(220,235,255,.08)"; ctx.fill(); ctx.strokeStyle = "rgba(255,255,255,.9)"; ctx.lineWidth = 1.6; ctx.stroke();
+      BC.hits.push({ b, base, top });
+      continue;
+    }
     // walls, far ones first
     const walls = [];
     for (let i = 0; i < n; i++) { const j = (i + 1) % n; walls.push([i, j, base[i][2] + base[j][2]]); }
@@ -1721,7 +1761,9 @@ function drawBuildings() {
     for (const [i, j] of walls) {
       const dx = b.pts[j][0] - b.pts[i][0], dy = b.pts[j][1] - b.pts[i][1], L = Math.hypot(dx, dy) || 1;
       const s = 0.55 + 0.45 * Math.abs((dy / L) * lx - (dx / L) * ly);
-      const g = night ? [26 + 30 * s, 26 + 26 * s, 30 + 20 * s] : [120 + 100 * s, 118 + 98 * s, 112 + 94 * s];
+      // walls take a shaded version of the building's own roof colour from the photo
+      const c0 = b.rgb || [168, 164, 156], m = [0.65 * c0[0] + 0.35 * 168, 0.65 * c0[1] + 0.35 * 164, 0.65 * c0[2] + 0.35 * 156];
+      const k = (night ? 0.36 : 1) * (0.62 + 0.38 * s), g = [m[0] * k, m[1] * k, m[2] * k];
       ctx.fillStyle = `rgb(${g[0] | 0},${g[1] | 0},${g[2] | 0})`;
       ctx.beginPath(); ctx.moveTo(base[i][0], base[i][1]); ctx.lineTo(base[j][0], base[j][1]); ctx.lineTo(top[j][0], top[j][1]); ctx.lineTo(top[i][0], top[i][1]); ctx.closePath();
       ctx.fill();
@@ -1749,8 +1791,23 @@ function drawBuildings() {
     } else { ctx.strokeStyle = night ? "rgba(255,214,140,.25)" : "rgba(255,255,255,.35)"; ctx.lineWidth = 1; ctx.stroke(); }
     BC.hits.push({ b, base, top });
   }
-  // names on top of everything, on the roofs
+  // Locate: your route, along the ground and up the stairs, on top of the buildings
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (L && L.way && L.way.length > 1) {
+    const pts = L.way.map((q) => P(WX(q.x), WY(q.y), (q.h || 0) * PPM));
+    ctx.lineJoin = "round"; ctx.lineCap = "round";
+    ctx.beginPath(); pts.forEach((q, i) => (i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])));
+    ctx.strokeStyle = "rgba(255,255,255,.95)"; ctx.lineWidth = 8; ctx.stroke();
+    ctx.strokeStyle = night ? "#FFD27A" : "#15161A"; ctx.lineWidth = 4;
+    if (!REDUCE.matches) { ctx.setLineDash([9, 7]); ctx.lineDashOffset = -(performance.now() / 40) % 16; }
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+  if (L && L.tg && lp) {
+    const q = P(WX(L.tg.x), WY(L.tg.y), (L.tg.h || 0) * PPM), t = REDUCE.matches ? 0.4 : (performance.now() % 1600) / 1600;
+    ctx.beginPath(); ctx.arc(q[0], q[1], 22 + 18 * t, 0, Math.PI * 2);
+    ctx.strokeStyle = css(LOOK[lp.level] ? LOOK[lp.level].fill : "var(--ok)"); ctx.globalAlpha = 1 - t; ctx.lineWidth = 3; ctx.stroke(); ctx.globalAlpha = 1;
+  }
+  // names on top of everything, on the roofs
   ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.lineJoin = "round";
   for (const { b } of BC.hits) {
     if (!b.name || (cam.k < 0.9 && !b.ilc)) continue;
@@ -1760,6 +1817,25 @@ function drawBuildings() {
     const t = b.name.replace(/ (Building|Laboratory)$/, "");
     ctx.strokeText(t, q[0], q[1]); ctx.fillText(t, q[0], q[1]);
   }
+}
+function roofColors(im) {
+  // each building's average roof colour from the photo, once, for its walls (a file:// page can't read the pixels: walls stay neutral)
+  BC.colors = true;
+  try {
+    const W = WX(WORLD.x1), H = WY(WORLD.y0), s = 0.25, c = document.createElement("canvas");
+    c.width = Math.round(W * s); c.height = Math.round(H * s);
+    const x = c.getContext("2d", { willReadFrequently: true }); x.drawImage(im, 0, 0, c.width, c.height);
+    const d = x.getImageData(0, 0, c.width, c.height).data;
+    for (const b of B3) {
+      let r = 0, g = 0, bl = 0, n = 0; const st = Math.max(2, (b.bb[2] - b.bb[0] + b.bb[3] - b.bb[1]) / 40);
+      for (let yy = b.bb[1]; yy <= b.bb[3]; yy += st) for (let xx = b.bb[0]; xx <= b.bb[2]; xx += st) {
+        if (!inPoly(b.pts, xx, yy)) continue;
+        const i = (Math.min(c.height - 1, (yy * s) | 0) * c.width + Math.min(c.width - 1, (xx * s) | 0)) * 4;
+        r += d[i]; g += d[i + 1]; bl += d[i + 2]; n++;
+      }
+      if (n) b.rgb = [r / n, g / n, bl / n];
+    }
+  } catch (err) { /* keep neutral walls */ }
 }
 function inPoly(pts, x, y) {
   let on = false;
@@ -1781,7 +1857,7 @@ function buildingAt(x, y) {
 function setMap3d(on) {
   map3d = on; store.set("beacon.map3d", on ? "1" : "0");
   $("mapv").classList.toggle("td", on); $("z-3d").setAttribute("aria-pressed", String(on));
-  hideBuilding(); camTransform(); renderPins();
+  hideBuilding(); if (locating) locDom = null; camTransform(); renderAll();
 }
 
 /* ================= the app ================= */
@@ -2228,9 +2304,10 @@ function openDirections(name) {
   hideBuilding();
   if (locating) closeLocate();
   dest = { id: "bld:" + name, name, first: name, ini: initials(name), x: c[1][0], y: c[1][1], outdoor: true, floor: null, place: name, level: "ok", sev: 0, peers: {} };
-  locating = true; locDom = null; $("locate").hidden = false; renderAll();
+  locating = true; locDom = null; $("locate").hidden = false; renderAll(); locFit(dest);
 }
-function openLocate() { if (!sel) return; dest = null; locating = true; locDom = null; $("locate").hidden = false; renderAll(); }
+function locFit(p) { if (map3d && p) { const rn = respNow(); fitPts([p, { x: rn.x, y: rn.y }]); } }   // on the 3D map: frame you and them
+function openLocate() { if (!sel) return; dest = null; locating = true; locDom = null; $("locate").hidden = false; renderAll(); locFit(person(sel)); }
 function closeLocate() { locating = false; locDom = null; dest = null; $("locate").hidden = true; renderAll(); }
 
 function route(p, m) {
@@ -2257,16 +2334,18 @@ function renderLocate() {
   const box = $("locate"), p = dest || person(sel);
   if (!p) return closeLocate();
   const mode = p.outdoor ? "out" : "in";
-  if (!locDom || locDom.mode !== mode || locDom.id !== p.id) {
+  const mini = map3d;   // 3D: a small card on the map, the route drawn in place; 2D: the full Locate window
+  box.classList.toggle("mini", mini);
+  if (!locDom || locDom.mode !== mode || locDom.id !== p.id || locDom.mini !== mini) {
     box.innerHTML = `<div class="loc-info">
         <div class="loc-head"><span class="av" id="lc-av"></span><h2>${esc(p.name)}</h2><button class="x" data-act="close-locate" aria-label="Close route">${ICON.close}</button></div>
         <div class="dir"><div class="arrow-wrap" id="lc-aw"><svg class="eta-ring" viewBox="0 0 100 100" aria-hidden="true"><circle class="eta-bg" cx="50" cy="50" r="46"/><circle class="eta-fg" id="lc-ring" cx="50" cy="50" r="46"/></svg><svg class="arrow" id="lc-arrow" viewBox="0 0 70 70" aria-hidden="true"><path id="lc-ap" d="${ARROW}" fill="currentColor"/></svg></div>
           <div><div class="big" id="lc-big"></div><div class="sub" id="lc-sub"></div><div class="then" id="lc-then"></div></div></div>
         <div class="where" id="lc-where"></div>
         <div id="lc-act" style="margin-top:auto"></div>
-      </div><div class="loc-view" id="lc-view"></div>`;
+      </div>` + (mini ? "" : `<div class="loc-view" id="lc-view"></div>`);
     const el = $("lc-view");
-    locDom = { mode, id: p.id, scene: mode === "in" ? buildScene(el, p) : buildFlat(el), ang: null, shape: "arrow", prog: null, secs: null };
+    locDom = { mode, id: p.id, mini, scene: mini ? null : mode === "in" ? buildScene(el, p) : buildFlat(el), ang: null, shape: "arrow", prog: null, secs: null };
   }
   paint($("lc-av"), p.level); $("lc-av").textContent = p.ini;
   const rn = respNow(), m = { ...(me() || {}), ...rn };
@@ -2279,6 +2358,7 @@ function renderLocate() {
     ? (p.acked_by ? `<div class="btn green">${WALK_ICON}${esc(onWayText(p))}</div>` : `<button class="btn dark" data-go="${esc(p.id)}">On my way</button>`)
     : "");
   const Lk = LOOK[p.level], sc = locDom.scene;
+  if (sc) {
   sc.pin.head.style.setProperty("--c", Lk.fill); sc.pin.head.style.setProperty("--c-ink", Lk.ink); sc.pin.ring.style.setProperty("--c", Lk.fill);
   sc.you.head.style.setProperty("--c", "var(--ink)"); sc.you.ring.style.setProperty("--c", "var(--ink)");
   if (mode === "in") {
@@ -2287,6 +2367,7 @@ function renderLocate() {
       sc.nums[n].classList.toggle("on", +n === p.floor); sc.nums[n].style.setProperty("--c", Lk.fill); sc.nums[n].style.setProperty("--c-ink", Lk.ink);
     }
   } else sc.pin.head.querySelector(".head").textContent = p.ini;
+  }
   paintLocate(performance.now());
 }
 
@@ -2340,7 +2421,10 @@ function paintLocate(now) {
         for (let i = 1; i < pts.length; i++) if (Math.hypot(pts[i].x - you.x, pts[i].y - you.y) > 1.5) { q = pts[i]; break; }
         q = q || tg;
         const dx = q.x - you.x, dy = q.y - you.y;
-        target = L.mode === "in" ? screenAngle(dx, dy) : (Math.atan2(dx, dy) * 180) / Math.PI;
+        if (!L.scene && GL.M) {   // on the 3D map: point the way the route runs on screen
+          const pr = (o) => { const w = GL.M.transformPoint(new DOMPoint(WX(o.x), WY(o.y), (o.h || 0) * PPM, 1)); return [w.x / w.w, w.y / w.w]; };
+          const a = pr(you), b = pr(q); target = (Math.atan2(b[0] - a[0], -(b[1] - a[1])) * 180) / Math.PI;
+        } else target = L.mode === "in" ? screenAngle(dx, dy) : (Math.atan2(dx, dy) * 180) / Math.PI;
       }
       if (L.ang == null || reduce) L.ang = target;
       else L.ang += (((((target - L.ang) % 360) + 540) % 360) - 180) * (1 - Math.exp(-dt / 0.15));
@@ -2348,7 +2432,8 @@ function paintLocate(now) {
     }
   }
   const way = !r.plain && !here && !arrived && r.e ? [{ x: you.x, y: you.y, h: you.h }, ...r.e.pts.slice(1)] : null;
-  if (L.mode === "in") paintScene(L.scene, you, tg, way); else paintFlat(L.scene, you, tg, way, dt);
+  if (!L.scene) { L.way = way; L.you = you; L.tg = tg; }
+  else if (L.mode === "in") paintScene(L.scene, you, tg, way); else paintFlat(L.scene, you, tg, way, dt);
 }
 
 function screenAngle(dx, dy) {
@@ -2558,7 +2643,7 @@ function paintPin(el) {
   const g = GL.items.get(el.dataset.key); if (!g) return;
   // where the ground spot lands on screen this frame, mid camera move included
   if (!GL.M) mapFrame();
-  const q = GL.M.transformPoint(new DOMPoint(WX(g.x), WY(g.y), 0, 1)), l = GL.ox + q.x / q.w, t = GL.oy + q.y / q.w;
+  const q = GL.M.transformPoint(new DOMPoint(WX(g.x), WY(g.y), map3d && g.h ? g.h * PPM : 0, 1)), l = GL.ox + q.x / q.w, t = GL.oy + q.y / q.w;
   if (el._k !== 1) { el._k = 1; el.style.transform = "translate(-50%, -50%)"; }
   if (el._l === l && el._t === t) return;
   el._l = l; el._t = t; el.style.left = `${l.toFixed(1)}px`; el.style.top = `${t.toFixed(1)}px`;
