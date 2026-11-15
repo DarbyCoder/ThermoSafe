@@ -1818,6 +1818,14 @@ function renderRail() {
 /* ---------- map ---------- */
 let camMoveT = null;
 function camTransform() {
+  // never show past the edge of the map: the view can't zoom out further than the photo fills the pane, and can't pan beyond its edges
+  const v = $("mapv"), vw = v.clientWidth, vh = v.clientHeight;
+  if (vw > 0 && vh > 0) {
+    const W = WX(WORLD.x1), H = WY(WORLD.y0);
+    cam.k = Math.max(cam.k, vw / W, vh / H);
+    const hx = vw / (2 * cam.k), hy = vh / (2 * cam.k);
+    cam.cx = clamp(cam.cx, hx, W - hx); cam.cy = clamp(cam.cy, hy, H - hy);
+  }
   $("mapv").classList.add("moving"); clearTimeout(camMoveT); camMoveT = setTimeout(() => $("mapv").classList.remove("moving"), story ? 1500 : 500);
   $("world").style.transform = `scale(${cam.k.toFixed(4)}) translate(${(-cam.cx).toFixed(1)}px, ${(-cam.cy).toFixed(1)}px)`;
   $("world").style.setProperty("--lab", `${(12 / cam.k).toFixed(2)}px`);
