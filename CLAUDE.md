@@ -56,7 +56,7 @@ Status levels are `ok` (Okay), `watch` (Questionable), `danger` (In danger) and 
 Nick asked for each of these. Don't undo one as a side effect of other work.
 
 - **Removed on purpose**: the Sound button, Street View buttons, the "Scan it to wear it" QR code, the demo Speed buttons, floor-number badges on map pins (`.pin .fl { display: none }`), and the dotted trail around a selected worker (`drawTrail` now draws only when replaying a log entry). Some leftover CSS for these remains and is harmless.
-- **Demo timing**: no global speed-up. An effect reaches full alert in about 3 seconds. Once a responder arrives, the worker recovers automatically in about 3 seconds. Only the responder's walk is fast-forwarded, to about 3 seconds, and the "N× faster" pill and glowing map edge make that obvious.
+- **Demo timing**: no global speed-up. An effect reaches full alert in about 3 seconds. Any Questionable or In danger worker is told to rest by their clip and is back to Okay five seconds later (2s wait, 3s recovery), with no responder needed (`autoRest`). The story holds this back until its "rest" beat and no longer plays the Locate walk. The Locate screen and the "On my way" button still work.
 - **Story**: Rose Patel's info card closes when the story ends.
 - **About card**: the heading is "Statistics that drive our Mission". The button is "Directions", not Google Maps, to keep people in the app.
 - **Header animation**: the logo line traces at linear speed and shows only once drawn (no ghost line). Then the Okay, Questionable and In danger dots pop in turn, and the cycle repeats. It is driven by `body[data-beat]` and the `BEAT` timer, and applies to the header only.

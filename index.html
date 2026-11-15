@@ -2450,6 +2450,25 @@ function applyFx() {
     return !full;
   });
 }
+function autoRest() {
+  // a Questionable or In danger worker is told to rest by their own clip; two seconds later they settle and three seconds after that
+  // they're Okay (five in all). No coworker or manager has to arrive. The story holds this back until its "rest" beat.
+  if (story && !story.rest) return false;
+  let any = false;
+  for (const w of workers()) {
+    const b = hub.badges.get(w.id); if (!b) continue;
+    const sev = b.recovery ? 0 : w.level === "danger" ? 3 : w.level === "watch" ? 2 : 0;
+    if (sev !== b.restSev) {   // a new level (or a worse one) restarts the two-second wait
+      b.restSev = sev; b.restT = sev ? simT : null;
+      if (sev && !(b.buzz && simT - b.buzz.t < 90)) {
+        const why = b.air.alerting || b.air.sUp > 0 || b.air.sDn > 0 ? (b.air.dir === "low" ? "warm" : "cool") : "rest";
+        b.buzz = { t: simT, why };
+        hub.logEv(simT, `${b.person.name.split(" ")[0]}'s clip buzzed: ${{ rest: "rest", cool: "cool off", warm: "warm up" }[why]}`, "info", b.id);
+      }
+    } else if (sev && simT - b.restT >= 2) { resolve(b.id, true); b.restSev = null; any = true; }
+  }
+  return any;
+}
 function tick() {
   for (let i = 0; i < stepsPer; i++) {
     simT += 1; applyFx(); sim.step(simT);
@@ -2457,7 +2476,7 @@ function tick() {
   }
   state = hub.snapshot(simT);
   // help has arrived: the alert clears by itself and they're back to normal about three seconds later
-  let cleared = false;
+  let cleared = autoRest();
   for (const b of hub.badges.values()) if (b.arrived && b.helper && !b.recovery && !(sim.people[b.helper] && sim.people[b.helper].path.length)) { resolve(b.id, true); cleared = true; }
   if (cleared) state = hub.snapshot(simT);
   glideTick();
@@ -2829,21 +2848,15 @@ async function playStory() {
     const r = person("B1");
     caption(4, `<b>${r.hr} BPM</b> vs her normal ${Math.round(r.hrExp)}. A fixed alarm waits for ${180 - r.age}.`);
     await hold(5500);
-    caption(5, "Hussein: <b>On my way</b>.");
-    await hold(2000);
-    if (!locating) { sel = "B1"; openLocate(); }
-    await hold(1200);
-    goHelp("B1");
-    caption(6, "Which stairs. Which floor. How long.");
-    await hold(5000);
-    await waitFor(() => { const q = person("B1"); return q.arrived || q.stage; }, 120000);
+    caption(5, "She rests. No one has to come.");
+    story.rest = true; for (const b of hub.badges.values()) b.restSev = null;   // start the clip's rest-and-recover now
+    await hold(2500);
+    await waitFor(() => { const q = person("B1"); return q.level === "ok" && !q.stage; }, 15000);
     await hold(600);
-    const r2 = person("B1");
-    caption(7, `Help in <b>${r2.arriveT != null && r2.alertT != null ? mmss(r2.arriveT - r2.alertT) : "minutes"}</b>.`);
-    await hold(5000);
-    if (locating) closeLocate();
-    caption(8, "Safe. Logged.");
-    await hold(5000);
+    caption(6, "Back to <b>normal</b> in seconds.");
+    await hold(4000);
+    caption(7, "Safe. Logged.");
+    await hold(4000);
     sel = ""; replay = null; renderAll();   // close Rose's card once the story ends
   } catch (e) { /* stopped */ }
   $("mapv").classList.remove("story", "resetting");
