@@ -836,6 +836,8 @@ svg.mesh { position: absolute; inset: 0; width: 100%; height: 100%; pointer-even
 .mesh path { fill: none; stroke-linecap: round; }
 .mesh .halo { stroke: rgba(10, 14, 12, .3); stroke-width: 3.6; }
 .mesh .all { stroke: rgba(255, 255, 255, .72); stroke-width: 1.6; }
+.mesh .master-links { stroke: rgba(47, 111, 235, .82); stroke-width: 2.2; }
+.mesh .offline-links { stroke: rgba(255, 255, 255, .48); stroke-width: 1.8; stroke-dasharray: 5 5; }
 .mesh .route { stroke: #fff; stroke-width: 3; filter: drop-shadow(0 0 3px rgba(47, 111, 235, .9)); }
 .pin.you.master { background: #2F6FEB; color: #fff; border-color: #fff; }
 .pin .wifi { display: none; }
@@ -944,7 +946,7 @@ svg.mesh { position: absolute; inset: 0; width: 100%; height: 100%; pointer-even
       <div class="world" id="world"></div>
       <canvas class="bcanvas" id="bcanvas" aria-hidden="true"></canvas>
       <div class="calltoast" id="calltoast" role="status" data-nodrag hidden></div>
-      <svg class="mesh" id="mesh" aria-hidden="true"><path class="halo" id="mesh-halo"/><path class="all" id="mesh-all"/><path class="route" id="mesh-route"/></svg>
+      <svg class="mesh" id="mesh" aria-hidden="true"><path class="halo" id="mesh-halo"/><path class="all" id="mesh-all"/><path class="master-links" id="mesh-master-links"/><path class="offline-links" id="mesh-offline-links"/><path class="route" id="mesh-route"/></svg>
       <div class="pins" id="pins"></div>
       <div class="topstack" data-nodrag>
         <div class="banner" id="banner" role="status" hidden>
@@ -3036,9 +3038,9 @@ function paintPins() {
 let meshView = store.get("beacon.mesh") !== "0";
 function setMesh(on) { meshView = on; store.set("beacon.mesh", on ? "1" : "0"); $("z-mesh").setAttribute("aria-pressed", String(on)); renderAll(); }
 function paintMesh() {
-  // every frame, from where the pins are drawn: a line for each pair of clips in direct reach, all with a path to the master
-  const all = $("mesh-all"), route = $("mesh-route"), M = hub.mesh;
-  let d = "", r = "";
+  // Show the simulated radio mesh and a clear manager link for every displayed worker.
+  const all = $("mesh-all"), masterLinks = $("mesh-master-links"), offlineLinks = $("mesh-offline-links"), route = $("mesh-route"), M = hub.mesh;
+  let d = "", m = "", o = "", r = "";
   if (meshView && M && !clipMode) {
     const pt = new Map(), at = (id) => {
       if (pt.has(id)) return pt.get(id);
@@ -3053,17 +3055,16 @@ function paintMesh() {
       while (M.via.has(c)) { c = M.via.get(c); chain.push(at(c)); }
       if (chain.every(Boolean)) r = "M" + chain.map(P).join("L");
     }
-    // Live ESP32 workers are visibly connected back to the blue gateway pin.
-    if (thermoSnapshot && Array.isArray(thermoSnapshot.devices)) {
-      const live = thermoSnapshot.devices.filter((x) => x.source === "hardware" && x.latest && x.latest.mesh_role !== "gateway").sort((a, b) => a.device_id.localeCompare(b.device_id));
-      live.slice(0, 2).forEach((device, i) => {
-        if (device.connection_state !== "online" || !device.latest.mesh_connected) return;
-        const A = at(adminId), B = at(i === 0 ? "B1" : "B2");
-        if (A && B) d += `M${P(A)}L${P(B)}`;
-      });
+    const manager = at(adminId), offline = new Set((state?.people || []).filter((p) => p.offline && DISPLAY_WORKERS.has(p.id)).map((p) => p.id));
+    for (const id of DISPLAY_WORKERS) {
+      const worker = at(id); if (!manager || !worker) continue;
+      const segment = `M${P(manager)}L${P(worker)}`;
+      if (offline.has(id)) o += segment; else m += segment;
     }
   }
   if (all._d !== d) { all._d = d; all.setAttribute("d", d); $("mesh-halo").setAttribute("d", d); }
+  if (masterLinks._d !== m) { masterLinks._d = m; masterLinks.setAttribute("d", m); }
+  if (offlineLinks._d !== o) { offlineLinks._d = o; offlineLinks.setAttribute("d", o); }
   if (route._d !== r) { route._d = r; route.setAttribute("d", r); }
 }
 
