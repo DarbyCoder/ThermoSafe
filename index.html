@@ -849,6 +849,13 @@ body[data-beat="danger"] .legend > span:nth-child(3) .dot { animation: beat-pop 
 .why-fixed.mine { color: var(--danger); }
 .bar .mtrack { position: absolute; inset: 0; pointer-events: none; }
 .bar .mtrack .mark { left: 0; transition: none; }
+/* the worker card is patched in place: the lit band is a class, so it can fade */
+.vrow .bands span { opacity: .45; }
+.vrow .bands span.on { opacity: 1; }
+.vrow .bnames span.on { font-weight: 700; color: var(--ink); }
+[data-live] { font-variant-numeric: tabular-nums; }
+.why.solo #pp-side { display: contents; }
+@media (prefers-reduced-motion: no-preference) { .vrow .bands span { transition: opacity 200ms ease; } }
 </style>
 </head>
 <body>
@@ -2212,17 +2219,33 @@ function sunRow(p) {
     <div class="lvl" role="cell"><i style="background:${["", "var(--ok)", "var(--watch)", "var(--danger)"][lvl]}"></i>${p.sunMin}m strong</div>
   </div>`;
 }
-function vitalRow(label, nowTxt, sub, value, b, min, max, state, words, key) {
-  const idx = state[0] === "alert" ? (state[1] === "high" ? 3 : 0) : state[0] === "watch" ? (state[1] === "high" ? 2 : 0) : 1;
-  const lvlColor = ["var(--cold)", "var(--ok)", "var(--watch)", "var(--danger)"][idx];
-  const pct = clamp((value - min) / (max - min), 0, 1) * 100;
+function rowSkel(id, k, label, unit) {
+  // built once per worker; patchRow() and paintLive() then change only what moved, so transitions can run
+  const four = "<span></span><span></span><span></span><span></span>";
   return `<div class="vrow" role="row">
     <div class="lbl" role="cell">${label}</div>
-    <div class="now" role="cell">${nowTxt}<small>${sub}</small></div>
-    <div class="rng" role="cell"><div class="bar"><div class="bands">${b.map((x, i) => `<span style="flex:${x.f.toFixed(2)} 1 0;background:${x.c};opacity:${i === idx ? 1 : 0.45}"></span>`).join("")}</div><span class="mtrack"${key ? ` data-mk="${key}" data-min="${min}" data-max="${max}"` : ""} style="transform:translateX(${pct.toFixed(2)}%)"><span class="mark"></span></span></div>
-      <div class="bnames">${b.map((x, i) => `<span style="flex:${x.f.toFixed(2)} 1 0;font-weight:${i === idx ? 700 : 400};color:${i === idx ? "var(--ink)" : "var(--ink-2)"}">${x.n}</span>`).join("")}</div></div>
-    <div class="lvl" role="cell"><i style="background:${lvlColor}"></i>${words[idx]}</div>
+    <div class="now" role="cell"><span data-live="${id}:${k}"></span>${unit}<small></small></div>
+    <div class="rng" role="cell"><div class="bar"><div class="bands">${four}</div><span class="mtrack" data-mk="${id}:${k}"><span class="mark"></span></span></div>
+      <div class="bnames">${four}</div></div>
+    <div class="lvl" role="cell"><i></i><span></span></div>
   </div>`;
+}
+function patchRow(box, sub, b, min, max, dest, words) {
+  // the lit band is the one the reading is heading for (where the marker will stop), so a jump from Normal
+  // straight to Too high lights Too high at once instead of flashing Elevated on the way
+  let acc = min, idx = b.length - 1;
+  for (let i = 0; i < b.length; i++) { acc += b[i].f; if (dest < acc) { idx = i; break; } }
+  const sm = box.querySelector("small"); if (sm.textContent !== sub) sm.textContent = sub;
+  const bs = box.querySelector(".bands").children, ns = box.querySelector(".bnames").children;
+  b.forEach((x, i) => {
+    const fl = `${x.f.toFixed(2)} 1 0`;
+    if (bs[i]._f !== fl) { bs[i]._f = fl; bs[i].style.flex = fl; bs[i].style.background = x.c; ns[i].style.flex = fl; ns[i].textContent = x.n; }
+    bs[i].classList.toggle("on", i === idx); ns[i].classList.toggle("on", i === idx);
+  });
+  const mt = box.querySelector(".mtrack"); mt.dataset.min = min; mt.dataset.max = max;
+  const lc = box.querySelector(".lvl");
+  lc.firstElementChild.style.background = ["var(--cold)", "var(--ok)", "var(--watch)", "var(--danger)"][idx];
+  if (lc.lastElementChild.textContent !== words[idx]) lc.lastElementChild.textContent = words[idx];
 }
 function renderPop() {
   const pop = $("pop"), p = sel && person(sel);
@@ -2233,7 +2256,8 @@ function renderPop() {
     pop.innerHTML = `<div class="pop-head"><span class="av" id="pp-av"></span><h2 id="pp-nm"></h2><span class="pill" id="pp-pill"></span><span class="where" id="pp-where"></span><span class="grow"></span>
       <button class="btn dark" data-act="locate">${ICON.locate}<span>Locate</span></button>
       </div><button class="x pop-x" data-act="close-pop" aria-label="Close readings">${ICON.close}</button>
-      <div role="table" aria-label="Readings" id="pp-rows"></div><div class="buzzline" id="pp-buzz"></div><div class="why" id="pp-why"></div>`;
+      <div role="table" aria-label="Readings" id="pp-rows"></div><div class="buzzline" id="pp-buzz"></div><div class="why" id="pp-why"><div id="pp-plot"></div><div id="pp-side"></div></div>`;
+    DISP.clear();
   }
   paint(pop, p.level);
   $("pp-av").textContent = p.ini;
@@ -2244,13 +2268,26 @@ function renderPop() {
   const E = p.hrExp, S = p.hrSpread, A = p.airAvg, T = p.airSpread;
   const hb = bands(["Too low", "Normal", "Elevated", "Too high"], ["var(--cold)", "var(--ok)", "var(--watch)", "var(--danger)"], [E - 45, E - 3 * S, E + 2.5 * S, E + 2.5 * S + 15, E + 70]);
   const ab = bands(["Too cold", "Normal", "Warm", "Too hot"], ["var(--cold)", "var(--ok)", "var(--watch)", "var(--danger)"], [A - 40, A - 2.5 * T, A + 2.5 * T, A + 2.5 * T + 10, A + 40]);
-  setHtml($("pp-rows"),
-    (p.hr != null ? vitalRow("Heart rate", `${lvs(p.id, "hr")} BPM`, `usual ${p.hrUsual}`, lv(p.id, "hr"), hb, E - 45, E + 70, p.hrState, ["Too low", "Normal", "Elevated", "Too high"], `${p.id}:hr`) : "") +
-    (p.uvi != null && (p.outdoor || p.sunMin > 0) ? sunRow(p) : "") +
-    (p.air != null ? vitalRow("Air temp", `${lvs(p.id, "air")}°F`, p.feels ? `feels ${p.feels.f}°` : `usual here ${Math.round(A)}°`, lv(p.id, "air"), ab, A - 40, A + 40, p.airState, ["Too cold", "Normal", "Warm", "Too hot"], `${p.id}:air`) : ""));
+  // the rows keep their elements; only values change. Where each reading is heading comes from the simulated clip's target.
+  const rows = $("pp-rows"), sig = `${p.id}|${p.hr != null}|${p.air != null}`, sp = sim.people[p.id];
+  if (rows.dataset.sig !== sig) {
+    rows.dataset.sig = sig;
+    rows.innerHTML = (p.hr != null ? `<div id="pp-hr" style="display:contents">${rowSkel(p.id, "hr", "Heart rate", " BPM")}</div>` : "") +
+      `<div id="pp-sun" style="display:contents"></div>` +
+      (p.air != null ? `<div id="pp-air" style="display:contents">${rowSkel(p.id, "air", "Air temp", "°F")}</div>` : "");
+  }
+  if (p.hr != null) patchRow($("pp-hr"), `usual ${p.hrUsual}`, hb, E - 45, E + 70, sp ? sp.base + sp.gain * Math.max(0, (sp.act || 0) - 0.05) + sp.extraTarget : p.hr, ["Too low", "Normal", "Elevated", "Too high"]);
+  setHtml($("pp-sun"), p.uvi != null && (p.outdoor || p.sunMin > 0) ? sunRow(p) : "");
+  if (p.air != null) patchRow($("pp-air"), p.feels ? `feels ${p.feels.f}°` : `usual here ${Math.round(A)}°`, ab, A - 40, A + 40, sp ? sim.placeTemp(simT, sp) + sp.airTarget + 1 : p.air, ["Too cold", "Normal", "Warm", "Too hot"]);
+  paintLiveDom();
   const bz = p.buzz ? `${ICON.buzz}<span>Buzzed: ${{ rest: "rest", cool: "cool off", warm: "warm up", shade: "find shade" }[p.buzz.why]} · ${ago(state.t - p.buzz.t)}</span>` : "";
   setHtml($("pp-buzz"), bz); $("pp-buzz").hidden = !bz;
-  const wh = whyHtml(p); setHtml($("pp-why"), wh); $("pp-why").hidden = !wh;
+  // the chart is rebuilt only when a new reading arrives (every 5 s); the numbers beside it update on their own
+  const wh = whyHtml(p), wb = $("pp-why");
+  setHtml($("pp-plot"), wh.plot); $("pp-plot").hidden = !wh.plot;
+  setHtml($("pp-side"), wh.side);
+  wb.hidden = !wh.plot && !wh.side; wb.classList.toggle("solo", !wh.plot);
+  paintChart(performance.now(), 0);
 }
 
 /* ---------- why: the evidence behind a status ---------- */
@@ -2270,38 +2307,51 @@ function paintLive(now) {
     let L = LIVE.get(w.id); if (!L) { L = { hr: w.hr, air: w.air }; LIVE.set(w.id, L); }
     for (const k of ["hr", "air"]) { const v = w[k]; if (v == null) L[k] = null; else if (L[k] == null) L[k] = v; else L[k] += (v - L[k]) * a; }
   }
+  paintLiveDom(); paintChart(now, dt);
+}
+function paintLiveDom() {
+  // the eased numbers and bar markers, written into whatever is on screen
   for (const el of document.querySelectorAll("[data-live]")) {
     const [id, k] = el.dataset.live.split(":"), v = lv(id, k), t = v == null ? "–" : String(v);
     if (el.textContent !== t) el.textContent = t;
   }
   for (const el of document.querySelectorAll("[data-mk]")) {
-    const [id, k] = el.dataset.mk.split(":"), L = LIVE.get(id); if (!L || L[k] == null) continue;
+    const [id, k] = el.dataset.mk.split(":"), L = LIVE.get(id); if (!L || L[k] == null || el.dataset.min == null) continue;
     const pct = clamp((L[k] - +el.dataset.min) / (+el.dataset.max - +el.dataset.min), 0, 1) * 100;
     el.style.transform = `translateX(${pct.toFixed(2)}%)`;
   }
-  // the chart scrolls with the clock, and its newest end follows the eased reading
-  const sv = document.querySelector("#pp-why svg.why-chart[data-t1]");
-  if (sv) {
-    const d = REDUCE.matches || replay ? 0 : clamp(simT + simFrac(now) - +sv.dataset.t1, 0, 30), pps = +sv.dataset.pps, W = +sv.dataset.w, HH = +sv.dataset.hh;
-    const g = sv.querySelector(".why-slide"), ln = sv.querySelector(".why-live"), L = LIVE.get(sv.dataset.id);
-    const v = L && L[sv.dataset.k] != null ? L[sv.dataset.k] : +sv.dataset.last, lo = +sv.dataset.lo, hi = +sv.dataset.hi;
-    if (g) g.setAttribute("transform", `translate(${(-d * pps).toFixed(2)} 0)`);
-    if (ln) { ln.setAttribute("x2", (W + d * pps).toFixed(2)); ln.setAttribute("y2", (HH - ((v - lo) / (hi - lo)) * HH).toFixed(2)); }
-  }
+}
+const DISP = new Map();   // the scale each chart is showing right now; it eases toward what the data needs
+function paintChart(now, dt) {
+  // the chart scrolls with the clock, its newest end follows the eased reading, and its scale makes room gradually
+  const sv = document.querySelector("#pp-why svg.why-chart[data-t1]"); if (!sv) return;
+  const d = REDUCE.matches || replay ? 0 : clamp(simT + simFrac(now) - +sv.dataset.t1, 0, 30), pps = +sv.dataset.pps, W = +sv.dataset.w, HH = +sv.dataset.hh;
+  const g = sv.querySelector(".why-slide"), ln = sv.querySelector(".why-live"), L = LIVE.get(sv.dataset.id);
+  const v = L && L[sv.dataset.k] != null ? L[sv.dataset.k] : +sv.dataset.last, lo = +sv.dataset.lo, hi = +sv.dataset.hi;
+  if (g) g.setAttribute("transform", `translate(${(-d * pps).toFixed(2)} 0)`);
+  if (ln) { ln.setAttribute("x2", (W + d * pps).toFixed(2)); ln.setAttribute("y2", (HH - ((v - lo) / (hi - lo)) * HH).toFixed(2)); }
+  const pad = (hi - lo) * 0.06 + 1, tlo = Math.min(lo, v - pad), thi = Math.max(hi, v + pad), key = `${sv.dataset.id}:${sv.dataset.k}`;
+  let D = DISP.get(key);
+  if (!D || REDUCE.matches) { D = { lo: tlo, hi: thi }; DISP.set(key, D); }
+  else { const a2 = 1 - Math.exp(-dt / 0.45); D.lo += (tlo - D.lo) * a2; D.hi += (thi - D.hi) * a2; }
+  // everything was drawn for [lo, hi]; stretch it to the scale being shown
+  const a = (hi - lo) / (D.hi - D.lo), b = HH * (1 - a) - ((lo - D.lo) / (D.hi - D.lo)) * HH;
+  const gy = sv.querySelector(".why-y"); if (gy) gy.setAttribute("transform", `matrix(1 0 0 ${a.toFixed(5)} 0 ${b.toFixed(3)})`);
+  for (const el of sv.parentElement.querySelectorAll(".why-fixed[data-y]")) el.style.top = `${(6 + a * +el.dataset.y + b).toFixed(1)}px`;
 }
 function whyHtml(p) {
   const poss = POSS[p.obj] || "their", f = p.first;
   const kv = (a, b) => `<div class="kv"><b>${a}</b><span>${b}</span></div>`;
   const meter = () => `<div class="ev${p.evidence >= 1 ? " hot" : ""}" role="img" aria-label="Evidence toward an alert: ${Math.round(Math.min(1, p.evidence) * 100)}%"><span style="width:${Math.min(100, p.evidence * 100).toFixed(0)}%"></span></div>`;
-  if (p.sos && !p.stage) return `<div class="kvs">${kv("SOS", "from the clip")}</div>`;
-  if (/sun/i.test(p.label) && !p.stage) return `<div class="kvs">${kv(`UV ${p.uvi}`, uvCat(p.uvi).toLowerCase())}${kv(`${p.sunMin}m`, "strong sun")}${kv(hm(p.outMin), "outside")}${kv(`${SUN_ALERT / 60}m`, "limit")}</div>${meter()}`;
+  if (p.sos && !p.stage) return { plot: "", side: `<div class="kvs">${kv("SOS", "from the clip")}</div>` };
+  if (/sun/i.test(p.label) && !p.stage) return { plot: "", side: `<div class="kvs">${kv(`UV ${p.uvi}`, uvCat(p.uvi).toLowerCase())}${kv(`${p.sunMin}m`, "strong sun")}${kv(hm(p.outMin), "outside")}${kv(`${SUN_ALERT / 60}m`, "limit")}</div>${meter()}` };
   if (p.fall && !p.stage) {
     const secs = p.impactT != null ? state.t - p.impactT : 0;
-    return `<div class="kvs">${kv("4.2 g", "jolt")}${kv(mmss(secs), p.fall === "down" ? "not moving" : "since")}</div>`;
+    return { plot: "", side: `<div class="kvs">${kv("4.2 g", "jolt")}${kv(mmss(secs), p.fall === "down" ? "not moving" : "since")}</div>` };
   }
   const heat = /hot|cold/i.test(p.label) || (p.airState[0] === "alert" || p.airState[0] === "watch") && !(p.hrState[0] === "alert" || p.hrState[0] === "watch");
   const H = p.hist.slice(-60).filter((h) => (heat ? h[4] : h[1]) != null);
-  if (H.length < 4) return "";
+  if (H.length < 4) return { plot: "", side: "" };
   const t0 = H[0][0], t1 = H[H.length - 1][0];
   const V = heat ? H.map((h) => [h[0], h[4], h[5] - 2.5 * h[6], h[5] + 2.5 * h[6]]) : H.map((h) => [h[0], h[1], h[2] - 2.5 * h[3], h[2] + 2.5 * h[3]]);
   const fixed = heat ? null : 180 - p.age;
@@ -2320,17 +2370,17 @@ function whyHtml(p) {
   const fy = fixed ? (((HH - ((fixed - lo) / (hi - lo)) * HH) / HH) * 100) : 0;
   const my = mine ? (((HH - ((mine - lo) / (hi - lo)) * HH) / HH) * 100) : 0;
   const last = V[V.length - 1][1];
-  const plot = `<div><div class="why-plot"><svg class="why-chart" viewBox="0 0 ${W} ${HH}" preserveAspectRatio="none" aria-hidden="true" data-id="${p.id}" data-k="${heat ? "air" : "hr"}" data-t1="${t1}" data-pps="${(W / Math.max(1, t1 - t0)).toFixed(4)}" data-w="${W}" data-hh="${HH}" data-lo="${lo.toFixed(3)}" data-hi="${hi.toFixed(3)}" data-last="${last}">
+  const plot = `<div class="why-plot"><svg class="why-chart" viewBox="0 0 ${W} ${HH}" preserveAspectRatio="none" aria-hidden="true" data-id="${p.id}" data-k="${heat ? "air" : "hr"}" data-t1="${t1}" data-pps="${(W / Math.max(1, t1 - t0)).toFixed(4)}" data-w="${W}" data-hh="${HH}" data-lo="${lo.toFixed(3)}" data-hi="${hi.toFixed(3)}" data-last="${last}"><g class="why-y">
       ${fixed ? `<line x1="0" x2="${W}" y1="${Y(fixed)}" y2="${Y(fixed)}" stroke="var(--ink-3)" stroke-width="1.5" stroke-dasharray="6 5" vector-effect="non-scaling-stroke"/>` : ""}
       ${mine ? `<line x1="0" x2="${W}" y1="${Y(mine)}" y2="${Y(mine)}" stroke="var(--danger)" stroke-width="1.5" stroke-dasharray="6 5" vector-effect="non-scaling-stroke"/>` : ""}
       <g class="why-slide">
       <polygon points="${band}" fill="var(--ok-card)" stroke="var(--ok-line)" stroke-width="1" vector-effect="non-scaling-stroke" opacity=".85"/>
       ${replay && replay.id === p.id && replay.t >= t0 && replay.t <= t1 ? `<line x1="${X(replay.t)}" x2="${X(replay.t)}" y1="0" y2="${HH}" stroke="var(--you)" stroke-width="2" vector-effect="non-scaling-stroke"/>` : ""}
       <polyline points="${line}" fill="none" stroke="var(--ink)" stroke-width="2.2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
-      <line class="why-live" x1="${W}" y1="${Y(last)}" x2="${W}" y2="${Y(last)}" stroke="var(--ink)" stroke-width="2.2" stroke-linecap="round" vector-effect="non-scaling-stroke"/></g></svg>
-      ${fixed ? `<span class="why-fixed" style="top:calc(6px + ${(fy * 0.8).toFixed(1)}px)">Fixed alarm ${fixed}</span>` : ""}
-      ${mine ? `<span class="why-fixed mine" style="top:calc(6px + ${(my * 0.8).toFixed(1)}px)">${esc(cap(poss))} alarm ${mine}</span>` : ""}</div>
-    <div class="why-key"><span><i style="background:var(--ink)"></i>${heat ? "Air" : "Heart"}</span><span><i style="background:var(--ok-card);box-shadow:inset 0 0 0 1px var(--ok-line)"></i>Normal</span><span>${Math.max(1, Math.round((t1 - t0) / 60))} min</span></div></div>`;
+      <line class="why-live" x1="${W}" y1="${Y(last)}" x2="${W}" y2="${Y(last)}" stroke="var(--ink)" stroke-width="2.2" stroke-linecap="round" vector-effect="non-scaling-stroke"/></g></g></svg>
+      ${fixed ? `<span class="why-fixed" data-y="${Y(fixed)}" style="top:calc(6px + ${(fy * 0.8).toFixed(1)}px)">Fixed alarm ${fixed}</span>` : ""}
+      ${mine ? `<span class="why-fixed mine" data-y="${Y(mine)}" style="top:calc(6px + ${(my * 0.8).toFixed(1)}px)">${esc(cap(poss))} alarm ${mine}</span>` : ""}</div>
+    <div class="why-key"><span><i style="background:var(--ink)"></i>${heat ? "Air" : "Heart"}</span><span><i style="background:var(--ok-card);box-shadow:inset 0 0 0 1px var(--ok-line)"></i>Normal</span><span>${Math.max(1, Math.round((t1 - t0) / 60))} min</span></div>`;
   let txt;
   if (heat) {
     txt = kv(`${p.air}°`, "now") + (p.feels ? kv(`${p.feels.f}°`, `feels like · ${p.feels.kind === "heat index" ? `${p.rh}% humid` : `${p.wind} mph wind`}`) : "") + kv(`${Math.round(p.airAvg)}°`, "usual here");
@@ -2341,7 +2391,7 @@ function whyHtml(p) {
   } else {
     txt = kv(Math.round(p.hrExp), `${esc(f)}'s normal`) + kv(`${p.hrN}m`, "learned");
   }
-  return plot + `<div><div class="kvs">${txt}</div>${meter()}</div>`;
+  return { plot, side: `<div class="kvs">${txt}</div>${meter()}` };
 }
 
 /* ---------- locate: the route diagram ---------- */
