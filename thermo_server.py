@@ -177,43 +177,73 @@ def twiml(cid, words=MESSAGE):
     return '<?xml version="1.0" encoding="UTF-8"?><Response>%s<Pause length="1"/>%s</Response>' % (say, say)
 
 
+call_mode = None   # which way of placing a call this Twilio account accepted (trial accounts allow fewer options)
+
+
+def call_forms(rec, words, c):
+    """Ways to ask Twilio for this call, fullest first. A trial account may refuse some options, so the next one is tried."""
+    pub = c["PUBLIC_URL"].rstrip("/") if c["PUBLIC_URL"] else ""
+    base = {"To": rec["to"], "From": c["TWILIO_FROM"]}
+    tw = twiml(rec["id"], words)
+    forms = []
+    if pub:
+        forms.append(("full", dict(base, Twiml=tw, StatusCallback="%s/twilio/status?%s" % (pub, urlencode({"c": rec["id"]})),
+                                   StatusCallbackEvent=["initiated", "ringing", "answered", "completed"])))
+    forms.append(("script", dict(base, Twiml=tw)))
+    if pub:
+        forms.append(("link", dict(base, Url="%s/twilio/voice?%s" % (pub, urlencode({"c": rec["id"]})))))
+    if call_mode:   # start with what worked last time
+        forms.sort(key=lambda f: f[0] != call_mode)
+    return forms
+
+
 def place_call(rec):
     """Ask Twilio to ring the worker. Runs in a thread so the dashboard never waits on the phone network."""
+    global call_mode
     c = cfg()
     words, ai = call_words(rec)
     with lock:
         rec["words"], rec["ai"] = words, ai
-    form = {"To": rec["to"], "From": c["TWILIO_FROM"], "Twiml": twiml(rec["id"], words)}
-    if c["PUBLIC_URL"]:
-        form["StatusCallback"] = "%s/twilio/status?%s" % (c["PUBLIC_URL"].rstrip("/"), urlencode({"c": rec["id"]}))
-        form["StatusCallbackEvent"] = ["initiated", "ringing", "answered", "completed"]
-    body = urlencode(form, doseq=True).encode()
     api = os.environ.get("TWILIO_API", "https://api.twilio.com").rstrip("/")   # only changed for testing against a stand-in
     url = "%s/2010-04-01/Accounts/%s/Calls.json" % (api, c["TWILIO_ACCOUNT_SID"])
     auth = base64.b64encode(("%s:%s" % (c["TWILIO_ACCOUNT_SID"], c["TWILIO_AUTH_TOKEN"])).encode()).decode()
-    req = Request(url, data=body, headers={"Authorization": "Basic " + auth, "Content-Type": "application/x-www-form-urlencoded"})
-    try:
-        with urlopen(req, timeout=15) as r:
-            j = json.loads(r.read().decode())
-        with lock:
-            rec["sid"] = j.get("sid")
-            rec["status"] = "ringing" if c["PUBLIC_URL"] else "placed"
-            line(rec, "system", "Calling %s" % rec["to"])
-            if not c["PUBLIC_URL"]:   # no progress reports will come back: show what the call says now
-                line(rec, "thermo", words, ai)
-    except HTTPError as e:
-        msg = e.read().decode(errors="replace")
+    msg = ""
+    for mode, form in call_forms(rec, words, c):
+        req = Request(url, data=urlencode(form, doseq=True).encode(), headers={"Authorization": "Basic " + auth, "Content-Type": "application/x-www-form-urlencoded"})
         try:
-            msg = json.loads(msg).get("message", msg)
-        except ValueError:
-            pass
+            with urlopen(req, timeout=15) as r:
+                j = json.loads(r.read().decode())
+        except HTTPError as e:
+            msg = e.read().decode(errors="replace")
+            try:
+                msg = json.loads(msg).get("message", msg)
+            except ValueError:
+                pass
+            if e.code == 400 and ("trial" in msg.lower() or "parameter" in msg.lower()):
+                print("Twilio refused the '%s' way (%s); trying a simpler one" % (mode, msg[:90]))
+                continue
+            break
+        except (URLError, OSError) as e:
+            with lock:
+                rec["status"] = "failed"
+                line(rec, "system", "Couldn't reach Twilio: %s" % e)
+            return
+        if call_mode != mode:
+            print("Twilio accepted calls the '%s' way" % mode)
+        call_mode = mode
         with lock:
-            rec["status"] = "failed"
-            line(rec, "system", "Twilio refused the call: %s" % msg)
-    except (URLError, OSError) as e:
-        with lock:
-            rec["status"] = "failed"
-            line(rec, "system", "Couldn't reach Twilio: %s" % e)
+            rec["sid"], rec["mode"] = j.get("sid"), mode
+            rec["status"] = "ringing" if mode == "full" else "placed"
+            line(rec, "system", "Calling %s" % rec["to"])
+            if mode == "script":   # no reports come back until a key press: show what the call says now
+                line(rec, "thermo", words, ai)
+                if c["PUBLIC_URL"]:
+                    line(rec, "thermo", MENU)
+        return
+    with lock:
+        rec["status"] = "failed"
+        trial = "trial" in msg.lower()
+        line(rec, "system", "Twilio refused the call: %s%s" % (msg, " (this Twilio trial blocks custom calls: upgrade the account in Twilio's Console to fix it)" if trial else ""))
 
 
 def demo_phones():
@@ -347,6 +377,14 @@ class Handler(BaseHTTPRequestHandler):
             cid = (q.get("c") or [""])[0]
             with lock:
                 rec = calls.get(cid)
+                if u.path == "/twilio/voice":   # the "link" way: Twilio asks for the call's words once it's answered
+                    if rec:
+                        rec["status"] = "in-progress"
+                        line(rec, "system", "Answered")
+                        line(rec, "thermo", rec.get("words") or MESSAGE, rec.get("ai", False))
+                        if cfg()["PUBLIC_URL"]:
+                            line(rec, "thermo", MENU)
+                    return self.send(200, twiml(cid, (rec or {}).get("words") or MESSAGE), "text/xml")
                 if u.path == "/twilio/status" and rec:
                     st = f.get("CallStatus", "")
                     if st and st != rec["status"]:
