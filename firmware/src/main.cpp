@@ -751,7 +751,7 @@ String serializeTelemetry(const Sample& sample) {
     const int uvTenths = uvFresh ? remoteSiteUvTenths.load() : -1;
     const double siteUv = sample.demoScenario ? sample.demoUvIndex
         : uvTenths >= 0 ? uvTenths / 10.0 : NAN;
-    const double score = thermosafe::combinedRiskScore(
+    double score = thermosafe::combinedRiskScore(
         sample.environmentOk ? thermosafe::heatIndexDemoScore(heatIndex, sample.temperature) : NAN,
         sample.environmentOk ? thermosafe::temperatureDemoScore(sample.temperature) : NAN,
         sample.environmentOk ? thermosafe::humidityDemoScore(sample.humidity) : NAN,
@@ -761,7 +761,21 @@ String serializeTelemetry(const Sample& sample) {
             + thermosafe::acclimatizationDemoAdjustment(acclimatizationName(sample.acclimatizationStatus)));
     const auto ambient = sample.environmentOk
         ? thermosafe::assess(sample.temperature, sample.humidity) : thermosafe::HeatState::Unknown;
-    const auto alert = thermosafe::combine(ambient, score);
+    auto alert = thermosafe::combine(ambient, score);
+    if (sample.demoScenario) {
+        // Test commands are an explicit presentation state. Keep the transmitted
+        // score and alert state in the same band as the requested LED/buzzer mode.
+        if (demoMode == 1) {
+            score = std::min(score, 29.0);
+            alert = thermosafe::HeatState::Normal;
+        } else if (demoMode == 2) {
+            score = std::max(30.0, std::min(score, 54.0));
+            alert = thermosafe::HeatState::Caution;
+        } else {
+            score = std::max(75.0, score);
+            alert = thermosafe::HeatState::Critical;
+        }
+    }
     if (std::isfinite(heatIndex)) doc["heat_index_c"] = heatIndex;
     else doc["heat_index_c"] = nullptr;
     if (std::isfinite(siteUv)) doc["site_uv_index"] = siteUv;

@@ -2216,8 +2216,15 @@ function updateOverallRisk(p) {
   p.overallRiskScore = p.hardwareSlot
     ? (recorded != null && Number.isFinite(Number(recorded)) ? Math.round(Number(recorded)) : null)
     : simulatedThermoScore(p);
+  if (p.hardwareSlot && p.demoScenarioSimulated && p.overallRiskScore != null) {
+    // A commanded demo color is the presentation truth for synthetic readings.
+    // Keep its combined score inside the same band as its status label.
+    if (p.demoScenario === "green") p.overallRiskScore = Math.min(p.overallRiskScore, 29);
+    else if (p.demoScenario === "yellow") p.overallRiskScore = clamp(p.overallRiskScore, 30, 54);
+    else if (p.demoScenario === "red") p.overallRiskScore = Math.max(p.overallRiskScore, 75);
+  }
   const brightContinuous = Number(p.brightContinuousSeconds) || 0;
-  if (p.overallRiskScore != null) {
+  if (p.overallRiskScore != null && !(p.hardwareSlot && p.demoScenarioSimulated)) {
     if (brightContinuous >= SUN_ALERT) p.overallRiskScore = Math.max(p.overallRiskScore, 75);
     else if (brightContinuous >= SUN_WATCH * 0.8) p.overallRiskScore = Math.max(p.overallRiskScore, 30);
   }
@@ -2622,8 +2629,16 @@ function renderPop() {
   ].join(""));
 
   const E = p.hrExp, S = p.hrSpread, A = p.airAvg, T = p.airSpread;
-  const hb = bands(["Too low", "Normal", "Elevated", "Too high"], ["var(--cold)", "var(--ok)", "var(--watch)", "var(--danger)"], [E - 45, E - 3 * S, E + 2.5 * S, E + 2.5 * S + 15, E + 70]);
-  const ab = bands(["Too cold", "Normal", "Warm", "Too hot"], ["var(--cold)", "var(--ok)", "var(--watch)", "var(--danger)"], [A - 40, A - 2.5 * T, A + 2.5 * T, A + 2.5 * T + 10, A + 40]);
+  const demoBandIndex = p.demoScenarioSimulated ? ({ green: 1, yellow: 2, red: 3 }[p.demoScenario] ?? null) : null;
+  const demoBand = (value, width) => {
+    if (demoBandIndex == null || value == null) return null;
+    const min = value - (demoBandIndex + 0.5) * width;
+    const edges = Array.from({ length: 5 }, (_, i) => min + i * width);
+    return { bands: bands(["Low", "Normal", "Caution", "Critical"], ["var(--cold)", "var(--ok)", "var(--watch)", "var(--danger)"], edges), min, max: edges[4], words: ["Low", "Normal", "Caution", "Critical"] };
+  };
+  const hrTest = demoBand(p.hr, 45), airTest = demoBand(p.air, 22);
+  const hb = hrTest ? hrTest.bands : bands(["Too low", "Normal", "Elevated", "Too high"], ["var(--cold)", "var(--ok)", "var(--watch)", "var(--danger)"], [E - 45, E - 3 * S, E + 2.5 * S, E + 2.5 * S + 15, E + 70]);
+  const ab = airTest ? airTest.bands : bands(["Too cold", "Normal", "Warm", "Too hot"], ["var(--cold)", "var(--ok)", "var(--watch)", "var(--danger)"], [A - 40, A - 2.5 * T, A + 2.5 * T, A + 2.5 * T + 10, A + 40]);
   // the rows keep their elements; only values change
   const rows = $("pp-rows"), sig = `${p.id}|${p.hr != null}|${p.air != null}`;
   if (rows.dataset.sig !== sig) {
@@ -2632,9 +2647,9 @@ function renderPop() {
       `<div id="pp-sun" style="display:contents"></div>` +
       (p.air != null ? `<div id="pp-air" style="display:contents">${rowSkel(p.id, "air", "Air temp", "°F")}</div>` : "");
   }
-  if (p.hr != null) patchRow($("pp-hr"), `usual ${p.hrUsual}`, hb, E - 45, E + 70, ["Too low", "Normal", "Elevated", "Too high"]);
+  if (p.hr != null) patchRow($("pp-hr"), `usual ${p.hrUsual}`, hb, hrTest ? hrTest.min : E - 45, hrTest ? hrTest.max : E + 70, hrTest ? hrTest.words : ["Too low", "Normal", "Elevated", "Too high"]);
   setHtml($("pp-sun"), p.uvi != null && (p.outdoor || p.sunMin > 0) ? sunRow(p) : "");
-  if (p.air != null) patchRow($("pp-air"), p.feels ? `feels ${Math.round(p.feels.f)}°` : `usual here ${Math.round(A)}°`, ab, A - 40, A + 40, ["Too cold", "Normal", "Warm", "Too hot"]);
+  if (p.air != null) patchRow($("pp-air"), p.feels ? `feels ${Math.round(p.feels.f)}°` : `usual here ${Math.round(A)}°`, ab, airTest ? airTest.min : A - 40, airTest ? airTest.max : A + 40, airTest ? airTest.words : ["Too cold", "Normal", "Warm", "Too hot"]);
   paintLiveDom();
   const bz = p.buzz ? `${ICON.buzz}<span>Buzzed: ${{ rest: "rest", cool: "cool off", warm: "warm up", shade: "find shade" }[p.buzz.why]} · ${ago(state.t - p.buzz.t)}</span>` : "";
   setHtml($("pp-buzz"), bz); $("pp-buzz").hidden = !bz;
@@ -3612,6 +3627,8 @@ function applyThermoSnapshot(view) {
     p.name = d.worker_name || d.device_id; p.first = p.name.split(/\s+/)[0]; p.ini = initials(p.name);
     p.offline = d.connection_state !== "online"; p.meshOut = false; p.seenAgo = d.age_seconds || 0;
     p.justDisconnected = !!d.justDisconnected;
+    p.demoScenarioSimulated = sample.demo_scenario_simulated === true;
+    p.demoScenario = p.demoScenarioSimulated ? sample.demo_scenario : null;
     const demoState = sample.demo_scenario_simulated
       ? ({ green: "normal", yellow: "caution", red: "critical" }[sample.demo_scenario] || d.risk_state)
       : d.risk_state;
@@ -3637,6 +3654,9 @@ function applyThermoSnapshot(view) {
     p.siteUvSource = sample.site_uv_index_source || sample.assessment?.site_uv_index_source || "unavailable";
     p.uvi = p.siteUvIndex == null ? null : Number(p.siteUvIndex);
     p.sunMin = p.brightExposureSeconds == null ? null : Math.round(p.brightExposureSeconds / 60);
+    p.sunState = p.demoScenarioSimulated
+      ? ({ green: "ok", yellow: "watch", red: "alert" }[p.demoScenario] || "ok")
+      : p.brightContinuousSeconds >= SUN_ALERT ? "alert" : p.brightContinuousSeconds >= SUN_WATCH ? "watch" : "ok";
     p.lastBreakAt = sample.last_break_at ?? null; p.assessment = sample.assessment || null;
     p.activityLevel = sample.activity_level || "unknown";
     p.acclimatizationStatus = sample.acclimatization_status || "unknown";
