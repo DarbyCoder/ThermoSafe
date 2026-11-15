@@ -926,9 +926,9 @@ svg.mesh { position: absolute; inset: 0; width: 100%; height: 100%; pointer-even
       <button class="demo-btn" id="demo-btn" aria-expanded="false" aria-controls="demo-pop">Demo</button>
     </div>
     <div class="demo-pop" id="demo-pop" hidden>
-      <button class="d" id="d-rose" data-demo="rose_heart">Rose's heart races</button>
-      <button class="d" id="d-joe" data-demo="joe_hot">Joe overheats outside</button>
-      <button class="d" id="d-mae" data-demo="mae_cold">Mae gets cold outside</button>
+      <button class="d" id="d-rose" data-demo="rose_heart">Mae's heart races</button>
+      <button class="d" id="d-joe" data-demo="joe_hot">Dev overheats outside</button>
+      <button class="d" id="d-mae" data-demo="mae_cold">Ana gets cold outside</button>
       <button class="d" id="d-dev" data-demo="dev_fall">Dev falls in the lot</button>
       <button class="d" id="d-ana" data-demo="ana_dead">Ana's outdoor clip dies</button>
       <button class="d" id="d-sun" data-demo="dev_sun">Dev in full sun</button>
@@ -1092,9 +1092,9 @@ const isInside = (x, y) => x >= 0 && x <= BUILDING.width_m && y >= 0 && y <= BUI
 /* ================= walking routes outdoors: around every building and the pond ================= */
 // Campus Pond, traced from the satellite photo (same metres as the buildings)
 const POND = [-12,-42,28,-42,38,-56,37,-80,32,-100,23,-125,21,-145,27,-155,24,-165,19,-180,16,-200,17,-235,17,-262,10,-282,-12,-282,-20,-262,-20,-200,-21,-185,-30,-160,-31,-135,-26,-110,-20,-85,-17,-60];
-// Demo positions stay on open outdoor ground. B6 is deliberately close to Mae (B3).
+// The three demo workers patrol separate outdoor lawns.
 const OUTDOOR_ANCHORS = {
-  B1: [100, 50], B2: [-10, 25], B3: [75, -30], B5: [110, 25], B6: [86, -37],
+  B1: [100, 50], B2: [-10, 25], B3: [75, -30], B5: [285, 35], B6: [-245, 125],
   B7: [80, 80], B8: [18, 70], B9: [-180, -220], B10: [-130, -300], B11: [40, 200],
   B12: [100, -62], B13: [200, -150], B14: [210, 60], B15: [270, 40], B16: [350, -20],
 };
@@ -1632,6 +1632,7 @@ class Hub {
 // Each sends what a real clip sends: heart rate, movement, air temperature, air pressure,
 // a Wi-Fi scan inside or a GPS fix outside, and which other clips it can hear.
 const CLIP = 1.2, WALK = 1.2, CLIMB = 0.35;
+const FAKE_WORKERS = new Set(["B3", "B5", "B6"]);
 /* ---------- the mesh: clips talk peer to peer; Hussein's phone is the master node and the only one on Wi-Fi ---------- */
 // Readings hop clip to clip until they reach the master, so the system runs with no Wi-Fi out on campus.
 // A clip with no chain of peers to the master keeps its readings until it has one again.
@@ -1656,6 +1657,7 @@ class SimPerson {
 class Sim {
   constructor(hub) {
     this.hub = hub; this.r = rng(7); this.fh = BUILDING.floor_height_m;
+    this.demoHoldUntil = {};
     this.people = {
       B1: new SimPerson("B1", 2, 64, 12, 58, 32, +0.55, 0.8),         // Rose: low resting heart rate, sunny window
       B2: new SimPerson("B2", 1, 45, 26, 91, 26, -0.40, 0.0, 0.9),    // Joe: high, variable resting heart rate
@@ -1675,6 +1677,9 @@ class Sim {
       B16: new SimPerson("B16", 1, 250, 10, 66, 31, -0.65, 0.2),      // Ivy: on the way to the Thatcher lot
     };
     for (const [id, bat] of Object.entries({ B1: 88, B2: 64, B3: 71, B5: 93, B6: 19, B4: 80, B7: 77, B8: 91, B9: 58, B10: 84, B11: 46, B12: 69, B13: 95, B14: 73, B15: 62, B16: 81 })) this.people[id].bat = bat;
+    Object.assign(this.people.B3, { rhBase: 68 });
+    Object.assign(this.people.B5, { rhBase: 45 });
+    Object.assign(this.people.B6, { rhBase: 57 });
     this.aps = [];
     for (const f of BUILDING.floors) [[15, 12], [45, 10], [75, 12], [15, 38], [45, 40], [75, 38], [45, 25]].forEach(([x, y], i) => this.aps.push([`ap${f}${i}`, f, x, y]));
   }
@@ -1731,6 +1736,34 @@ class Sim {
     if (p.fast && Math.abs(p.extra) < 0.5 && Math.abs(p.airExtra) < 0.3 && Math.abs(p.amb - target) < 0.5) p.fast = false;
     return p.amb + this.r.gauss(0, 0.25);
   }
+  startFakeRisk(now) {
+    // Start with one worker in a changing cold watch so the map is not all green.
+    this.fakeRisk = {
+      B3: { mode: "yellow", kind: "cold", until: now + 58, air: -11, hr: 12 },
+      B5: { mode: "green", kind: "heat", until: now + 83, air: 0, hr: 0 },
+      B6: { mode: "green", kind: "cold", until: now + 116, air: 0, hr: 0 },
+    };
+    for (const id of FAKE_WORKERS) Object.assign(this.people[id], { airTarget: this.fakeRisk[id].air, extraTarget: this.fakeRisk[id].hr });
+  }
+  updateFakeRisk(t) {
+    if (!this.fakeRisk) return;
+    for (const id of FAKE_WORKERS) {
+      if (t < (this.demoHoldUntil[id] || 0)) continue;
+      const phase = this.fakeRisk[id];
+      if (t >= phase.until) {
+        const modes = ["green", "yellow", "red"].filter((mode) => mode !== phase.mode);
+        const mode = modes[Math.floor(Math.random() * modes.length)];
+        const kind = Math.random() < 0.5 ? "heat" : "cold";
+        let air = 0, hr = 0;
+        if (mode === "yellow") { air = (kind === "heat" ? 1 : -1) * (8 + Math.random() * 6); hr = 12 + Math.random() * 14; }
+        if (mode === "red") { air = kind === "heat" ? 46 + Math.random() * 10 : -27 - Math.random() * 9; hr = 28 + Math.random() * 28; }
+        this.fakeRisk[id] = { mode, kind, until: t + (mode === "green" ? 45 + Math.random() * 70 : mode === "yellow" ? 55 + Math.random() * 30 : 35 + Math.random() * 20), air, hr };
+        this.people[id].fast = true;
+      }
+      const current = this.fakeRisk[id], p = this.people[id];
+      p.airTarget = current.air; p.extraTarget = current.hr;
+    }
+  }
   meshStep() {
     // which clips hear each other directly, and the shortest chain from each one to the master
     const P = Object.values(this.people).filter((p) => !p.dead && !p.fault), keep = this.meshKeep || (this.meshKeep = new Set());   // a faulty radio drops out
@@ -1746,6 +1779,7 @@ class Sim {
   }
   step(t, dt = 1) {
     this.t = t;
+    this.updateFakeRisk(t);
     for (const [id, until] of Object.entries(this.faults || {})) if (t >= until) { this.people[id].fault = false; delete this.faults[id]; }   // the clip restarts
     const md = this.meshDemo;   // the "out of range" demo: walk out, wait, walk back
     if (md && !md.home && t >= md.back) { const p = this.people[md.id]; p.go(md.f, md.x, md.y); md.home = true; }
@@ -1773,7 +1807,7 @@ class Sim {
       const sky = night ? 3 : p.sun != null ? p.sun : 36 + 4 * Math.sin(t / 1300);
       pkt.light = Math.round(clamp((isInside(p.x, p.y) ? 7 : sky) + this.r.gauss(0, 1.5), 0, 100));
       // humidity, and wind outdoors (from the clip's humidity sensor and the campus weather feed)
-      pkt.rh = Math.round(isInside(p.x, p.y) ? (p.airTarget > 10 ? 58 : 34) : 62);
+      pkt.rh = Math.round(clamp((p.rhBase ?? (isInside(p.x, p.y) ? (p.airTarget > 10 ? 58 : 34) : 62)) + this.r.gauss(0, 3), 30, 90));
       if (!isInside(p.x, p.y)) pkt.wind = Math.max(0, r1(7 + 3 * Math.sin(t / 900) + (p.airTarget < -10 ? 12 : 0) + this.r.gauss(0, 1)));
       else if (t - p.lastScan >= (p.act > 0.5 ? 2 : 5)) { pkt.wifi = this.scan(p); p.lastScan = t; }   // scan more often while moving
       if (mesh.hops.has(p.id)) {   // a chain of peers reaches the master: the reading arrives (with any it kept while cut off)
@@ -1818,10 +1852,12 @@ class Sim {
   }
   action(name, targetId, adminId = "B4") {
     const P = this.people;
+    const demoWorker = { rose_heart: "B3", joe_hot: "B5", mae_cold: "B6" }[name];
+    if (demoWorker) this.demoHoldUntil[demoWorker] = (this.t || 0) + 60;
     // demo effects land within about three seconds (snap), with no fast-forward
-    if (name === "rose_heart") { P.B1.path = []; P.B1.extraTarget = 38; P.B1.snap = true; }
-    else if (name === "joe_hot") { P.B2.airTarget = 30; P.B2.snap = true; }       // heat demo outdoors
-    else if (name === "mae_cold") { P.B3.airTarget = -24; P.B3.snap = true; }     // wind off Campus Pond
+    if (name === "rose_heart") { P.B3.path = []; P.B3.extraTarget = 38; P.B3.snap = true; }
+    else if (name === "joe_hot") { P.B5.airTarget = 48; P.B5.snap = true; }       // extreme heat demo outdoors
+    else if (name === "mae_cold") { P.B6.airTarget = -30; P.B6.snap = true; }     // extreme cold demo outdoors
     else if (name === "dev_sun") { P.B5.sun = 92; const b = this.hub.badges.get("B5"); if (b) b.sun.hot = Math.max(b.sun.hot, 18 * 60); }   // clouds clear over the lot
     else if (name === "ana_dead") { P.B6.dead = true; P.B6.bat = 0; }   // battery runs out outdoors near Mae
     else if (name === "dev_fall") { P.B5.path = []; P.B5.down = true; P.B5.g = 4.2; P.B5.extraTarget = 14; P.B5.snap = true; }   // slips on ice in the lot
@@ -1841,6 +1877,7 @@ class Sim {
       // everything back to normal at once
       if (this.meshDemo) { const m = this.meshDemo, p = P[m.id]; Object.assign(p, { floor: m.f, x: m.x, y: m.y }); this.meshDemo = null; }
       for (const p of Object.values(P)) { p.pace = 1; p.held = 0; if (!p.live) p.fault = false; }
+      this.demoHoldUntil = {};
       this.faults = {};
       for (const p of Object.values(P)) { p.extraTarget = 0; p.airTarget = 0; p.extra = 0; p.airExtra = 0; p.hr = p.base; p.amb = null; p.path = []; p.down = false; p.dead = false; p.snap = false; p.fast = false; p.sun = null; }
       for (const b of this.hub.badges.values()) b.sun.hot = 0;
@@ -3027,8 +3064,8 @@ function seedOutdoorSimulation() {
     Object.assign(b, { x, y, outdoor: true, floor: null, posFloor: null, gpsT: simT });
   }
   const patrols = {
-    B3: [[70, -35], [75, -18], [90, -38]], B5: [[100, 10], [120, 25], [125, 45]],
-    B6: [[82, -45], [90, -33], [75, -25]], B7: [[72, 70], [88, 85], [95, 60]],
+    B3: [[70, -35], [95, -55], [55, -70]], B5: [[270, 15], [315, 65], [345, 10]],
+    B6: [[-220, 100], [-275, 165], [-325, 105]], B7: [[72, 70], [88, 85], [95, 60]],
     B8: [[12, 70], [18, 88], [35, 75]],
   };
   for (const [id, route] of Object.entries(patrols)) {
@@ -3194,7 +3231,7 @@ function resolve(id, quiet) {
 }
 function runDemo(name) {
   const top = workers().find((w) => w.level === "danger");
-  const pick = { rose_heart: "B1", joe_hot: "B2", mae_cold: "B3", dev_fall: "B5", ana_dead: "B6", dev_sun: "B5" }[name];
+  const pick = { rose_heart: "B3", joe_hot: "B5", mae_cold: "B6", dev_fall: "B5", ana_dead: "B6", dev_sun: "B5" }[name];
   const walkTo = sel || (top && top.id) || "B1";
   if (name === "walk") { releaseOthers(walkTo, adminId); ETA.delete(walkTo); }   // a fresh countdown for this walk
   sim.action(name, walkTo, adminId);
@@ -3206,7 +3243,7 @@ function runDemo(name) {
   } else if (name === "mesh_out") {
     if (locating) closeLocate();
     if (!meshView) setMesh(true);
-    sel = "B5"; fitPts([person("B5"), person("B16"), person("B14"), me()]);   // Dev, his chain of peers and you
+    sel = "B5"; fitPts([person("B5"), person("B3"), person("B6"), me()]);   // Dev, two simulated crew members and you
   } else if (name === "walk") {
     if (locating && sel !== walkTo) closeLocate();
     sel = walkTo; focusOn(person(walkTo));
@@ -3377,7 +3414,7 @@ function fmtPhone(n) { const d = String(n || "").replace(/\D/g, ""), t = d.lengt
 // the call server (thermo_server.py): found by asking it, same origin unless localStorage beacon.server says otherwise
 const srv = { ok: false, twilio: false, public: false, gemini: false, api: false, demo: {}, base: (store.get("beacon.server") || "").replace(/\/$/, "") };
 let thermoSnapshot = null, thermoConnectionStates = new Map(), thermoHasSnapshot = false;
-const DISPLAY_WORKERS = new Set(["B1", "B2", "B3", "B5", "B6", "B7", "B8"]);
+const DISPLAY_WORKERS = new Set(["B1", "B2", ...FAKE_WORKERS]);
 async function srvCheck() {
   if (!/^https?:/.test(location.protocol) && !srv.base) return;
   try { const r = await fetch(srv.base + "/api/health", { cache: "no-store" }); const j = await r.json(); Object.assign(srv, { ok: !!j.ok, twilio: !!j.twilio, public: !!j.public, gemini: !!j.gemini, api: !!j.thermosafe_api, demo: j.demo_phones || {} }); }
@@ -3737,23 +3774,23 @@ async function playStory() {
     setNight(false);   // early morning: the light map
     await hold(400);
     $("mapv").classList.remove("resetting");
-    caption(1, "<b>6 AM.</b> Seven outdoor workers check in. Each clip knows <b>their own</b> normal.");
+    caption(1, "<b>6 AM.</b> Three simulated crew members check in outdoors. Each clip knows <b>their own</b> normal.");
     await hold(4500);
-    caption(2, "<b>Rose</b>'s heart races. She hasn't moved.");
+    caption(2, "<b>Mae</b>'s heart races. She hasn't moved.");
     runDemo("rose_heart");
     await hold(4000);
-    await waitFor(() => { const r = person("B1"); return r.buzz && state.t - r.buzz.t < 90; }, 60000);
+    await waitFor(() => { const r = person("B3"); return r.buzz && state.t - r.buzz.t < 90; }, 60000);
     caption(3, "Her clip buzzes: <b>rest</b>.");
     await hold(3500);
-    await waitFor(() => person("B1").level === "danger", 60000);
+    await waitFor(() => person("B3").level === "danger", 60000);
     await hold(600);
-    const r = person("B1");
+    const r = person("B3");
     caption(4, `<b>${r.hr} BPM</b> vs her normal ${Math.round(r.hrExp)}. A fixed alarm waits for ${180 - r.age}.`);
     await hold(5500);
     caption(5, "She rests. No one has to come.");
     story.rest = true; for (const b of hub.badges.values()) b.restSev = null;   // start the clip's rest-and-recover now
     await hold(2500);
-    await waitFor(() => { const q = person("B1"); return q.level === "ok" && !q.stage; }, 15000);
+    await waitFor(() => { const q = person("B3"); return q.level === "ok" && !q.stage; }, 15000);
     await hold(600);
     caption(6, "Back to <b>normal</b> in seconds.");
     await hold(4000);
@@ -3899,6 +3936,7 @@ let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTime
   window.addEventListener("hashchange", () => { clipMode = location.hash === "#clip"; document.body.classList.toggle("clipmode", clipMode); pushClipPresence(); refresh(); });
   sim.boot(simT);
   seedOutdoorSimulation();
+  sim.startFakeRisk(simT);
   { const d = hub.badges.get("B5"); if (d) d.sun.outT = 100 * 60; const m = hub.badges.get("B3"); if (m) m.sun.outT = 35 * 60; }
   hub.log = []; hub.stats = { alerts: 0, help: [] };
   connectRoom();
