@@ -106,7 +106,6 @@ svg.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor;
 .mapv.drag { cursor: grabbing; }
 .world { position: absolute; left: 50%; top: 50%; transform-origin: 0 0; transition: transform 450ms cubic-bezier(.2, .7, .2, 1); }
 .mapv.drag .world, .mapv.drag .pin { transition: none !important; }
-.mapv.moving:not(.drag) .world { pointer-events: none; }
 .world > .sat { position: absolute; left: 0; top: 0; }
 .world > .trail, .world > .trail svg { position: absolute; left: 0; top: 0; pointer-events: none; display: block; max-width: none; }
 .log li.tap { cursor: pointer; border-radius: 6px; margin-left: -6px; padding-left: 6px; }
@@ -1139,9 +1138,10 @@ function bestStairs(ax, ay, bx, by) {
   for (const st of BUILDING.stairs) { const d = Math.hypot(st.x - ax, st.y - ay) + Math.hypot(bx - st.x, by - st.y); if (d < bd) { bd = d; best = st; } }
   return best;
 }
-function planTrip(floor, x0, y0, tf, tx, ty) {
+function planTrip(floor, x0, y0, tf, tx, ty, z = 0) {
   const P = []; let cf = floor || 1, cx = x0, cy = y0;
-  const toFloor = (f, nx, ny) => { if (f !== cf) { const st = bestStairs(cx, cy, nx, ny); P.push(["walk", cf, st.x, st.y], ["climb", f, st.x, st.y]); cf = f; cx = st.x; cy = st.y; } };
+  if (z && isInside(x0, y0)) { cf += Math.sign(z); P.push(["climb", cf, x0, y0]); }   // halfway up (or down) the stairs: finish this flight first
+  const toFloor = (f, nx, ny) => { if (f !== cf) { const st = bestStairs(cx, cy, nx, ny); if (Math.hypot(st.x - cx, st.y - cy) > 1e-6) P.push(["walk", cf, st.x, st.y]); P.push(["climb", f, st.x, st.y]); cf = f; cx = st.x; cy = st.y; } };
   const out = (fx, fy, gx, gy) => { for (const [wx, wy] of outPath(fx, fy, gx, gy)) P.push(["walk", 1, wx, wy]); };   // outdoors: around buildings and the pond
   const inNow = isInside(cx, cy), inT = isInside(tx, ty);
   tf = inT ? tf || 1 : 1;
@@ -1518,7 +1518,7 @@ class SimPerson {
     this.extra = 0; this.extraTarget = 0; this.airExtra = 0; this.airTarget = 0; this.lastScan = -99;
   }
   go(floor, x, y) {
-    this.path = planTrip(this.floor, this.x, this.y, floor, x, y);
+    this.path = planTrip(this.floor, this.x, this.y, floor, x, y, this.z);
   }
 }
 class Sim {
@@ -1636,7 +1636,7 @@ class Sim {
   home() {
     // the story's reset: responders are back at their posts at once, instead of walking there at high speed
     const P = this.people;
-    Object.assign(P.B4, { floor: 1, x: 70, y: 15, z: 0, path: [] });
+    Object.assign(P.B4, { floor: 1, x: 70, y: 15, z: 0, path: [], goal: null });
     for (const p of Object.values(P)) p.lastScan = -99;
   }
   recover(id) {
@@ -1653,13 +1653,13 @@ class Sim {
     else if (name === "dev_sun") { P.B5.sun = 92; const b = this.hub.badges.get("B5"); if (b) b.sun.hot = Math.max(b.sun.hot, 18 * 60); }   // clouds clear over the lot
     else if (name === "ana_dead") { P.B6.dead = true; P.B6.bat = 0; }   // battery runs out on floor 3
     else if (name === "dev_fall") { P.B5.path = []; P.B5.down = true; P.B5.g = 4.2; P.B5.extraTarget = 14; P.B5.snap = true; }   // slips on ice in the lot
-    else if (name === "walk") { const who = P[adminId] || P.B4, t = P[targetId] || P.B1; if (t !== who) who.go(t.floor, t.x + 1.5, t.y + 1); }
+    else if (name === "walk") { const who = P[adminId] || P.B4, t = P[targetId] || P.B1; if (t !== who) { who.go(t.floor, t.x + 1.5, t.y + 1); who.goal = t.id; } }
     else if (name === "reset") {
       // everything back to normal at once
       for (const p of Object.values(P)) { p.extraTarget = 0; p.airTarget = 0; p.extra = 0; p.airExtra = 0; p.hr = p.base; p.amb = null; p.path = []; p.down = false; p.dead = false; p.snap = false; p.fast = false; p.sun = null; }
       for (const b of this.hub.badges.values()) b.sun.hot = 0;
       if (P.B6.bat < 19) P.B6.bat = 19;
-      Object.assign(P.B4, { floor: 1, x: 70, y: 15, z: 0 });
+      Object.assign(P.B4, { floor: 1, x: 70, y: 15, z: 0, goal: null });
     }
   }
 }
@@ -2032,7 +2032,6 @@ function renderRail() {
 }
 
 /* ---------- map ---------- */
-let camMoveT = null;
 // the 3D view tilts the photo back; with the tilt at 0 the same transform is the flat map
 let map3d = store.get("beacon.map3d") !== "0";
 const TILT = 45, TILT_LOC = 60;
@@ -2068,7 +2067,6 @@ function camTransform() {
       break;
     }
   }
-  $("mapv").classList.add("moving"); clearTimeout(camMoveT); camMoveT = setTimeout(() => $("mapv").classList.remove("moving"), story ? 1500 : 500);
   $("world").style.transform = camStr(cam, vh);
   $("world").style.setProperty("--lab", `${(12 / cam.k).toFixed(2)}px`);
   $("mapv").classList.toggle("far", cam.k < 0.9);
@@ -2144,9 +2142,10 @@ function respNow() {
 function etaTo(p) {
   // the walk you're on, or the one you would take: legs, seconds, metres and the points to draw
   if (!p || p.x == null) return null;
-  const r = respNow(), b = p.id ? hub.badges.get(p.id) : null;
-  const enRoute = !!(b && b.helper === adminId && !b.arrived && (r.path.length || ETA.has(p.id)));
-  const legs = enRoute ? r.path : planTrip(r.floor, r.x, r.y, p.outdoor ? 1 : p.floor || 1, p.x, p.y);
+  const r = respNow(), b = p.id ? hub.badges.get(p.id) : null, w = sim.people[adminId];
+  const mine = !!(b && w && w.goal === p.id);   // the walk you're on is to this worker
+  const enRoute = mine && (b.helper === adminId ? !b.arrived && (r.path.length > 0 || ETA.has(p.id)) : !b.helper && r.path.length > 0);
+  const legs = enRoute ? r.path : planTrip(r.floor, r.x, r.y, p.outdoor ? 1 : p.floor || 1, p.x, p.y, r.z);
   return { ...tripStats(r.floor, r.x, r.y, r.z, legs), legs, enRoute };
 }
 const ETA = new Map();   // worker id -> the countdown, once you're on your way
@@ -2171,8 +2170,9 @@ function nearHtml(p) {
   const n = nearestHelper(p); if (!n) return "";
   return `<span class="near">${WALK_ICON}${mmss(n.secs)}</span>`;
 }
-function onWayText(p) {
+function onWayText(p, short) {
   if (!p.acked_by) return "";
+  if (short && !p.arrived && p.helper === adminId) return `${p.acked_by} is on the way`;
   if (p.arrived) return p.arriveT != null && p.alertT != null ? `${p.acked_by} reached ${p.first} in ${mmss(p.arriveT - p.alertT)}` : `${p.acked_by} is there`;
   if (p.helper === adminId) { const e = etaShown(p); return `${p.acked_by} is on the way · ${mmss(e && e.enRoute ? e.shown : 0)}`; }   // counts down to arrival
   return `${p.acked_by} is on the way` + (p.alertT != null ? ` · ${mmss(state.t - p.alertT)}` : "");
@@ -2452,12 +2452,13 @@ function renderLocate() {
       </div>` + (mini ? "" : `<div class="loc-view" id="lc-view"></div>`);
     const el = $("lc-view");
     locDom = { mode, id: p.id, mini, scene: mini ? null : mode === "in" ? buildScene(el, p) : buildFlat(el), ang: null, shape: "arrow", prog: null, secs: null };
+    if (window.ResizeObserver && locDom.scene) { const sc = locDom.scene; new ResizeObserver(() => { sc.sizeDirty = true; }).observe(el); }
   }
   paint($("lc-av"), p.level); $("lc-av").textContent = p.ini;
   const rn = respNow(), m = { ...(me() || {}), ...rn };
   const r = route(p, m);
   if (dest && r.then === "Outside") r.then = `To ${dest.name}`;
-  locDom.r = r; locDom.p = p;
+  locDom.r = r; locDom.p = p; if (locDom.scene) locDom.scene.sizeDirty = true;
   $("lc-then").textContent = r.then;
   setHtml($("lc-where"), `${ICON.pin}${esc(p.place)}`);
   setHtml($("lc-act"), "");
@@ -2491,14 +2492,14 @@ function paintLocate(now) {
   const p = L.p, r = L.r, rn = respNow(), reduce = REDUCE.matches;
   const you = GL.items.get(adminId) || { x: rn.x, y: rn.y, h: rn.h };
   const tg = dest ? { x: p.x, y: p.y, h: 0 } : GL.items.get(p.id) || { x: p.x, y: p.y, h: p.outdoor ? 0 : ((p.floor || 1) - 1) * FH };
-  const arrived = !dest && p.arrived && p.alertT != null;
+  const arrived = !dest && !!p.arrived;
   const here = r.here || (L.done && r.e && !r.e.enRoute && r.e.metres < 6);
   let bigTxt, subTxt = "", progress = 0;
   $("lc-aw").hidden = !!r.plain;
   if (r.plain) { bigTxt = p.place; L.secs = null; }
   else if (here || arrived) {
     // you're there: the clock stops on how long help took from the alert, and stays while you're with them
-    if (arrived && p.arriveT != null) L.done = mmss(p.arriveT - p.alertT);
+    if (arrived && p.arriveT != null && p.alertT != null) L.done = mmss(p.arriveT - p.alertT);
     bigTxt = "Here"; subTxt = L.done ? `help in ${L.done}` : ""; progress = 1; L.secs = null;
   } else {
     const e = r.e;
@@ -2522,7 +2523,7 @@ function paintLocate(now) {
         // point at the next turn of the route, not straight at the person
         arrowShape(L, "arrow");
         const pts = r.e.pts; let q = null;
-        for (let i = 1; i < pts.length; i++) if (Math.hypot(pts[i].x - you.x, pts[i].y - you.y) > 1.5) { q = pts[i]; break; }
+        for (let i = passed(pts, you); i < pts.length; i++) if (Math.hypot(pts[i].x - you.x, pts[i].y - you.y) > 1.5) { q = pts[i]; break; }
         q = q || tg;
         const dx = q.x - you.x, dy = q.y - you.y;
         if (!L.scene && GL.M) {   // on the 3D map: point the way the route runs on screen
@@ -2535,11 +2536,22 @@ function paintLocate(now) {
       svg.style.transform = `rotate(${L.ang.toFixed(1)}deg)`;
     }
   }
-  const way = !r.plain && !here && !arrived && r.e ? [{ x: you.x, y: you.y, h: you.h }, ...r.e.pts.slice(1)] : null;
+  const way = !r.plain && !here && !arrived && r.e ? [{ x: you.x, y: you.y, h: you.h }, ...r.e.pts.slice(passed(r.e.pts, you))] : null;
+  if (way) { const e = way[way.length - 1]; if (Math.hypot(e.x - tg.x, e.y - tg.y) > 1 && Math.abs((e.h || 0) - (tg.h || 0)) < 1) way.push({ x: tg.x, y: tg.y, h: tg.h }); }   // the line reaches their marker
   if (!L.scene) { L.way = way; L.you = you; L.tg = tg; }
   else if (L.mode === "in") paintScene(L.scene, you, tg, way); else paintFlat(L.scene, you, tg, way, dt);
 }
 
+function passed(pts, you) {
+  // the first route point still ahead of the marker (between updates the marker can already be past a corner)
+  let i = 1;
+  while (i < pts.length - 1) {
+    const a = pts[i - 1], c = pts[i], vx = c.x - a.x, vy = c.y - a.y, vh = c.h - a.h, L2 = vx * vx + vy * vy + vh * vh;
+    if (L2 > 1e-9 && ((you.x - a.x) * vx + (you.y - a.y) * vy + (you.h - a.h) * vh) / L2 < 1) break;
+    i++;
+  }
+  return i;
+}
 function screenAngle(dx, dy) {
   const a = (TURN_Z * Math.PI) / 180, vx = dx, vy = -dy;
   const x1 = vx * Math.cos(a) - vy * Math.sin(a), y1 = (vx * Math.sin(a) + vy * Math.cos(a)) * Math.cos((TILT_X * Math.PI) / 180);
@@ -2553,7 +2565,7 @@ function buildScene(el, p) {
   const topPct = 50 + Math.min(16, (((floors.length - 1) * gap * 0.82) / ch) * 50);
   const scene = document.createElement("div"); scene.className = "scene flat"; scene.style.top = `${topPct}%`;
   const ground = document.createElement("div"); ground.className = "ground";
-  const gx0 = Math.max(WORLD.x0, 45 - 460), gx1 = Math.min(WORLD.x1, 45 + 330), gy0 = Math.max(WORLD.y0, 25 - 270), gy1 = Math.min(WORLD.y1, 25 + 460);   // more to the far side, which the tilt shows
+  const gx0 = Math.max(WORLD.x0, 45 - 460), gx1 = Math.min(WORLD.x1, 45 + 600), gy0 = Math.max(WORLD.y0, 25 - 270), gy1 = Math.min(WORLD.y1, 25 + 460);   // more to the far side, which the tilt shows
   ground.style.cssText = `width:${(gx1 - gx0) * ppm}px;height:${(gy1 - gy0) * ppm}px;left:${(gx0 - 45) * ppm}px;top:${(25 - gy1) * ppm}px;overflow:hidden`;
   ground.innerHTML = `<img alt="" src="${MAP_URL}" style="inset:auto;left:${(WORLD.x0 - gx0) * ppm}px;top:${(gy1 - WORLD.y1) * ppm}px;width:${(WORLD.x1 - WORLD.x0) * ppm}px;height:${(WORLD.y1 - WORLD.y0) * ppm}px">`;
   scene.appendChild(ground);
@@ -2614,7 +2626,7 @@ function mark3(s, mk, who) {
   mk.head.hidden = false; mk.head.style.left = `${pt.left.toFixed(1)}px`; mk.head.style.top = `${pt.top.toFixed(1)}px`;
 }
 function paintScene(s, you, tg, way) {
-  if (s.el.clientWidth !== s.cw || s.el.clientHeight !== s.ch) { s.cw = s.el.clientWidth; s.ch = s.el.clientHeight; s.sy = (s.ch * s.topPct) / 100; placeNums(s); }
+  if (s.sizeDirty || s.cw == null) { s.sizeDirty = false; if (s.el.clientWidth !== s.cw || s.el.clientHeight !== s.ch) { s.cw = s.el.clientWidth; s.ch = s.el.clientHeight; s.sy = (s.ch * s.topPct) / 100; placeNums(s); } }
   mark3(s, s.you, you); mark3(s, s.pin, tg);
   if (!way) { s.rWalk.setAttribute("points", ""); s.rHalo.setAttribute("points", ""); s.rClimb.setAttribute("d", ""); return; }
   const P = way.map((q) => project3(s, q.x, q.y, isInside(q.x, q.y) ? q.h : null));
@@ -2640,7 +2652,9 @@ function damp(c, k, target, T, dt) {
 }
 function paintFlat(s, you, tg, way, dt) {
   // the outdoor view: the camera glides to keep you, them and the route in frame
-  const el = s.el, cw = el.clientWidth, ch = el.clientHeight;
+  const el = s.el;
+  if (s.sizeDirty || s.cw == null) { s.sizeDirty = false; s.cw = el.clientWidth; s.ch = el.clientHeight; }
+  const cw = s.cw, ch = s.ch;
   const pts = [tg, you].concat(way ? way.slice(1) : []).filter((q) => q && q.x != null);
   if (!pts.length) return;
   const xs = pts.map((q) => q.x), ys = pts.map((q) => q.y), cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2;
@@ -2690,7 +2704,8 @@ function glideSet(id, x, y, h, exact, fut, still) {
   g.lx = x; g.ly = y; g.th = h; g.exact = exact;
   if (exact) {
     // the walk went as foreseen, unless a new one began in between: then it carries on from where the marker is
-    const pr = glideAt(g.all, simT), miss = Math.hypot(pr.x - x, pr.y - y) + Math.abs(pr.h - h) > 0.05;
+    const pr = glideAt(g.all, simT), off = Math.hypot(pr.x - x, pr.y - y) + Math.abs(pr.h - h), miss = off > 0.05;
+    if (off > 2 * WALK * stepsPer + 3) { GL.items.delete(id); return glideSet(id, x, y, h, exact, fut, still); }
     let from = 0;
     if (miss && g.ds != null) {
       // start the new walk from the marker, at about the moment it began, so its first steps run at walking pace
@@ -2728,16 +2743,19 @@ function glideStep(now) {
   const a = 1 - Math.exp(-dt / 0.45), e = 1 - Math.exp(-dt / 0.15);
   const tgt = simT + clamp((now - lastTickAt) / GL.tickMsRaw, 0, 1.5) * stepsPer;   // the simulation's clock right now
   for (const g of GL.items.values()) {
+    if (REDUCE.matches) { if (g.exact) { const q = glideAt(g.all, simT); g.x = q.x; g.y = q.y; g.h = q.h; } else { g.x = g.tx; g.y = g.ty; g.h = g.th; } continue; }
     if (g.exact) {
       // you're drawn where you are now, not where the last update left you: between updates the marker follows the walk
       // ahead. Its clock only moves forward, and eases its speed instead of jumping when time speeds up or an update is late.
       const B = g.all, end = B[B.length - 1].t;
-      if (g.ds == null || g.ds < B[0].t || tgt - g.ds > 8 * stepsPer) { g.ds = clamp(tgt, B[0].t, end); g.vr = rate; g.k = 1; g.v = rate; }
+      let j = B.length - 1; while (j > 0 && B[j - 1].x === B[j].x && B[j - 1].y === B[j].y && B[j - 1].h === B[j].h) j--;
+      const stopAhead = () => j < B.length - 1 && B[j].t > g.ds;
+      // start, or catch up after the tab was hidden (more than 3 s behind); not while braking into a stop, which is a planned lag
+      if (g.ds == null || g.ds < B[0].t || (!stopAhead() && (tgt - g.ds) / Math.max(1, rate) > 3)) { g.ds = clamp(tgt, B[0].t, end); g.vr = rate; g.k = 1; g.v = rate; }
       g.vr += (rate - g.vr) * e;
       g.k += (clamp(1 + (tgt - g.ds) / Math.max(1, rate) / 0.5, 0, 3) - g.k) * (1 - Math.exp(-dt / 0.3));   // softer: no wobble when time speeds up
-      let j = B.length - 1; while (j > 0 && B[j - 1].x === B[j].x && B[j - 1].y === B[j].y && B[j - 1].h === B[j].h) j--;
       let v = g.vr * g.k;
-      if (j < B.length - 1 && B[j].t > g.ds) v = Math.min(Math.max(v, g.v), Math.max(0.5, (B[j].t - g.ds) / 0.3));   // slow into a stop
+      if (stopAhead()) v = Math.min(Math.max(v, g.v), Math.max(0.5, (B[j].t - g.ds) / 0.3));   // slow into a stop
       g.v = v; g.ds = Math.min(end, g.ds + dt * v);
       const q = glideAt(B, g.ds); g.x = q.x; g.y = q.y; g.h = q.h;
     } else { g.x += (g.tx - g.x) * a; g.y += (g.ty - g.y) * a; g.h += (g.th - g.h) * a; }
@@ -2885,10 +2903,19 @@ function fastWalk(id, done) {
   rampRate(Math.max(1, Math.round(walkSecs(id) / (story ? 8 : 3))));
 }
 function refresh() { state = hub.snapshot(simT); renderAll(); }
+function releaseOthers(id, helperId) {
+  // heading somewhere new: any other worker you were on your way to is waiting for help again
+  const who = person(helperId), to = hub.badges.get(id);
+  for (const o of hub.badges.values()) if (o.id !== id && o.helper === helperId && !o.arrived && !o.recovery) {
+    o.helper = null; o.ackedBy = null; ETA.delete(o.id);
+    if (who && to) hub.logEv(simT, `${who.name} went to ${to.person.name.split(" ")[0]} instead`, "watch", o.id);
+  }
+}
 function goHelp(id, helperId) {
   // this admin (or the one sent) heads over; everyone sees who's coming, and the walk plays sped up
   const b = hub.badges.get(id), m = helperId ? person(helperId) : me();
   if (!b || !m) return;
+  releaseOthers(id, m.id);
   b.ackedBy = m.name; b.helper = m.id; b.arrived = false;
   hub.logEv(simT, `${m.name} is on the way to ${b.person.name.split(" ")[0]}`, "go", id);
   ETA.delete(id);   // a fresh countdown for this walk
@@ -2922,6 +2949,7 @@ function runDemo(name) {
   const top = workers().find((w) => w.level === "danger");
   const pick = { rose_heart: "B1", joe_hot: "B2", mae_cold: "B3", dev_fall: "B5", ana_dead: "B6", dev_sun: "B5" }[name];
   const walkTo = sel || (top && top.id) || "B1";
+  if (name === "walk") { releaseOthers(walkTo, adminId); ETA.delete(walkTo); }   // a fresh countdown for this walk
   sim.action(name, walkTo, adminId);
   if (pick) {
     if (locating) closeLocate();
@@ -2941,7 +2969,8 @@ function runDemo(name) {
       for (const m of [b.heart, b.air]) { m.sUp = 0; m.sDn = 0; m.guard = 0; m.alerting = false; }
       if (b.person.admin) b.x = null;   // supervisors are back at their posts
     }
-    sel = "";
+    sel = ""; ETA.clear();
+    GL.items.delete(adminId); { const r = respNow(); glideSet(adminId, r.x, r.y, r.h, true, AHEAD()); }   // your marker snaps home instead of sliding
   }
   renderAll();
 }
