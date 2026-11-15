@@ -827,6 +827,15 @@ body[data-beat="danger"] .legend > span:nth-child(3) .dot { animation: beat-pop 
   @keyframes r3-glow { 50% { opacity: .55; } }
 }
 </style>
+<style id="map3d">
+/* the 3D map: the photo tilts back (on .world), buildings are drawn on #bcanvas, pins sit upright in #pins above both */
+.bcanvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+.pins { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+.pins .pin { pointer-events: auto; }
+.mapv.td .blab { display: none; }   /* names are drawn on the roofs instead */
+.mapv.td .bld, .mapv.td .bld.ilc, .mapv.td .bld[data-bld]:hover, .mapv.td .bld.picked { fill: transparent; stroke: none; }
+.zoom .t3 { font-family: var(--display); font-weight: 700; font-size: 13px; letter-spacing: .02em; }
+</style>
 </head>
 <body>
 
@@ -862,6 +871,8 @@ body[data-beat="danger"] .legend > span:nth-child(3) .dot { animation: beat-pop 
     <aside class="rail" id="rail" aria-label="Workers"></aside>
     <div class="mapv" id="mapv">
       <div class="world" id="world"></div>
+      <canvas class="bcanvas" id="bcanvas" aria-hidden="true"></canvas>
+      <div class="pins" id="pins"></div>
       <div class="topstack" data-nodrag>
         <div class="banner" id="banner" role="status" hidden>
           <span class="dot" style="width:24px;height:24px;background:var(--danger)"><svg viewBox="0 0 24 24" aria-hidden="true" style="stroke:var(--white);width:14px;height:14px"><path d="M18 6L6 18M6 6l12 12"/></svg></span>
@@ -879,6 +890,7 @@ body[data-beat="danger"] .legend > span:nth-child(3) .dot { animation: beat-pop 
       <div class="zoom" data-nodrag>
         <button id="z-in" aria-label="Zoom in"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
         <button id="z-out" aria-label="Zoom out"><svg class="i" viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+        <button id="z-3d" aria-label="3D view" aria-pressed="true"><span class="t3">3D</span></button>
         <button id="z-night" aria-label="Night shift" aria-pressed="false"><svg class="i" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg></button>
         <button id="z-fit" aria-label="Show everyone"><svg class="i" viewBox="0 0 24 24"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg></button>
       </div>
@@ -1654,6 +1666,124 @@ function worldMap() {
   return d;
 }
 
+/* ----- 3D buildings: each campus outline rises to its height, with its own roof cut from the photo ----- */
+// heights in meters; well-known buildings by name, the rest by kind. Estimates, not surveyed.
+const BH = {
+  "W.E.B. Du Bois Library": 87, "Lederle Graduate Research Tower": 60, "Murray D. Lincoln Campus Center": 42, "Thompson Hall": 30, "Tobin Hall": 30,
+  "Conte National Polymer Research Center": 30, "Mullins Center": 28, "John W. Olver Design Building": 26, "Life Science Laboratories": 22,
+  "Integrated Sciences Building": 22, "Lederle Graduate Research Center": 22, "Old Chapel": 22, "Integrative Learning Center": 20, "Physical Sciences Building": 20,
+  "Isenberg School of Management": 18, "Herter Hall": 18, "Goessmann Laboratory": 18, "Hasbrouck Laboratory": 18, "Morrill IV North": 18, "Morrill IV South": 18,
+  "Recreation Center": 16, "Machmer Hall": 16, "Bartlett Hall": 16, "Whitmore Administration Building": 16, "Curry Hicks Cage": 16,
+  "Randolph W. Bromery Center for the Arts": 16, "Student Union": 14, "Boyden Gym": 14, "Campus Center Parking Garage": 14, "Franklin Dining Commons": 10,
+};
+const B3 = CAMPUS.map(([name, c, p]) => {
+  const pts = []; for (let i = 0; i < p.length; i += 2) pts.push([WX(p[i]), WY(p[i + 1])]);
+  if (pts.length > 3 && pts[0][0] === pts[pts.length - 1][0] && pts[0][1] === pts[pts.length - 1][1]) pts.pop();
+  const sky = /Skyway/.test(name);
+  const h = (BH[name] ?? (sky ? 4 : /Greenhouse/.test(name) ? 5 : name ? 13 : 6)) * PPM, z0 = sky ? 6 * PPM : 0;
+  const xs = pts.map((q) => q[0]), ys = pts.map((q) => q[1]);
+  return { name, pts, h, z0, ilc: name === "Integrative Learning Center", lx: WX(c[0]), ly: WY(c[1]),
+    cx: xs.reduce((a, b) => a + b, 0) / xs.length, cy: ys.reduce((a, b) => a + b, 0) / ys.length,
+    bb: [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)] };
+});
+const BC = { key: "", hits: [] };
+function drawBuildings() {
+  const v = $("mapv"), cv = $("bcanvas"), vw = v.clientWidth, vh = v.clientHeight, dpr = Math.min(2, window.devicePixelRatio || 1);
+  const night = v.classList.contains("night"), imgs = v.querySelectorAll(".sat img"), main = imgs[0], hi = imgs[1];
+  const ready = (im) => im && im.complete && im.naturalWidth > 0;
+  const key = [GL.tr, vw, vh, map3d, night, picked ? picked.dataset.bld : "", ready(main), ready(hi), cam.k < 0.9].join("|");
+  if (key === BC.key) return;   // nothing moved: keep the last drawing
+  BC.key = key;
+  if (cv.width !== Math.round(vw * dpr) || cv.height !== Math.round(vh * dpr)) { cv.width = Math.round(vw * dpr); cv.height = Math.round(vh * dpr); }
+  const ctx = cv.getContext("2d");
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
+  BC.hits = [];
+  if (!map3d || clipMode || !GL.M || vw === 0) return;
+  const M = GL.M, ox = GL.ox, oy = GL.oy;
+  const P = (x, y, z) => { const q = M.transformPoint(new DOMPoint(x, y, z, 1)); return [ox + q.x / q.w, oy + q.y / q.w, q.w]; };
+  // nearest last, so nearer buildings cover the ones behind them
+  const list = [];
+  for (const b of B3) {
+    const c = P(b.cx, b.cy, b.z0), r = (b.bb[2] - b.bb[0] + b.bb[3] - b.bb[1] + b.h) * cam.k;
+    if (c[2] <= 0 || c[0] < -r || c[0] > vw + r || c[1] < -r || c[1] > vh + r * 2) continue;
+    list.push([c[2], b]);
+  }
+  list.sort((a, b) => b[0] - a[0]);
+  const lx = 0.55, ly = 0.83;   // light from the south-east
+  const pick = picked ? picked.dataset.bld : "";
+  for (const [, b] of list) {
+    const n = b.pts.length, base = b.pts.map((q) => P(q[0], q[1], b.z0)), top = b.pts.map((q) => P(q[0], q[1], b.z0 + b.h));
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    // walls, far ones first
+    const walls = [];
+    for (let i = 0; i < n; i++) { const j = (i + 1) % n; walls.push([i, j, base[i][2] + base[j][2]]); }
+    walls.sort((a, c) => c[2] - a[2]);
+    for (const [i, j] of walls) {
+      const dx = b.pts[j][0] - b.pts[i][0], dy = b.pts[j][1] - b.pts[i][1], L = Math.hypot(dx, dy) || 1;
+      const s = 0.55 + 0.45 * Math.abs((dy / L) * lx - (dx / L) * ly);
+      const g = night ? [26 + 30 * s, 26 + 26 * s, 30 + 20 * s] : [120 + 100 * s, 118 + 98 * s, 112 + 94 * s];
+      ctx.fillStyle = `rgb(${g[0] | 0},${g[1] | 0},${g[2] | 0})`;
+      ctx.beginPath(); ctx.moveTo(base[i][0], base[i][1]); ctx.lineTo(base[j][0], base[j][1]); ctx.lineTo(top[j][0], top[j][1]); ctx.lineTo(top[i][0], top[i][1]); ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = night ? "rgba(0,0,0,.35)" : "rgba(40,38,34,.18)"; ctx.lineWidth = 0.6; ctx.stroke();
+    }
+    // the roof: the photo of this building's own top, lifted up
+    ctx.beginPath(); top.forEach((q, i) => (i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]))); ctx.closePath();
+    ctx.save(); ctx.clip();
+    const zt = b.z0 + b.h, o = P(b.cx, b.cy, zt), ax = P(b.cx + 100, b.cy, zt), ay = P(b.cx, b.cy + 100, zt);
+    const a = (ax[0] - o[0]) / 100, bb = (ax[1] - o[1]) / 100, c2 = (ay[0] - o[0]) / 100, d = (ay[1] - o[1]) / 100;
+    ctx.setTransform(dpr * a, dpr * bb, dpr * c2, dpr * d, dpr * (o[0] - a * b.cx - c2 * b.cy), dpr * (o[1] - bb * b.cx - d * b.cy));
+    if (night) ctx.filter = "brightness(.38) saturate(.5) contrast(1.15)";
+    else ctx.filter = "saturate(.75) brightness(.92)";
+    if (ready(main)) ctx.drawImage(main, 0, 0, WX(WORLD.x1), WY(WORLD.y0));
+    else { ctx.fillStyle = night ? "#2a2a2e" : "#9a978f"; ctx.fillRect(b.bb[0], b.bb[1], b.bb[2] - b.bb[0], b.bb[3] - b.bb[1]); }
+    const hx0 = WX(HI.x0), hy0 = WY(HI.y1), hw = (HI.x1 - HI.x0) * PPM, hh = (HI.y1 - HI.y0) * PPM;
+    if (ready(hi) && b.bb[2] > hx0 && b.bb[0] < hx0 + hw && b.bb[3] > hy0 && b.bb[1] < hy0 + hh) ctx.drawImage(hi, hx0, hy0, hw, hh);
+    ctx.filter = "none";
+    ctx.restore();
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (b.ilc || b.name === pick) {
+      ctx.fillStyle = b.name === pick ? "rgba(255,255,255,.22)" : night ? "rgba(255,196,90,.22)" : "rgba(37,99,235,.18)";
+      ctx.fill();
+      ctx.strokeStyle = night && b.ilc && b.name !== pick ? "rgba(255,214,140,.95)" : "#fff"; ctx.lineWidth = 2; ctx.stroke();
+    } else { ctx.strokeStyle = night ? "rgba(255,214,140,.25)" : "rgba(255,255,255,.35)"; ctx.lineWidth = 1; ctx.stroke(); }
+    BC.hits.push({ b, base, top });
+  }
+  // names on top of everything, on the roofs
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.lineJoin = "round";
+  for (const { b } of BC.hits) {
+    if (!b.name || (cam.k < 0.9 && !b.ilc)) continue;
+    const q = P(b.lx, b.ly, b.z0 + b.h);
+    ctx.font = `${b.ilc ? 700 : 600} 12px Inter, system-ui, sans-serif`;
+    ctx.strokeStyle = "rgba(10,14,12,.8)"; ctx.lineWidth = 3; ctx.fillStyle = night ? "#FFE9C2" : "#fff";
+    const t = b.name.replace(/ (Building|Laboratory)$/, "");
+    ctx.strokeText(t, q[0], q[1]); ctx.fillText(t, q[0], q[1]);
+  }
+}
+function inPoly(pts, x, y) {
+  let on = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const [xi, yi] = pts[i], [xj, yj] = pts[j];
+    if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) on = !on;
+  }
+  return on;
+}
+function buildingAt(x, y) {
+  // the nearest raised building under a spot on the map (x, y in map pixels)
+  for (let k = BC.hits.length - 1; k >= 0; k--) {
+    const { b, base, top } = BC.hits[k], n = top.length;
+    if (inPoly(top, x, y)) return b;
+    for (let i = 0; i < n; i++) { const j = (i + 1) % n; if (inPoly([base[i], base[j], top[j], top[i]], x, y)) return b; }
+  }
+  return null;
+}
+function setMap3d(on) {
+  map3d = on; store.set("beacon.map3d", on ? "1" : "0");
+  $("mapv").classList.toggle("td", on); $("z-3d").setAttribute("aria-pressed", String(on));
+  hideBuilding(); camTransform(); renderPins();
+}
+
 /* ================= the app ================= */
 const LOOK = {
   danger: { fill: "var(--danger)", ink: "var(--danger-ink)", card: "var(--danger-card)", line: "var(--danger-line)", icon: "M18 6L6 18M6 6l12 12" },
@@ -1817,17 +1947,42 @@ function renderRail() {
 
 /* ---------- map ---------- */
 let camMoveT = null;
+// the 3D view tilts the photo back; with the tilt at 0 the same transform is the flat map
+let map3d = store.get("beacon.map3d") !== "0";
+const TILT = 45;
+const persp = (vh) => Math.max(900, vh * 2.5);
+function camStr(c, vh) {
+  return `perspective(${persp(vh).toFixed(0)}px) rotateX(${map3d ? TILT : 0}deg) scale3d(${c.k.toFixed(4)}, ${c.k.toFixed(4)}, ${c.k.toFixed(4)}) translate(${(-c.cx).toFixed(1)}px, ${(-c.cy).toFixed(1)}px)`;
+}
+function groundAt(M, sx, sy) {
+  // the point on the ground under a spot on screen (both relative to the middle of the map), or null past the horizon
+  const a1 = M.m11 - sx * M.m14, b1 = M.m21 - sx * M.m24, c1 = sx * M.m44 - M.m41;
+  const a2 = M.m12 - sy * M.m14, b2 = M.m22 - sy * M.m24, c2 = sy * M.m44 - M.m42;
+  const det = a1 * b2 - a2 * b1; if (Math.abs(det) < 1e-9) return null;
+  const x = (c1 * b2 - c2 * b1) / det, y = (a1 * c2 - a2 * c1) / det;
+  return M.m14 * x + M.m24 * y + M.m44 > 0 ? [x, y] : null;
+}
 function camTransform() {
-  // never show past the edge of the map: the view can't zoom out further than the photo fills the pane, and can't pan beyond its edges
+  // never show past the edge of the map: the view can't zoom out further than the photo fills the pane, and can't pan beyond its edges.
+  // Tilted, the pane sees a wedge of ground, so check where each of its corners lands.
   const v = $("mapv"), vw = v.clientWidth, vh = v.clientHeight;
   if (vw > 0 && vh > 0) {
     const W = WX(WORLD.x1), H = WY(WORLD.y0);
     cam.k = Math.max(cam.k, vw / W, vh / H);
-    const hx = vw / (2 * cam.k), hy = vh / (2 * cam.k);
-    cam.cx = clamp(cam.cx, hx, W - hx); cam.cy = clamp(cam.cy, hy, H - hy);
+    for (let i = 0; i < 80; i++) {
+      const M = new DOMMatrix(camStr(cam, vh));
+      const cs = [[-vw / 2, -vh / 2], [vw / 2, -vh / 2], [vw / 2, vh / 2], [-vw / 2, vh / 2]].map(([x, y]) => groundAt(M, x, y));
+      if (cs.some((q) => !q)) { cam.k *= 1.04; continue; }
+      const xs = cs.map((q) => q[0]), ys = cs.map((q) => q[1]);
+      const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+      if (x1 - x0 > W || y1 - y0 > H) { cam.k *= 1.04; continue; }
+      cam.cx += x0 < 0 ? -x0 : x1 > W ? W - x1 : 0;
+      cam.cy += y0 < 0 ? -y0 : y1 > H ? H - y1 : 0;
+      break;
+    }
   }
   $("mapv").classList.add("moving"); clearTimeout(camMoveT); camMoveT = setTimeout(() => $("mapv").classList.remove("moving"), story ? 1500 : 500);
-  $("world").style.transform = `scale(${cam.k.toFixed(4)}) translate(${(-cam.cx).toFixed(1)}px, ${(-cam.cy).toFixed(1)}px)`;
+  $("world").style.transform = camStr(cam, vh);
   $("world").style.setProperty("--lab", `${(12 / cam.k).toFixed(2)}px`);
   $("mapv").classList.toggle("far", cam.k < 0.9);
 }
@@ -1866,18 +2021,18 @@ function drawTrail(box) {
   setHtml(box, `<svg width="${W}" height="${Hh}" viewBox="0 0 ${W} ${Hh}" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity=".55" vector-effect="non-scaling-stroke"/><polyline points="${pts}" fill="none" stroke="var(--you)" stroke-width="3" stroke-dasharray="1 7" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>${replay && replay.id === p.id ? `<circle cx="${WX(last[7])}" cy="${WY(last[8])}" r="10" fill="none" stroke="var(--you)" stroke-width="3" vector-effect="non-scaling-stroke"/>` : ""}</svg>`);
 }
 function renderPins() {
-  const w = $("world");
-  sync(w, [{ id: "__map" }, { id: "__trail" }, ...state.people.filter((p) => p.x !== null || p.admin)], (p) => {
+  // the photo and the replay trail lie on the (tilted) ground; the pins stand upright in their own layer on top
+  sync($("world"), [{ id: "__map" }, { id: "__trail" }], (p) => {
     if (p.id === "__map") return worldMap();
-    if (p.id === "__trail") { const d = document.createElement("div"); d.className = "trail"; return d; }
+    const d = document.createElement("div"); d.className = "trail"; return d;
+  }, (b, p) => { if (p.id === "__trail") drawTrail(b); });
+  sync($("pins"), state.people.filter((p) => p.x !== null || p.admin), (p) => {
     const b = document.createElement("button");
     b.className = "pin" + (p.admin ? " you" : "");
     if (!p.admin) b.dataset.sel = p.id; else b.tabIndex = -1;
     b.innerHTML = `<span class="pulse" hidden></span><span class="ini"></span><span class="fl" hidden></span><span class="tag" hidden></span>`;
     return b;
   }, (b, p) => {
-    if (p.id === "__map") return;
-    if (p.id === "__trail") return drawTrail(b);
     glideEnsure(p); paintPin(b);
     b.style.zIndex = p.admin ? (p.id === adminId ? 1 : 0) : p.id === sel ? 4 : p.level === "danger" ? 3 : 2;
     b.querySelector(".ini").textContent = p.admin && p.id === adminId ? "You" : p.ini;
@@ -2401,8 +2556,10 @@ function glideStep(now) {
 }
 function paintPin(el) {
   const g = GL.items.get(el.dataset.key); if (!g) return;
-  const l = WX(g.x), t = WY(g.y), k = GL.wk || cam.k;
-  if (el._k !== k) { el._k = k; el.style.transform = `translate(-50%, -50%) scale(${(1 / k).toFixed(4)})`; }
+  // where the ground spot lands on screen this frame, mid camera move included
+  if (!GL.M) mapFrame();
+  const q = GL.M.transformPoint(new DOMPoint(WX(g.x), WY(g.y), 0, 1)), l = GL.ox + q.x / q.w, t = GL.oy + q.y / q.w;
+  if (el._k !== 1) { el._k = 1; el.style.transform = "translate(-50%, -50%)"; }
   if (el._l === l && el._t === t) return;
   el._l = l; el._t = t; el.style.left = `${l.toFixed(1)}px`; el.style.top = `${t.toFixed(1)}px`;
 }
@@ -2411,7 +2568,19 @@ function worldScale() {
   const m = /matrix\(([^,]+),\s*([^,]+)/.exec(getComputedStyle($("world")).transform || "");
   return m ? Math.hypot(+m[1], +m[2]) : cam.k;
 }
-function paintPins() { GL.wk = worldScale(); for (const el of $("world").children) if (el.classList.contains("pin")) paintPin(el); }
+function mapFrame() {
+  // the map's camera as it is this frame (read back from the page, so it follows the eased camera moves)
+  const v = $("mapv"), sz = `${v.clientWidth}x${v.clientHeight}`;
+  if (GL.sz !== sz && v.clientWidth > 0) { GL.sz = sz; camTransform(); }   // the pane changed size: re-fit the camera (perspective and edges)
+  const tr = getComputedStyle($("world")).transform;
+  GL.tr = tr; GL.M = tr && tr !== "none" ? new DOMMatrix(tr) : new DOMMatrix();
+  GL.ox = v.clientWidth / 2; GL.oy = v.clientHeight / 2;
+}
+function paintPins() {
+  mapFrame(); GL.wk = cam.k;
+  for (const el of $("pins").children) paintPin(el);
+  drawBuildings();
+}
 
 /* ================= run ================= */
 const hub = new Hub(), sim = new Sim(hub);
@@ -2952,6 +3121,7 @@ function setNight(on) { night = on; $("mapv").classList.toggle("night", on); doc
 $("z-night").onclick = () => setNight(!night);
 $("z-out").onclick = () => { hideBuilding(); zoomBy(1 / 1.35); };
 $("z-fit").onclick = () => { sel = ""; fitAll(); renderAll(); };
+$("z-3d").onclick = () => setMap3d(!map3d);
 const mapv = $("mapv");
 let dragMoved = 0, picked = null;
 function showBuilding(poly, e) {
@@ -2966,6 +3136,11 @@ function hideBuilding() { $("bcard").hidden = true; if (picked) { picked.classLi
 mapv.addEventListener("click", (e) => {
   if (dragMoved > 6 || e.target.closest("button, a, [data-nodrag]")) return;
   // the map captures the pointer while dragging, so look under the tap for the building
+  // in 3D the raised buildings are drawn, not elements, so ask the drawing first
+  if (map3d) {
+    const r = mapv.getBoundingClientRect(), b = buildingAt(e.clientX - r.left, e.clientY - r.top);
+    if (b) { const poly = b.name && [...document.querySelectorAll(".bld[data-bld]")].find((el) => el.dataset.bld === b.name); if (poly) showBuilding(poly, e); else hideBuilding(); return; }
+  }
   const under = document.elementFromPoint(e.clientX, e.clientY), poly = under && under.closest("[data-bld]");
   if (poly) showBuilding(poly, e); else hideBuilding();
 });
@@ -2981,7 +3156,7 @@ mapv.addEventListener("pointermove", (e) => {
   dragMoved = Math.max(dragMoved, Math.hypot(e.clientX - drag.px, e.clientY - drag.py));
   if (dragMoved > 6) hideBuilding();
   cam.cx = clamp(drag.cx - (e.clientX - drag.px) / cam.k, 0, WX(WORLD.x1));
-  cam.cy = clamp(drag.cy - (e.clientY - drag.py) / cam.k, 0, WY(WORLD.y0));
+  cam.cy = clamp(drag.cy - (e.clientY - drag.py) / (cam.k * (map3d ? Math.cos((TILT * Math.PI) / 180) : 1)), 0, WY(WORLD.y0));   // tilted, the ground runs away faster
   camTransform();
 });
 const endDrag = () => { if (!drag) return; drag = null; mapv.classList.remove("drag"); };
@@ -2993,6 +3168,7 @@ let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTime
   if (isPhone()) railHidden = false;
   clipMode = location.hash === "#clip";
   document.body.classList.toggle("clipmode", clipMode);
+  $("mapv").classList.toggle("td", map3d); $("z-3d").setAttribute("aria-pressed", String(map3d));
   window.addEventListener("hashchange", () => { clipMode = location.hash === "#clip"; document.body.classList.toggle("clipmode", clipMode); pushClipPresence(); refresh(); });
   sim.boot(simT);
   { const d = hub.badges.get("B5"); if (d) d.sun.outT = 100 * 60; const m = hub.badges.get("B3"); if (m) m.sun.outT = 35 * 60; }

@@ -32,6 +32,7 @@ CSS is four `<style>` blocks. Later blocks override earlier ones, so make visual
 2. `#theme`: the current look. Palette variables (off-white `#F6F5F0`, frame `#E9E7DF`, ink `#15161A`, green `#14966E`, amber `#E0A21E`, red `#E2472E`; Urbanist for display, Inter for text), Phone View, the phone-cutout Worker's view, the header beat cycle, the shake keyframes.
 3. `#motion`: small-scale motion (press, color fades, enter and leave, recovery check mark), all inside `prefers-reduced-motion: no-preference`.
 4. `#locate2`: the Locate screen's time-to-reach ring and route lines.
+5. `#map3d`: the 3D map (`#bcanvas` building layer, `#pins` overlay, the 3D button).
 
 JS is one `<script>`. Sections are marked with `/* ===== name ===== */` and `/* ----- name ----- */` comments; grep for those. In order:
 
@@ -63,6 +64,7 @@ Nick asked for each of these. Don't undo one as a side effect of other work.
 - **Status change**: when a worker becomes Questionable or In danger, their card and the matching counter shake (`shake()`), harder for danger.
 - **Phone View** (`#phone-btn`, `body.phone`): wraps the app in a phone outline on black. Every `@media (max-width: 760px)` rule is duplicated under `body.phone`, so change both together. `isPhone()` covers both cases. Header buttons stay on one row, and Worker's view fills the phone.
 - **Default view**: Worker's view appears as a phone cutout over the right side of the map.
+- **3D map** (on by default, `#z-3d` toggles, saved in localStorage `beacon.map3d`): `.world` (photo, outlines, replay trail) is tilted with `perspective() rotateX(TILT)`; with the tilt at 0 the same transform is the flat map. Buildings are drawn each frame on `#bcanvas` by `drawBuildings()` from `CAMPUS` outlines, with estimated heights in `BH` and roofs cut from the photo. Pins live in `#pins` and are projected onto the ground each frame (`mapFrame`, `paintPin`), so they stay upright and on top. `camTransform()` keeps the ground filling the pane (no black), which limits zoom-out more in 3D than in 2D. Building taps in 3D go through `buildingAt()`.
 
 ## Motion rules
 
