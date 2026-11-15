@@ -31,11 +31,13 @@ Keep `campus.jpg` and `campus-hi.jpg` next to `index.html`. The live phone link 
 
 ### Real calls (Twilio)
 
-```
-ngrok http 8000                         # copy the https link
-export TWILIO_ACCOUNT_SID=AC... TWILIO_AUTH_TOKEN=... TWILIO_FROM=+1... PUBLIC_URL=https://xxxx.ngrok-free.app
-python3 thermo_server.py                # then open http://localhost:8000
-```
+**Windows, the easy way:**
+
+1. Install Cloudflare's tunnel once (free, no account): `winget install --id Cloudflare.cloudflared`
+2. Copy `.env.example` to `.env` and fill in your Twilio SID, token and number, the phone that should ring (`DEMO_CALL_B5=+1...` rings for Dev), and your Gemini key. Git ignores `.env`.
+3. Double-click `start.bat`. It starts the server and the tunnel, and opens http://localhost:8000.
+
+Anywhere else: `python3 thermo_server.py` does the same (it reads `.env` and starts `cloudflared` if it finds it). You can also set the same names as environment variables, or set `PUBLIC_URL` to your own https tunnel.
 
 Add `export GEMINI_API_KEY=...` (and optionally `GEMINI_MODEL`, default `gemini-3.7-flash`) and Gemini writes each call from what the dashboard knows (name, where they were last heard from, how long ago) and understands spoken answers ("my ankle hurts" counts as needs help). Lines Gemini wrote are tagged in the transcript. If Gemini takes over 3 seconds or fails, the fixed words are used, so a call is never silent.
 

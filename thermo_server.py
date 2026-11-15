@@ -2,7 +2,10 @@
 
 No installs needed:
 
-    python3 thermo_server.py                 # http://localhost:8000
+    python3 thermo_server.py                 # http://localhost:8000   (Windows: double-click start.bat)
+
+Settings can go in a file named .env next to this one (copy .env.example; git ignores .env).
+If cloudflared is installed and PUBLIC_URL isn't set, the server opens a free Cloudflare tunnel itself.
 
 Phone calls go through Twilio. Set these before starting (never commit them):
 
@@ -25,10 +28,14 @@ Clips POST their readings to /api/ingest (JSON with an "id", as the badge firmwa
 A clip that hasn't posted for OFFLINE_AFTER seconds shows as offline in the dashboard.
 """
 import argparse
+import atexit
 import base64
 import json
 import mimetypes
 import os
+import re
+import shutil
+import subprocess
 import threading
 import time
 import uuid
@@ -39,6 +46,26 @@ from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
+
+
+def load_env():
+    """KEY=value lines from .env (never committed). Settings already in the environment win."""
+    path = os.path.join(ROOT, ".env")
+    if not os.path.isfile(path):
+        return False
+    with open(path, encoding="utf-8-sig") as f:
+        for raw in f:
+            ln = raw.strip()
+            if not ln or ln.startswith("#") or "=" not in ln:
+                continue
+            k, v = ln.split("=", 1)
+            k, v = k.replace("export ", "", 1).strip(), v.strip().strip('"').strip("'")
+            if k and v and not os.environ.get(k):
+                os.environ[k] = v
+    return True
+
+
+ENV_FILE = load_env()
 OFFLINE_AFTER = float(os.environ.get("OFFLINE_AFTER", "4"))
 VOICE = os.environ.get("TWILIO_VOICE", "Polly.Joanna-Neural")
 MESSAGE = ("Hello, this is an automated call made because your ThermoSafe is disconnected from the network. "
@@ -189,6 +216,49 @@ def place_call(rec):
             line(rec, "system", "Couldn't reach Twilio: %s" % e)
 
 
+def demo_phones():
+    """DEMO_CALL_B5=+1... in .env: the phone that rings for that worker (keeps real numbers out of the repo)."""
+    return {k[len("DEMO_CALL_"):]: v.strip() for k, v in os.environ.items() if k.startswith("DEMO_CALL_") and v.strip()}
+
+
+def find_cloudflared():
+    p = os.environ.get("CLOUDFLARED") or shutil.which("cloudflared")
+    if p and os.path.isfile(p):
+        return p
+    home = os.path.expanduser("~")
+    for c in (r"C:\Program Files (x86)\cloudflared\cloudflared.exe", r"C:\Program Files\cloudflared\cloudflared.exe",
+              os.path.join(home, "Downloads", "cloudflared-windows-amd64.exe"), os.path.join(home, "Downloads", "cloudflared.exe"),
+              os.path.join(ROOT, "cloudflared.exe"), os.path.join(ROOT, "cloudflared-windows-amd64.exe")):
+        if os.path.isfile(c):
+            return c
+    return None
+
+
+def start_tunnel(port):
+    """A free Cloudflare quick tunnel to this server, so Twilio can report key presses. Its link becomes PUBLIC_URL."""
+    exe = find_cloudflared()
+    if not exe:
+        print("  Tunnel:       cloudflared not found (winget install --id Cloudflare.cloudflared), so key presses are off")
+        return None
+    try:
+        proc = subprocess.Popen([exe, "tunnel", "--no-autoupdate", "--url", "http://localhost:%d" % port],
+                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, errors="replace")
+    except OSError as e:
+        print("  Tunnel:       couldn't start cloudflared (%s), so key presses are off" % e)
+        return None
+    atexit.register(proc.terminate)
+
+    def watch():
+        for ln in proc.stdout:
+            m = re.search(r"https://[a-z0-9-]+\.trycloudflare\.com", ln)
+            if m and not os.environ.get("PUBLIC_URL"):
+                os.environ["PUBLIC_URL"] = m.group(0)
+                print("  Tunnel ready: %s  (key presses on; give it about 10 seconds before the first call)" % m.group(0))
+    threading.Thread(target=watch, daemon=True).start()
+    print("  Tunnel:       starting Cloudflare tunnel...")
+    return proc
+
+
 def device_list(now):
     with lock:
         return {k: {"age": round(now - v["seen"], 1), "online": now - v["seen"] < OFFLINE_AFTER} for k, v in devices.items()}
@@ -224,7 +294,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         u = urlparse(self.path)
         if u.path == "/api/health":
-            return self.json({"ok": True, "twilio": twilio_ready(), "public": bool(cfg()["PUBLIC_URL"]), "gemini": bool(os.environ.get("GEMINI_API_KEY", "").strip()), "offline_after": OFFLINE_AFTER})
+            return self.json({"ok": True, "twilio": twilio_ready(), "public": bool(cfg()["PUBLIC_URL"]), "gemini": bool(os.environ.get("GEMINI_API_KEY", "").strip()), "offline_after": OFFLINE_AFTER, "demo_phones": demo_phones()})
         if u.path == "/api/devices":
             return self.json(device_list(time.time()))
         if u.path == "/api/calls":
@@ -323,6 +393,18 @@ class Handler(BaseHTTPRequestHandler):
         return self.json({"ok": False, "error": "Not found"}, 404)
 
 
+def lan_ip():
+    import socket
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("10.255.255.255", 1))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except OSError:
+        return "127.0.0.1"
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=8000)
@@ -332,11 +414,20 @@ def main():
     srv.daemon_threads = True
     c = cfg()
     print("\nThermoSafe is running")
+    print("  Settings:     %s" % (".env loaded" if ENV_FILE else "no .env file (copy .env.example to .env)"))
     print("  Dashboard:    http://localhost:%d" % a.port)
-    print("  Clips post:   http://<this laptop's IP>:%d/api/ingest" % a.port)
+    print("  Clips post:   http://%s:%d/api/ingest" % (lan_ip(), a.port))
     print("  Phone calls:  %s" % ("Twilio ready, from %s" % c["TWILIO_FROM"] if twilio_ready() else "practice calls only (Twilio settings not found)"))
+    for wid, num in sorted(demo_phones().items()):
+        print("  Demo phone:   %s rings %s" % (wid, num))
     print("  Gemini:       %s" % ("writes each call and reads spoken answers (%s)" % GEMINI_MODEL if os.environ.get("GEMINI_API_KEY", "").strip() else "off (fixed words; set GEMINI_API_KEY)"))
-    print("  Key presses:  %s\n" % ("via %s" % c["PUBLIC_URL"] if c["PUBLIC_URL"] else "off (set PUBLIC_URL to an https tunnel, e.g. ngrok http %d)" % a.port))
+    if c["PUBLIC_URL"]:
+        print("  Key presses:  via %s" % c["PUBLIC_URL"])
+    elif os.environ.get("TUNNEL", "").lower() not in ("off", "0", "no"):
+        start_tunnel(a.port)
+    else:
+        print("  Key presses:  off (TUNNEL=off and no PUBLIC_URL)")
+    print("")
     try:
         srv.serve_forever()
     except KeyboardInterrupt:

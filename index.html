@@ -3309,16 +3309,16 @@ const CALL_MENU = "If you are making your way back to the site manager, press 1.
 let contactEdits = {}; try { contactEdits = JSON.parse(store.get("beacon.contacts") || "{}") || {}; } catch (e) { contactEdits = {}; }
 function contactOf(id) {
   const d = CONTACT_DEFAULTS[id] || ["", "", "", ""], e = contactEdits[id] || {};
-  return { phone: e.phone ?? d[0], ename: e.ename ?? d[1], rel: e.rel ?? d[2], ephone: e.ephone ?? d[3] };
+  return { phone: e.phone ?? (srv.demo && srv.demo[id]) ?? d[0], ename: e.ename ?? d[1], rel: e.rel ?? d[2], ephone: e.ephone ?? d[3] };   // a DEMO_CALL_ number from the server's .env beats the made-up one
 }
 function setContact(id, key, val) { contactEdits[id] = { ...(contactEdits[id] || {}), [key]: val }; store.set("beacon.contacts", JSON.stringify(contactEdits)); }
 function fmtPhone(n) { const d = String(n || "").replace(/\D/g, ""), t = d.length === 11 && d[0] === "1" ? d.slice(1) : d; return t.length === 10 ? `(${t.slice(0, 3)}) ${t.slice(3, 6)}-${t.slice(6)}` : n || ""; }
 
 // the call server (thermo_server.py): found by asking it, same origin unless localStorage beacon.server says otherwise
-const srv = { ok: false, twilio: false, public: false, gemini: false, base: (store.get("beacon.server") || "").replace(/\/$/, "") };
+const srv = { ok: false, twilio: false, public: false, gemini: false, demo: {}, base: (store.get("beacon.server") || "").replace(/\/$/, "") };
 async function srvCheck() {
   if (!/^https?:/.test(location.protocol) && !srv.base) return;
-  try { const r = await fetch(srv.base + "/api/health", { cache: "no-store" }); const j = await r.json(); Object.assign(srv, { ok: !!j.ok, twilio: !!j.twilio, public: !!j.public, gemini: !!j.gemini }); }
+  try { const r = await fetch(srv.base + "/api/health", { cache: "no-store" }); const j = await r.json(); Object.assign(srv, { ok: !!j.ok, twilio: !!j.twilio, public: !!j.public, gemini: !!j.gemini, demo: j.demo_phones || {} }); }
   catch (e) { srv.ok = false; }
   renderContactsTop();
 }

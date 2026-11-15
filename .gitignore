@@ -2,3 +2,7 @@ __pycache__/
 *.pyc
 beacon/data/*.json
 .DS_Store
+
+# local settings: keys and phone numbers stay on the laptop
+.env
+cloudflared*.exe
