@@ -2688,7 +2688,7 @@ setInterval(() => { if (remoteBoard && clipMode && Date.now() - remoteBoard.at >
 /* ---------- Ask Beacon: Gemini answers questions about the live crew data ---------- */
 // The key is pasted in the page and kept only in this browser. Calls go straight to Google's Gemini API,
 // which works from GitHub Pages or a local file (a claude.ai artifact blocks outside calls).
-const GEM_DEFAULT_MODEL = "gemini-3.8-flash";
+const GEM_DEFAULT_MODEL = "gemini-3.7-flash";
 let askOpen = false; const askLog = [];
 const gemKey = () => store.get("beacon.gemini.key") || "";
 const gemModel = () => store.get("beacon.gemini.model") || GEM_DEFAULT_MODEL;
@@ -2723,7 +2723,7 @@ async function askGemini(q) {
       ...askLog.slice(-4).flatMap((m) => [{ role: "user", parts: [{ text: m.q }] }, { role: "model", parts: [{ text: m.a }] }]),
       { role: "user", parts: [{ text: `${q}\n\nDATA:\n${JSON.stringify(crewData())}` }] },
     ],
-    // 3.8 Flash: sampling params (temperature etc.) are deprecated, so none are sent. Thinking counts toward the token cap, so keep it low and leave room.
+    // 3.7 Flash: sampling params (temperature etc.) are deprecated, so none are sent. Thinking counts toward the token cap, so keep it low and leave room.
     generationConfig: { maxOutputTokens: 1500, thinkingConfig: { thinkingLevel: "low" } },
   };
   const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(gemModel())}:generateContent`, {
