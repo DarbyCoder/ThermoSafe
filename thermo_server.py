@@ -219,7 +219,7 @@ def place_call(rec):
                 msg = json.loads(msg).get("message", msg)
             except ValueError:
                 pass
-            if e.code == 400 and ("trial" in msg.lower() or "parameter" in msg.lower()):
+            if e.code == 400 and "parameter" in msg.lower():   # an option this account won't take: try a simpler way
                 print("Twilio refused the '%s' way (%s); trying a simpler one" % (mode, msg[:90]))
                 continue
             break
@@ -242,8 +242,10 @@ def place_call(rec):
         return
     with lock:
         rec["status"] = "failed"
-        trial = "trial" in msg.lower()
-        line(rec, "system", "Twilio refused the call: %s%s" % (msg, " (this Twilio trial blocks custom calls: upgrade the account in Twilio's Console to fix it)" if trial else ""))
+        low = msg.lower()
+        hint = (" (this Twilio trial blocks custom calls: upgrade the account in Twilio's Console to fix it)" if "parameter" in low
+                else " (set TWILIO_FROM to the trial number Twilio assigned to this phone: pick it as 'To' in the Console's Try out Voice and copy its 'From')" if "assigned" in low else "")
+        line(rec, "system", "Twilio refused the call: %s%s" % (msg, hint))
 
 
 def demo_phones():
