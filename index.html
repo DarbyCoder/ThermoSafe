@@ -580,7 +580,7 @@ body { background: var(--frame); }
 .pin { border-width: 3px; box-shadow: 0 4px 12px rgba(0, 0, 0, .45); }
 .pin.sel { box-shadow: 0 0 0 3px var(--brand), 0 4px 12px rgba(0, 0, 0, .45); }
 .pin.you { background: var(--night); color: #fff; border: 2px solid #fff; }
-.pin .fl { background: var(--watch); color: var(--watch-ink); }
+.pin .fl { display: none; }   /* floor numbers on map pins removed; the floor still shows in each worker's card */
 .pin .tag { background: var(--panel); color: var(--ink); border-radius: 999px; padding: 4px 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, .3); }
 .bcard { border-radius: 20px; padding: 14px 16px; box-shadow: 0 12px 30px rgba(0, 0, 0, .35); }
 .bcard h3 { font-weight: 700; }
@@ -2688,7 +2688,7 @@ setInterval(() => { if (remoteBoard && clipMode && Date.now() - remoteBoard.at >
 /* ---------- Ask Beacon: Gemini answers questions about the live crew data ---------- */
 // The key is pasted in the page and kept only in this browser. Calls go straight to Google's Gemini API,
 // which works from GitHub Pages or a local file (a claude.ai artifact blocks outside calls).
-const GEM_DEFAULT_MODEL = "gemini-2.5-flash";
+const GEM_DEFAULT_MODEL = "gemini-3.8-flash";
 let askOpen = false; const askLog = [];
 const gemKey = () => store.get("beacon.gemini.key") || "";
 const gemModel = () => store.get("beacon.gemini.model") || GEM_DEFAULT_MODEL;
@@ -2723,7 +2723,8 @@ async function askGemini(q) {
       ...askLog.slice(-4).flatMap((m) => [{ role: "user", parts: [{ text: m.q }] }, { role: "model", parts: [{ text: m.a }] }]),
       { role: "user", parts: [{ text: `${q}\n\nDATA:\n${JSON.stringify(crewData())}` }] },
     ],
-    generationConfig: { temperature: 0.2, maxOutputTokens: 400 },
+    // 3.8 Flash: sampling params (temperature etc.) are deprecated, so none are sent. Thinking counts toward the token cap, so keep it low and leave room.
+    generationConfig: { maxOutputTokens: 1500, thinkingConfig: { thinkingLevel: "low" } },
   };
   const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(gemModel())}:generateContent`, {
     method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": key }, body: JSON.stringify(body),
